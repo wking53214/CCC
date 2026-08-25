@@ -1,28 +1,48 @@
-# Cognitive Continuity Constitution
+# Cognitive Continuity Constitution (CCC)
 
-This repository contains a dependency-free executable enforcement layer for
-the Cognitive Continuity Constitution requirements supplied in the build
-directive.
+## Executable Constitutional Governance for AI Continuity
 
-Run the demonstration from a clean checkout:
+The Cognitive Continuity Constitution (CCC) is a dependency-free Python implementation of a constitutional governance model for AI systems.
 
-```bash
-python3 -m ccc
-```
+CCC is designed to preserve the distinctions that become critical when an AI system accumulates information, generates interpretations, modifies knowledge, interacts with human authority, and carries state forward through time.
 
-Run the constitutional tests and numbered harness:
+The implementation focuses on five foundational concerns:
 
-```bash
-python3 -m pytest -q
-python3 -m ccc.testing
-```
+- provenance;
+- epistemic state;
+- evidence;
+- human authority;
+- historical continuity.
 
-The public facade is `ccc.CCCSystem`. It preserves immutable artifact
-identifiers, explicit provenance and epistemic transitions, separate Chain A
-and Chain B records, evidence-root cascades, historical lineage, human
-resolution, audit events, and JSON snapshots.
+Rather than treating these as informal conventions, CCC represents them as explicit state, relationships, transitions, validation rules, and auditable events.
 
-No ratified CCC document or prior harness history is present in the GitHub
-repository. Rule traceability therefore identifies the supplied build
-directive as its source and leaves article identifiers null; it does not
-invent constitutional article numbers.
+---
+
+## Core Principle
+
+An AI system should not be permitted to silently transform:
+
+```text
+machine-generated information
+        into
+human-established fact
+
+inference
+        into
+evidence
+
+simulation
+        into
+history
+
+interpretation
+        into
+fact
+
+proposal
+        into
+authority
+
+current state
+        into
+rewritten history
