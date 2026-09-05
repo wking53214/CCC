@@ -155,6 +155,32 @@ def test_correction_and_supersession_preserve_old_identity(fact):
     assert RelationshipType.SUPERSEDES in relationships
 
 
+def test_instantiates_relationship_can_be_recorded_and_queried(fact):
+    """The container/principle edge from the VSA/Citadel reconstruction:
+    'Citadel instantiates the VSA principle'. A typed, immutable lineage
+    edge -- distinct from DERIVED_FROM or SUPPORTS."""
+    system, _ = fact
+    citadel = system.ingest("Citadel: the system", actor=Actor.human("william"),
+                            epistemic_status=EpistemicStatus.HISTORICAL_RECORD)
+    vsa = system.ingest("VSA: the governing principle", actor=Actor.human("william"),
+                        epistemic_status=EpistemicStatus.HISTORICAL_RECORD)
+
+    event = system.relate(citadel.artifact_id, vsa.artifact_id,
+                          RelationshipType.INSTANTIATES, actor=Actor.human("william"),
+                          reason="Citadel was built to enforce the vassal-state law")
+    assert event.relationship is RelationshipType.INSTANTIATES
+
+    hits = system.lineage.related(citadel.artifact_id, RelationshipType.INSTANTIATES)
+    assert len(hits) == 1 and hits[0].target_id == vsa.artifact_id
+
+
+def test_relate_refuses_lifecycle_relationships(fact):
+    system, source = fact
+    with pytest.raises(ValueError, match="lifecycle relationship"):
+        system.relate(source.artifact_id, source.artifact_id, RelationshipType.SUPERSEDES,
+                      actor=Actor.human("william"), reason="wrong door")
+
+
 def test_machine_cannot_veto_human_erasure(fact):
     system, source = fact
     with pytest.raises(ConstitutionViolation):
