@@ -12,6 +12,7 @@ from .canonicalization import CanonicalizationManager
 from .conflict import ConflictManager
 from .constitutional_rules import ConstitutionalRuleEngine
 from .discovery import DiscoveryManager
+from . import matching
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
 from .human_resolution import HumanResolutionManager
@@ -484,14 +485,24 @@ class CCCSystem:
           requires a sealed, hash-verified claim (HERALD's discipline, not
           this intake), and isn't solved here.
 
-        Exact re-discovery is a no-op, not a duplicate: if an existing
-        discovery's source_material already covers this finding's sources
-        completely, this returns that record unchanged rather than
-        recording a second ANOMALY for the same thing observed twice. This
-        only catches the identical-sources case -- a genuinely independent
-        second occurrence (different sources, same underlying pattern)
-        still has no automated detection anywhere in CCC; that remains the
-        real, unbuilt recurrence-detection gap.
+        Duplicate detection is content-based and anti-probabilistic
+        (ccc.matching), not a path comparison: it asks how implausible this
+        finding's content overlap with an existing discovery would be as
+        pure coincidence between two independent, honest processes, using
+        the entropy of the matched text, not whether file paths line up.
+        This is never proof either finding is genuine -- two forgeries can
+        match each other perfectly and this will say so with full
+        confidence. It only says the overlap is not plausibly accidental.
+
+        A duplicate is still recorded, not silently absorbed: the point is
+        an auditable, timestamped fact that this was re-observed, locked in
+        via `relationships` pointing at what it matches and a `method`
+        string carrying the anti-probability and match length -- not a
+        second ANOMALY that would let a re-run query inflate an
+        independent-occurrence count into a false pattern. Anything
+        counting toward pattern-advancement later must exclude
+        duplicate-tagged records; that filtering isn't built yet, but the
+        tag it depends on now exists and is on the record.
         """
         if not finding.verified:
             raise ValueError(
@@ -514,23 +525,42 @@ class CCCSystem:
                 "refusing a self-inconsistent finding"
             )
 
-        new_sources = set(finding.source_material)
-        for existing in self.store.discoveries.values():
-            if new_sources and new_sources.issubset(set(existing.source_material)):
-                return existing
-
         evidence = getattr(finding, "evidence", ())
         supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
+        comparison_text = "\n".join(excerpt for _source, excerpt in evidence) or finding.conclusion
+
+        candidates = {
+            existing.discovery_id: (
+                "\n".join(
+                    line.split(": ", 1)[1] if ": " in line else line
+                    for line in existing.supporting_evidence
+                ) or existing.conclusion
+            )
+            for existing in self.store.discoveries.values()
+        }
+        match = matching.best_match_against(comparison_text, candidates)
+
+        method = finding.method
+        relationships: tuple = ()
+        if match is not None and match[1].implausible_as_coincidence:
+            matched_id, result = match
+            relationships = (matched_id,)
+            method = (
+                f"{finding.method} -- duplicate detection: anti-probability "
+                f"{result.anti_probability:.3e} of coincidental match, "
+                f"{result.match_length} char overlap with {matched_id}"
+            )
 
         return self.discovery.discover(
             source_material=finding.source_material,
-            method=finding.method,
+            method=method,
             conclusion=finding.conclusion,
             confidence=finding.confidence,
             supporting_evidence=supporting_evidence,
             actor=actor,
             epistemic_status=epistemic_status,
             stage=AnalysisStage.ANOMALY,
+            relationships=relationships,
         )
 
     def advance_discovery(self, *args, **kwargs):

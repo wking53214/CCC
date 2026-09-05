@@ -108,28 +108,75 @@ def test_evidence_pairs_become_supporting_evidence_not_a_collapsed_number():
     )
 
 
-def test_exact_re_discovery_of_the_same_sources_is_a_no_op_not_a_duplicate():
-    """Same source_material found again is the same observation resurfacing,
-    not a second, independent occurrence -- recording it again would let a
-    re-run query inflate anomaly count into a false pattern."""
-    system = CCCSystem()
-    first = system.record_external_finding(_verified_finding(), actor=Actor.model("m"))
-    second = system.record_external_finding(_verified_finding(), actor=Actor.model("m"))
-    assert second.discovery_id == first.discovery_id
-    assert len(system.store.discoveries) == 1
+_LONG_EXCERPT = (
+    "Ecology's README describes a living, branching, converging memory "
+    "model; its actual code is a retrieval pipeline with no identity, "
+    "provenance, or temporal model of any kind whatsoever."
+)  # 160 chars -- long enough that an accidental match is not plausible
 
 
-def test_different_source_material_is_still_recorded_as_a_new_discovery():
-    """The narrow fix only catches identical sources -- a genuinely
-    different source is not deduped, even if it might turn out to support
-    the same underlying pattern (that judgment is the still-unbuilt
-    recurrence-detection layer, not this intake)."""
+def test_identical_long_content_is_recorded_and_tagged_as_a_duplicate():
+    """A duplicate is still recorded -- not silently absorbed -- so the
+    re-observation is itself an auditable fact. It's tagged via
+    relationships pointing at what it matches, not returned as the same
+    record, and never let it look like an independent second occurrence."""
     system = CCCSystem()
     first = system.record_external_finding(
-        _verified_finding(source_material=("a.md",)), actor=Actor.model("m"),
+        _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
     )
     second = system.record_external_finding(
-        _verified_finding(source_material=("b.md",)), actor=Actor.model("m"),
+        _verified_finding(source_material=("b.md",), evidence=(("b.md", _LONG_EXCERPT),)),
+        actor=Actor.model("m"),
     )
     assert second.discovery_id != first.discovery_id
-    assert len(system.store.discoveries) == 2
+    assert second.relationships == (first.discovery_id,)
+    assert "anti-probability" in second.method
+    assert len(system.store.discoveries) == 2  # both on the record, neither absorbed
+
+
+def test_unrelated_long_content_is_not_flagged_as_a_duplicate():
+    system = CCCSystem()
+    first = system.record_external_finding(
+        _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
+    )
+    second = system.record_external_finding(
+        _verified_finding(
+            source_material=("b.md",),
+            evidence=(("b.md", "Something entirely different about a completely unrelated topic."),),
+        ),
+        actor=Actor.model("m"),
+    )
+    assert second.relationships == ()
+    assert "anti-probability" not in second.method
+
+
+def test_short_shared_phrase_is_not_falsely_flagged_as_a_duplicate():
+    """A short common phrase matching is unremarkable, not evidence of
+    duplication -- the floor exists so the entropy formula isn't misapplied
+    to noise-length overlaps."""
+    system = CCCSystem()
+    system.record_external_finding(
+        _verified_finding(evidence=(("a.md", "the system works well"),)), actor=Actor.model("m"),
+    )
+    second = system.record_external_finding(
+        _verified_finding(source_material=("b.md",),
+                           evidence=(("b.md", "everyone agrees the system works well today"),)),
+        actor=Actor.model("m"),
+    )
+    assert second.relationships == ()
+
+
+def test_duplicates_are_audited_not_silently_absorbed():
+    """The earlier version of this fix returned the existing record with no
+    audit trail at all -- a duplicate submission left zero trace. Every
+    finding, duplicate or not, now goes through discover() and is audited."""
+    system = CCCSystem()
+    system.record_external_finding(
+        _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
+    )
+    system.record_external_finding(
+        _verified_finding(source_material=("b.md",), evidence=(("b.md", _LONG_EXCERPT),)),
+        actor=Actor.model("m"),
+    )
+    discover_events = [e for e in system.audit() if e.operation == "DISCOVER"]
+    assert len(discover_events) == 2
