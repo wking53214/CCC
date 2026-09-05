@@ -12,6 +12,7 @@ from .canonicalization import CanonicalizationManager
 from .conflict import ConflictManager
 from .constitutional_rules import ConstitutionalRuleEngine
 from .discovery import DiscoveryManager
+from . import matching
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
 from .human_resolution import HumanResolutionManager
@@ -20,6 +21,7 @@ from .lineage import LineageManager
 from .models import (
     Actor,
     ActorType,
+    AnalysisStage,
     Artifact,
     ArtifactState,
     EpistemicStatus,
@@ -455,6 +457,129 @@ class CCCSystem:
 
     def discover(self, **kwargs):
         return self.discovery.discover(**kwargs)
+
+    def record_external_finding(self, finding, *, actor: Actor,
+                                 epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE):
+        """Record a finding from an external evidence-search system (such as
+        Ecology's FindingRecord) as a CCC anomaly.
+
+        This package does not import the producing system. Anything
+        supplying `.conclusion`, `.method`, `.source_material`,
+        `.confidence`, `.verified`, and (optionally) `.evidence` -- a tuple
+        of (source, excerpt) pairs -- can be recorded this way; the contract
+        is structural, not a dependency.
+
+        Three refusals, none of them silent downgrades:
+
+        - An unverified finding (`.verified` is False) is refused outright:
+          an honest non-answer is not an anomaly worth recording.
+        - A finding can only be machine-originated -- pass a MODEL or
+          SYSTEM actor, never HUMAN, since nothing external to CCC gets to
+          assert something as a human-established fact.
+        - Internal self-inconsistency is refused: `.verified` True with no
+          `.source_material`, or a `.confidence` outside [0, 1], is not a
+          finding CCC can trust just because the boolean says so. This
+          catches sloppy or malformed input; it does not, by itself, stop a
+          deliberately forged one -- nothing here cryptographically proves
+          `.verified` was honestly computed by whatever produced it. That
+          requires a sealed, hash-verified claim (HERALD's discipline, not
+          this intake), and isn't solved here.
+
+        Duplicate detection is content-based and anti-probabilistic
+        (ccc.matching), not a path comparison: it asks how implausible this
+        finding's content overlap with an existing discovery would be as
+        pure coincidence between two independent, honest processes, using
+        the entropy of the matched text, not whether file paths line up.
+        This is never proof either finding is genuine -- two forgeries can
+        match each other perfectly and this will say so with full
+        confidence. It only says the overlap is not plausibly accidental.
+
+        A duplicate is still recorded, not silently absorbed: the point is
+        an auditable, timestamped fact that this was re-observed, locked in
+        via `relationships` pointing at what it matches and a `method`
+        string carrying the anti-probability and match length -- not a
+        second ANOMALY that would let a re-run query inflate an
+        independent-occurrence count into a false pattern. Anything
+        counting toward pattern-advancement later must exclude
+        duplicate-tagged records; that filtering isn't built yet, but the
+        tag it depends on now exists and is on the record.
+        """
+        if not finding.verified:
+            raise ValueError(
+                "refusing to record an unverified finding as a discovery -- "
+                "an honest non-answer is not an anomaly"
+            )
+        if actor.kind not in (ActorType.MODEL, ActorType.SYSTEM):
+            raise ValueError(
+                "an external finding is machine-originated by construction; "
+                "pass a MODEL or SYSTEM actor, not HUMAN"
+            )
+        if not finding.source_material:
+            raise ValueError(
+                "a verified finding with no source_material is "
+                "self-inconsistent -- refusing to record it"
+            )
+        if not all(isinstance(s, str) and s for s in finding.source_material):
+            raise ValueError(
+                f"source_material {finding.source_material!r} contains a "
+                "non-string or empty entry -- refusing a self-inconsistent finding"
+            )
+        if not finding.conclusion:
+            raise ValueError(
+                "a verified finding with an empty conclusion is "
+                "self-inconsistent -- refusing to record it"
+            )
+        if finding.confidence is not None and not 0.0 <= finding.confidence <= 1.0:
+            raise ValueError(
+                f"confidence {finding.confidence!r} is outside [0, 1] -- "
+                "refusing a self-inconsistent finding"
+            )
+
+        evidence = getattr(finding, "evidence", ())
+        for pair in evidence:
+            if (not isinstance(pair, tuple) or len(pair) != 2
+                    or not all(isinstance(x, str) and x for x in pair)):
+                raise ValueError(
+                    f"evidence entry {pair!r} is not a (source, excerpt) pair "
+                    "of non-empty strings -- refusing a malformed finding "
+                    "rather than raising a bare TypeError deeper in the call"
+                )
+        supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
+        comparison_text = "\n".join(excerpt for _source, excerpt in evidence) or finding.conclusion
+
+        candidates = {
+            existing.discovery_id: (
+                "\n".join(
+                    line.split(": ", 1)[1] if ": " in line else line
+                    for line in existing.supporting_evidence
+                ) or existing.conclusion
+            )
+            for existing in self.store.discoveries.values()
+        }
+        match = matching.best_match_against(comparison_text, candidates)
+
+        method = finding.method
+        relationships: tuple = ()
+        if match is not None and match[1].implausible_as_coincidence:
+            matched_id, result = match
+            relationships = (matched_id,)
+            method = (
+                f"{finding.method} -- duplicate detection: anti-probability "
+                f"{result.anti_probability:.3e} of coincidental match, "
+                f"{result.match_length} char overlap with {matched_id}"
+            )
+
+        return self.discovery.discover(
+            source_material=finding.source_material,
+            method=method,
+            conclusion=finding.conclusion,
+            confidence=finding.confidence,
+            supporting_evidence=supporting_evidence,
+            actor=actor,
+            epistemic_status=epistemic_status,
+            stage=AnalysisStage.ANOMALY,
+            relationships=relationships,
+        )
 
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
