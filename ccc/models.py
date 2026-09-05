@@ -61,6 +61,11 @@ class RelationshipType(_ValueEnum):
     ADOPTS = "ADOPTS"
     BRANCH_OF = "BRANCH_OF"
     THREAD_CONTINUATION = "THREAD_CONTINUATION"
+    # X instantiates principle Y -- the container/principle relationship
+    # surfaced in the VSA/Citadel reconstruction ("Citadel is the system,
+    # VSA is the governing law it was built to enforce"). Distinct from
+    # DERIVED_FROM (X came out of Y) and SUPPORTS (X is evidence for Y).
+    INSTANTIATES = "INSTANTIATES"
     RELATED_TO = "RELATED_TO"
     RESOLVES = "RESOLVES"
 

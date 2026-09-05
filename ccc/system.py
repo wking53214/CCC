@@ -484,6 +484,30 @@ class CCCSystem:
         )
         return new_artifact
 
+    # Relationship types that have their own gated lifecycle methods -- they
+    # must not be recorded through the generic relate() door, which would
+    # skip the state changes and human-authorization those operations carry.
+    _LIFECYCLE_RELATIONSHIPS = frozenset({
+        RelationshipType.CORRECTS, RelationshipType.AMENDS, RelationshipType.SUPERSEDES,
+        RelationshipType.REDACTS, RelationshipType.ERASES,
+    })
+
+    def relate(self, source_id: str, target_id: str, relationship: RelationshipType, *,
+               actor: Actor, reason: str, evidence: tuple[str, ...] = ()):
+        """Record a typed, immutable relationship edge between two objects
+        that is not a lifecycle change -- e.g. INSTANTIATES ("Citadel
+        instantiates the VSA principle"), DERIVED_FROM, RELATED_TO. Lifecycle
+        relationships (CORRECTS/AMENDS/SUPERSEDES/REDACTS/ERASES) are refused
+        here; use correct()/amend()/supersede()/redact()/erase()."""
+        if relationship in self._LIFECYCLE_RELATIONSHIPS:
+            raise ValueError(
+                f"{relationship.value} is a lifecycle relationship -- record it via its "
+                "own method (correct/amend/supersede/redact/erase), not relate()"
+            )
+        return self.lineage.link(
+            source_id, target_id, relationship, actor=actor, reason=reason, evidence=evidence,
+        )
+
     def redact(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.REDACTED, relationship=RelationshipType.REDACTS, operation="REDACT")
 
