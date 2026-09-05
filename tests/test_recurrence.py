@@ -126,18 +126,24 @@ def test_third_occurrence_records_a_road_sign_not_a_mandate():
 
 
 @pytest.mark.xfail(reason=(
-    "KNOWN LIMIT, not fixed in this pass. If two findings are compared on "
-    "generated prose that shares a long templated preamble (a RAG generator "
-    "emits the same one on every answer), the anti-probability check sees a "
-    "common source and links them as duplicates even though their substance "
-    "differs. Every fix considered (concept-overlap floor, match-containment "
-    "ratio) also weakens the resubmission defence that test_smash_findings "
-    "exists for -- 'same finding + different filler each time' and 'different "
-    "findings + shared preamble' are not cleanly separable by text statistics. "
-    "Narrow in practice: comparison_text normally comes from retrieved source "
-    "excerpts, not generated prose -- this only bites on the evidence-less "
-    "fallback path. Proper fix: register generator preambles as known "
-    "boilerplate (same mechanism that closed the Apache-2.0 false positive)."
+    "KNOWN LIMIT, deliberately not closed -- and narrower than it looks. IF "
+    "two findings are compared on generated prose sharing a long templated "
+    "preamble, the anti-probability check sees a common source and links them "
+    "as duplicates though their substance differs. BUT: (1) Ecology's real "
+    "generator emits no fixed preamble -- its system prompt is 'You are an "
+    "analytical executive assistant...' and the output is the model's own "
+    "prose, verified 2026-09-05 against ecology/rag_engine.py; (2) "
+    "comparison_text normally comes from retrieved source excerpts, not "
+    "generated prose at all -- only the evidence-less fallback path is even "
+    "exposed. Every statistical fix tried (concept-overlap floor, "
+    "match-containment ratio) also weakens the resubmission defence "
+    "test_smash_findings exists for; the two cases are not separable by text "
+    "statistics. Registering a generic preamble string as known boilerplate "
+    "does NOT work either -- _explained_by_known_boilerplate does a substring "
+    "test against whole reference files, so a short phrase file would exclude "
+    "any matched span sitting inside it, weakening duplicate detection "
+    "broadly. A real close needs a specific, observed preamble string from a "
+    "specific generator -- none exists in this system today."
 ), strict=True)
 def test_shared_templated_preamble_does_not_collapse_two_findings():
     system = CCCSystem()
@@ -229,7 +235,8 @@ def test_a_duplicate_in_the_chain_is_not_counted_as_an_occurrence():
     assert "1 prior occurrence" in c.method
     assert "2 prior occurrence" in d.method
     signs = [s for s in system.store.road_signs.values() if s.metadata.get("pattern_id") == a.discovery_id]
-    assert signs and signs[0].metadata["occurrence_count"] == 3  # A, C, D -- not B
+    assert len(signs) == 1                                 # only D is a 3rd+ occurrence
+    assert signs[0].metadata["occurrence_count"] == 3      # A, C, D -- not the duplicate B
 
 
 def test_genuinely_novel_findings_stay_separate_anomalies():

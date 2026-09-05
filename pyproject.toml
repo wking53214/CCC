@@ -19,5 +19,10 @@ dev = ["pytest>=8"]
 testpaths = ["tests"]
 pythonpath = ["."]
 
+[tool.ruff]
+target-version = "py311"
+# Default rule set (E, F). The CI gate pins ruff==0.15.22 so "passes
+# locally" and "passes the gate" stay the same thing.
+
 [tool.setuptools]
 packages = ["ccc", "ccc.testing"]
