@@ -464,14 +464,34 @@ class CCCSystem:
 
         This package does not import the producing system. Anything
         supplying `.conclusion`, `.method`, `.source_material`,
-        `.confidence`, and `.verified` can be recorded this way -- the
-        contract is structural, not a dependency.
+        `.confidence`, `.verified`, and (optionally) `.evidence` -- a tuple
+        of (source, excerpt) pairs -- can be recorded this way; the contract
+        is structural, not a dependency.
 
-        An unverified finding (`.verified` is False) is refused outright: an
-        honest non-answer is not an anomaly worth recording. A finding can
-        only be machine-originated -- pass a MODEL or SYSTEM actor, never
-        HUMAN, since nothing external to CCC gets to assert something as a
-        human-established fact.
+        Three refusals, none of them silent downgrades:
+
+        - An unverified finding (`.verified` is False) is refused outright:
+          an honest non-answer is not an anomaly worth recording.
+        - A finding can only be machine-originated -- pass a MODEL or
+          SYSTEM actor, never HUMAN, since nothing external to CCC gets to
+          assert something as a human-established fact.
+        - Internal self-inconsistency is refused: `.verified` True with no
+          `.source_material`, or a `.confidence` outside [0, 1], is not a
+          finding CCC can trust just because the boolean says so. This
+          catches sloppy or malformed input; it does not, by itself, stop a
+          deliberately forged one -- nothing here cryptographically proves
+          `.verified` was honestly computed by whatever produced it. That
+          requires a sealed, hash-verified claim (HERALD's discipline, not
+          this intake), and isn't solved here.
+
+        Exact re-discovery is a no-op, not a duplicate: if an existing
+        discovery's source_material already covers this finding's sources
+        completely, this returns that record unchanged rather than
+        recording a second ANOMALY for the same thing observed twice. This
+        only catches the identical-sources case -- a genuinely independent
+        second occurrence (different sources, same underlying pattern)
+        still has no automated detection anywhere in CCC; that remains the
+        real, unbuilt recurrence-detection gap.
         """
         if not finding.verified:
             raise ValueError(
@@ -483,11 +503,31 @@ class CCCSystem:
                 "an external finding is machine-originated by construction; "
                 "pass a MODEL or SYSTEM actor, not HUMAN"
             )
+        if not finding.source_material:
+            raise ValueError(
+                "a verified finding with no source_material is "
+                "self-inconsistent -- refusing to record it"
+            )
+        if finding.confidence is not None and not 0.0 <= finding.confidence <= 1.0:
+            raise ValueError(
+                f"confidence {finding.confidence!r} is outside [0, 1] -- "
+                "refusing a self-inconsistent finding"
+            )
+
+        new_sources = set(finding.source_material)
+        for existing in self.store.discoveries.values():
+            if new_sources and new_sources.issubset(set(existing.source_material)):
+                return existing
+
+        evidence = getattr(finding, "evidence", ())
+        supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
+
         return self.discovery.discover(
             source_material=finding.source_material,
             method=finding.method,
             conclusion=finding.conclusion,
             confidence=finding.confidence,
+            supporting_evidence=supporting_evidence,
             actor=actor,
             epistemic_status=epistemic_status,
             stage=AnalysisStage.ANOMALY,
