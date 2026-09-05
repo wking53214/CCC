@@ -23,6 +23,7 @@ which is the point: a 20-character coincidental match is plausible, a
 from __future__ import annotations
 
 import difflib
+from pathlib import Path
 from typing import NamedTuple, Optional
 
 # Shannon, "Prediction and Entropy of Printed English" (1951): ~1.0-1.5 bits
@@ -71,15 +72,53 @@ DUPLICATE_THRESHOLD = 1e-9
 # inputs, not from a length any real excerpt is expected to need.
 MAX_COMPARISON_LENGTH = 2000
 
+# The entropy formula assumes natural-English prose (~1.3 bits/char). It is
+# wrong on exactly the text most likely to be identical across genuinely
+# unrelated things: license headers, standard disclaimers, copy-pasted
+# templates -- near-zero real entropy by design, since they're SUPPOSED to
+# be identical everywhere. Confirmed directly: the real Apache-2.0 LICENSE
+# text from two unrelated repos in this ecosystem produced anti_probability
+# 0.0 over a 900-character match -- "impossible as coincidence" for two
+# files that share nothing but standard license boilerplate.
+#
+# This is a narrow, honest mitigation, not a general solution: it excludes
+# a match that falls entirely within one of a short, maintained list of
+# known common texts. It catches the specific, verified case (and similar
+# common licenses). It does NOT solve the deeper problem of low-entropy
+# template text that isn't on this list -- that would need measuring the
+# matched text's own empirical entropy rather than recognizing it by
+# reference, and isn't attempted here.
+_BOILERPLATE_DIR = Path(__file__).parent / "known_boilerplate"
+
+
+def _load_known_boilerplate() -> tuple:
+    if not _BOILERPLATE_DIR.is_dir():
+        return ()
+    return tuple(
+        path.read_text(encoding="utf-8", errors="ignore")
+        for path in sorted(_BOILERPLATE_DIR.glob("*.txt"))
+    )
+
+
+_KNOWN_BOILERPLATE = _load_known_boilerplate()
+
+
+def _explained_by_known_boilerplate(matched_text: str) -> bool:
+    if len(matched_text) < MINIMUM_MATCH_LENGTH:
+        return False
+    return any(matched_text in reference for reference in _KNOWN_BOILERPLATE)
+
 
 class MatchResult(NamedTuple):
     anti_probability: float
     match_length: int
+    explained_by_known_boilerplate: bool = False
 
     @property
     def implausible_as_coincidence(self) -> bool:
         return (self.match_length >= MINIMUM_MATCH_LENGTH
-                and self.anti_probability < DUPLICATE_THRESHOLD)
+                and self.anti_probability < DUPLICATE_THRESHOLD
+                and not self.explained_by_known_boilerplate)
 
 
 def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchResult:
@@ -106,8 +145,13 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
     matcher = difflib.SequenceMatcher(None, text_a, text_b, autojunk=False)
     match = matcher.find_longest_match(0, len(text_a), 0, len(text_b))
     length = match.size
+    matched_text = text_a[match.a: match.a + match.size]
     anti_probability = 2.0 ** (-ENGLISH_ENTROPY_BITS_PER_CHAR * length)
-    return MatchResult(anti_probability=anti_probability, match_length=length)
+    return MatchResult(
+        anti_probability=anti_probability,
+        match_length=length,
+        explained_by_known_boilerplate=_explained_by_known_boilerplate(matched_text),
+    )
 
 
 def best_match_against(text: str, candidates: dict) -> Optional[tuple]:
@@ -128,6 +172,13 @@ def best_match_against(text: str, candidates: dict) -> Optional[tuple]:
     for discovery_id, candidate_text in candidates.items():
         result = anti_probability_of_coincidental_match(text, candidate_text)
         if result.match_length < MINIMUM_MATCH_LENGTH:
+            continue
+        if result.explained_by_known_boilerplate:
+            # Skip ranking a boilerplate-explained match at all, rather than
+            # let it win "best" and then get rejected by the caller -- if it
+            # won, a genuinely implausible match against a *different*
+            # candidate would be silently discarded, since only one "best"
+            # is ever returned.
             continue
         key = (result.anti_probability, -result.match_length)
         if best is None or key < (best[1].anti_probability, -best[1].match_length):
