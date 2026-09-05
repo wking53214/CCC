@@ -25,17 +25,23 @@ def _random_text(length, seed):
     return "".join(rng.choice(alphabet) for _ in range(length))
 
 
-def test_floor_does_real_independent_work_not_just_look_like_a_safeguard():
-    """MINIMUM_MATCH_LENGTH was originally 20, below the probability
-    threshold's own ~23-character crossover -- meaning it never once fired
-    on its own. It's 40 now; confirm there's a real band (30-39 chars)
-    where the probability check alone would allow a match through but the
-    floor still blocks it."""
-    text = ("abcdefghij" * 5)[:35]
-    r = anti_probability_of_coincidental_match(text, text)
-    assert r.anti_probability < DUPLICATE_THRESHOLD  # probability alone says yes
-    assert r.match_length < MINIMUM_MATCH_LENGTH       # floor says no
-    assert r.implausible_as_coincidence is False        # floor wins
+def test_floor_and_shingle_length_are_unified_not_two_driftable_constants():
+    """The original floor (20) was independently below the probability
+    threshold's own ~23-character crossover, so it silently did nothing --
+    a landmine, not a safeguard. Rather than pick a second number and risk
+    the same drift again, the shingle-based rewrite makes matching
+    structurally incapable of finding anything shorter than
+    MINIMUM_MATCH_LENGTH in the first place (it IS the shingle length):
+    there is no length band where the two disagree, because there's only
+    one constant now."""
+    just_under = ("abcdefghij" * 5)[:MINIMUM_MATCH_LENGTH - 1]
+    exactly_at = ("abcdefghij" * 5)[:MINIMUM_MATCH_LENGTH]
+    r_under = anti_probability_of_coincidental_match(just_under, just_under)
+    r_at = anti_probability_of_coincidental_match(exactly_at, exactly_at)
+    assert r_under.match_length == 0          # too short to even index
+    assert r_under.implausible_as_coincidence is False
+    assert r_at.match_length == MINIMUM_MATCH_LENGTH
+    assert r_at.implausible_as_coincidence is True
 
 
 def test_repetitive_text_does_not_hang():

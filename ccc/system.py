@@ -69,6 +69,7 @@ class CCCSystem:
         self.threads = ThreadManager(self.store, self.audit_trail, self.rules)
         self.branches = BranchManager(self.store, self.audit_trail, self.rules, self.lineage, self.threads)
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
+        self._finding_shingle_index = matching.ShingleIndex()
         self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
         self.canonicalization = CanonicalizationManager(self.store, self.audit_trail, self.rules)
@@ -547,15 +548,13 @@ class CCCSystem:
         supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
         comparison_text = "\n".join(excerpt for _source, excerpt in evidence) or finding.conclusion
 
-        candidates = {
-            existing.discovery_id: (
-                "\n".join(
-                    line.split(": ", 1)[1] if ": " in line else line
-                    for line in existing.supporting_evidence
-                ) or existing.conclusion
-            )
-            for existing in self.store.discoveries.values()
-        }
+        # Indexed lookup, not a scan of every prior discovery: candidates
+        # are only the ones sharing at least one shingle with this finding,
+        # so cost is independent of how many prior findings exist for the
+        # (common) case of genuinely novel content. See ShingleIndex's
+        # docstring for why this is safe -- exhaustive shingle extraction
+        # has no recall gap, unlike a sampled/strided index.
+        candidates = self._finding_shingle_index.candidates_for(comparison_text)
         match = matching.best_match_against(comparison_text, candidates)
 
         method = finding.method
@@ -569,7 +568,7 @@ class CCCSystem:
                 f"{result.match_length} char overlap with {matched_id}"
             )
 
-        return self.discovery.discover(
+        record = self.discovery.discover(
             source_material=finding.source_material,
             method=method,
             conclusion=finding.conclusion,
@@ -580,6 +579,8 @@ class CCCSystem:
             stage=AnalysisStage.ANOMALY,
             relationships=relationships,
         )
+        self._finding_shingle_index.add(record.discovery_id, comparison_text)
+        return record
 
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
