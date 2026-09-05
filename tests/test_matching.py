@@ -11,7 +11,6 @@ import random
 import time
 
 from ccc.matching import (
-    DUPLICATE_THRESHOLD,
     MAX_COMPARISON_LENGTH,
     MINIMUM_MATCH_LENGTH,
     anti_probability_of_coincidental_match,

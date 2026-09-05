@@ -196,7 +196,7 @@ def test_identical_long_content_is_recorded_and_tagged_as_a_duplicate():
 
 def test_unrelated_long_content_is_not_flagged_as_a_duplicate():
     system = CCCSystem()
-    first = system.record_external_finding(
+    system.record_external_finding(
         _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
     )
     second = system.record_external_finding(
