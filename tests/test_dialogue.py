@@ -107,7 +107,8 @@ def test_vsa_citadel_replay():
         "VSA was renamed GSA during the escalation arc",
         "VSA became CITADEL; GSA is separate",
         "Both, at different levels",
-        UNKNOWN_SENTINEL,
+        # note: "42" (honest-unknown) is NOT listed as a candidate -- it's
+        # always an available response, not one of the hypotheses
     )
     refined = ("Citadel is the system; VSA is the governing principle it was built to enforce",)
 
@@ -138,3 +139,51 @@ def test_vsa_citadel_replay():
     second_round = system.human_resolution.get(outcome.uncertainty_ids[1])
     assert second_round.candidates == refined
     assert second_round.resolved_choice == refined[0]
+
+
+# --- regression tests from the hunt/patch loop on this module -------------
+
+def test_max_rounds_is_capped_so_a_runaway_branch_cannot_grow_unbounded():
+    """A branch() that never stops producing candidates, or a huge
+    max_rounds passed by mistake, previously created hundreds of thousands
+    of UncertaintyRecords before failing."""
+    from ccc.dialogue import MAX_ROUNDS_CEILING
+    system = CCCSystem()
+    system.dialogue.max_rounds = 10 ** 9
+    assert system.dialogue.max_rounds == MAX_ROUNDS_CEILING
+    with pytest.raises(RuntimeError, match="did not terminate"):
+        system.dialogue.run(
+            context="c", question="q", candidates=("A", "B"),
+            respond=lambda c: "other", branch=lambda p: ("X", "Y"),
+            actor=Actor.model("m"), human_actor=Actor.human("w"),
+        )
+    assert len(system.human_resolution.store.uncertainties) == MAX_ROUNDS_CEILING
+
+
+def test_invalid_max_rounds_is_refused():
+    system = CCCSystem()
+    with pytest.raises(ValueError, match="positive int"):
+        system.dialogue.max_rounds = 0
+
+
+@pytest.mark.parametrize("reserved", ["42", "other"])
+def test_a_candidate_that_collides_with_a_control_token_is_refused(reserved):
+    """Picking a candidate literally named "42" or "other" would be
+    silently misread as the honest-unknown sentinel or a branch."""
+    system = CCCSystem()
+    with pytest.raises(ValueError, match="reserved"):
+        system.dialogue.run(
+            context="c", question="q", candidates=(reserved, "a real option"),
+            respond=lambda c: reserved, branch=lambda p: p,
+            actor=Actor.model("m"), human_actor=Actor.human("w"),
+        )
+
+
+def test_branch_returning_a_control_token_collision_is_also_refused():
+    system = CCCSystem()
+    with pytest.raises(ValueError, match="reserved"):
+        system.dialogue.run(
+            context="c", question="q", candidates=("A",),
+            respond=lambda c: "other", branch=lambda p: ("42", "x"),
+            actor=Actor.model("m"), human_actor=Actor.human("w"),
+        )

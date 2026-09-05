@@ -25,6 +25,28 @@ from .human_resolution import HumanResolutionManager
 from .models import Actor, ActorType
 
 UNKNOWN_SENTINEL = "42"
+_BRANCH_TOKEN = "other"
+_RESERVED_RESPONSES = frozenset({UNKNOWN_SENTINEL, _BRANCH_TOKEN})
+
+# A dialogue is a human sitting there answering rounds -- past a couple dozen
+# it is not converging, it is looping. The default is small; this is the
+# ceiling a caller cannot exceed, so a runaway loop (a branch() that keeps
+# producing candidates, or a huge max_rounds passed by mistake) is bounded
+# to this many UncertaintyRecords, not hundreds of thousands.
+MAX_ROUNDS_CEILING = 50
+
+
+def _check_candidates(candidates) -> None:
+    if not candidates:
+        raise ValueError("a dialogue needs at least one candidate")
+    collisions = _RESERVED_RESPONSES.intersection(candidates)
+    if collisions:
+        raise ValueError(
+            f"candidate value(s) {sorted(collisions)} collide with the protocol's "
+            f'reserved responses ("{_BRANCH_TOKEN}" branches, "{UNKNOWN_SENTINEL}" is '
+            "the honest-unknown sentinel) -- a candidate can't be one of those "
+            "strings or picking it would be silently misread as a control action"
+        )
 
 
 @dataclass(frozen=True)
@@ -43,6 +65,16 @@ class DialogueEngine:
     def __init__(self, human_resolution: HumanResolutionManager, *, max_rounds: int = 10):
         self.human_resolution = human_resolution
         self.max_rounds = max_rounds
+
+    @property
+    def max_rounds(self) -> int:
+        return self._max_rounds
+
+    @max_rounds.setter
+    def max_rounds(self, value: int) -> None:
+        if not isinstance(value, int) or value < 1:
+            raise ValueError(f"max_rounds must be a positive int, got {value!r}")
+        self._max_rounds = min(value, MAX_ROUNDS_CEILING)
 
     def run(
         self,
@@ -67,6 +99,18 @@ class DialogueEngine:
         terminate honestly). `branch(prior_candidates)` is only called
         after "other" and must return a new, non-empty candidate tuple.
 
+        "other" and "42" are always available responses -- do NOT list
+        either as a `candidates` entry (it's refused, since picking a
+        candidate that IS a control token would be silently misread as the
+        control action).
+
+        `respond` and `branch` must not raise. If one does, the loop stops
+        mid-round and the UncertaintyRecords created so far stay in the
+        store, unresolved -- an honest record that a dialogue was started
+        and not finished, not a leak. Runaway loops (a branch() that never
+        stops producing candidates) are bounded by MAX_ROUNDS_CEILING, not
+        left to grow.
+
         `actor` proposes the round (may be machine-origin); `human_actor`
         must be an actual human -- CCC-HUMAN-001, enforced by
         human_resolution.resolve() itself, not re-implemented here.
@@ -76,8 +120,7 @@ class DialogueEngine:
                 "resolution can only be attributed to a real human actor -- "
                 "the dialogue proposes, it does not get to resolve itself"
             )
-        if not candidates:
-            raise ValueError("a dialogue needs at least one starting candidate")
+        _check_candidates(candidates)
 
         uncertainty_ids = []
         current = candidates
@@ -98,11 +141,12 @@ class DialogueEngine:
                 )
                 return DialogueOutcome("UNKNOWN", None, round_number, tuple(uncertainty_ids))
 
-            if response == "other":
+            if response == _BRANCH_TOKEN:
                 new_candidates = branch(current)
                 if not new_candidates:
                     raise ValueError("branch() must return at least one new candidate")
-                current = new_candidates
+                _check_candidates(new_candidates)
+                current = tuple(new_candidates)
                 continue
 
             if response not in current:
