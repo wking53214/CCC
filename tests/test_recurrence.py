@@ -154,12 +154,12 @@ def test_shared_templated_preamble_does_not_collapse_two_findings():
     assert system.store.discoveries[b.discovery_id].stage is AnalysisStage.ANOMALY
 
 
-def test_repeated_occurrences_extend_one_road_sign_not_a_wall_of_them():
-    """MANDATE is human-only, so occurrences 4, 5, ... cannot advance the
-    discovery. They also must not each mint their own road sign -- at
-    corpus scale that is a wall, not a signal. One REPEATED_RETURN sign per
-    pattern, its occurrence_count and linked_ids carrying every occurrence,
-    is what a human can actually triage."""
+def test_each_occurrence_past_the_second_records_its_own_road_sign():
+    """APM halts and reviews on the third strike, so occurrences 3, 4, 5,
+    ... each record their own REPEATED_RETURN road sign -- the wall IS the
+    escalating pressure. Each still carries pattern_id + a true
+    occurrence_count, so a reviewer can collapse them by pattern. MANDATE
+    stays human-only throughout."""
     system = CCCSystem()
     actor = Actor.model("ecology")
     variants = [
@@ -173,10 +173,11 @@ def test_repeated_occurrences_extend_one_road_sign_not_a_wall_of_them():
                for i, v in enumerate(variants)]
 
     signs = [s for s in system.store.road_signs.values() if "MANDATE candidate" in s.observation]
-    assert len(signs) == 1                       # ONE sign, not one per occurrence
-    assert signs[0].metadata["occurrence_count"] == 5
-    assert records[4].discovery_id in signs[0].linked_ids   # latest occurrence tracked
-    assert "5 independent occurrences" in signs[0].observation
+    assert len(signs) == 3                                   # occurrences 3, 4, 5
+    assert {s.metadata["pattern_id"] for s in signs} == {records[0].discovery_id}
+    assert sorted(s.metadata["occurrence_count"] for s in signs) == [3, 4, 5]
+    flagged = {s.linked_ids[1] for s in signs}
+    assert flagged == {r.discovery_id for r in records[2:]}
     # nothing was pushed to MANDATE by the machine
     assert all(system.store.discoveries[r.discovery_id].stage is not AnalysisStage.MANDATE
                for r in records)
