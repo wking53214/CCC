@@ -86,6 +86,38 @@ def test_verified_true_with_no_source_material_is_self_inconsistent():
         system.record_external_finding(broken, actor=Actor.model("m"))
 
 
+def test_non_string_source_material_entry_is_refused():
+    """Flood-test finding: a bare int in source_material passed through with
+    zero validation before this fix."""
+    system = CCCSystem()
+    broken = _StandInFinding(
+        conclusion="x", method="m", source_material=(123,), confidence=0.5, verified=True,
+    )
+    with pytest.raises(ValueError, match="non-string or empty"):
+        system.record_external_finding(broken, actor=Actor.model("m"))
+
+
+def test_empty_conclusion_with_verified_true_is_self_inconsistent():
+    system = CCCSystem()
+    broken = _verified_finding()
+    broken = _StandInFinding(
+        conclusion="", method=broken.method, source_material=broken.source_material,
+        confidence=broken.confidence, verified=True,
+    )
+    with pytest.raises(ValueError, match="empty conclusion"):
+        system.record_external_finding(broken, actor=Actor.model("m"))
+
+
+def test_none_in_an_evidence_pair_is_refused_cleanly_not_a_bare_typeerror():
+    """Flood-test finding: this used to crash with a raw
+    TypeError: sequence item 0: expected str instance, NoneType found --
+    a low-level leak, not a deliberate refusal."""
+    system = CCCSystem()
+    broken = _verified_finding(evidence=(("a.md", None),))
+    with pytest.raises(ValueError, match="not a \\(source, excerpt\\) pair"):
+        system.record_external_finding(broken, actor=Actor.model("m"))
+
+
 def test_confidence_outside_unit_interval_is_refused():
     system = CCCSystem()
     broken = _verified_finding(confidence=1.5)

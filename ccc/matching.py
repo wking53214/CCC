@@ -34,12 +34,42 @@ ENGLISH_ENTROPY_BITS_PER_CHAR = 1.3
 # anything -- coincidental short matches are genuinely common, and treating
 # a 6-character overlap as "astronomically improbable" would be a formula
 # artifact, not a real finding.
-MINIMUM_MATCH_LENGTH = 20
+#
+# Set deliberately above the threshold's own crossover point (~23 chars at
+# the constants below), not just below it: a floor equal to or under the
+# threshold's natural cutoff does zero independent work -- it looks like a
+# safeguard but the probability check alone already requires more length
+# than the floor demands, so the floor never once fires. 40 is a real,
+# separate margin, not a number that happens to already be implied by the
+# other constant. If ENGLISH_ENTROPY_BITS_PER_CHAR or DUPLICATE_THRESHOLD
+# ever change, re-check this is still genuinely above the new crossover --
+# it drifting back into redundancy silently is exactly what happened here.
+MINIMUM_MATCH_LENGTH = 40
 
 # Anti-probability below this is treated as "not plausible as coincidence."
 # One in a billion -- a deliberately conservative, clearly-labeled choice,
 # not a derived constant. Change it in the open, not by drift.
 DUPLICATE_THRESHOLD = 1e-9
+
+# difflib's SequenceMatcher is quadratic in the worst case on long input --
+# confirmed directly, two ways: a 129,000-character repetitive string did
+# not finish in 120 seconds, AND (this is the part worth flagging) even
+# genuinely random, non-repetitive text is slow at scale purely from size --
+# 50,000 identical random characters took 7 seconds. This length cap is the
+# actual fix. autojunk=True was tried first and reverted: it's difflib's own
+# documented mitigation for repetitive input, but confirmed directly to
+# silently return match_length=0 on perfectly ordinary random text over a
+# ~60-character alphabet (any text using a moderate, everyday alphabet at
+# real length trips its "popular element" heuristic and stops matching
+# correctly) -- worse than the problem it fixed, so autojunk stays off
+# (explicit below, not left to a version-dependent default). Comparison is
+# truncated, not the stored record -- the full text is still kept for
+# audit, only the matching pass sees a bounded prefix. Honest limitation,
+# not hidden: a genuine duplicate whose only overlap falls past this many
+# characters won't be found. 2000 was chosen from measured timings (recall
+# scales as size squared): ~10ms worst case even for two long, identical
+# inputs, not from a length any real excerpt is expected to need.
+MAX_COMPARISON_LENGTH = 2000
 
 
 class MatchResult(NamedTuple):
@@ -60,9 +90,19 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
     dependency), not overall similarity: a single long verbatim overlap
     inside otherwise-different text is the signal here, not how much of the
     two texts differ overall.
+
+    Both inputs are truncated to MAX_COMPARISON_LENGTH before matching --
+    performance-necessary given confirmed quadratic blowup on long text
+    (repetitive or not), not a change to what's being measured: the entropy
+    formula already treats any match past a few dozen characters as
+    effectively certain, so bounding the input doesn't lose real signal for
+    ordinary excerpts. autojunk is explicitly off: see MAX_COMPARISON_LENGTH's
+    comment for why turning it on was tried and reverted.
     """
     if not text_a or not text_b:
         return MatchResult(anti_probability=1.0, match_length=0)
+    text_a = text_a[:MAX_COMPARISON_LENGTH]
+    text_b = text_b[:MAX_COMPARISON_LENGTH]
     matcher = difflib.SequenceMatcher(None, text_a, text_b, autojunk=False)
     match = matcher.find_longest_match(0, len(text_a), 0, len(text_b))
     length = match.size
@@ -73,12 +113,23 @@ def anti_probability_of_coincidental_match(text_a: str, text_b: str) -> MatchRes
 def best_match_against(text: str, candidates: dict) -> Optional[tuple]:
     """candidates: {discovery_id: comparison_text}. Returns
     (discovery_id, MatchResult) for the strongest match, or None if nothing
-    clears MINIMUM_MATCH_LENGTH at all."""
+    clears MINIMUM_MATCH_LENGTH at all.
+
+    Ranks by (anti_probability ascending, match_length descending): once a
+    match is long enough, anti_probability underflows to exactly 0.0 in
+    IEEE754 (confirmed around 800-830 characters at these constants), and
+    two underflowed candidates compare equal under anti_probability alone --
+    which silently picked whichever candidate came first in iteration order,
+    not the actually-stronger match. match_length never loses precision the
+    way the probability does, so it breaks the tie correctly instead of by
+    insertion order.
+    """
     best = None
     for discovery_id, candidate_text in candidates.items():
         result = anti_probability_of_coincidental_match(text, candidate_text)
         if result.match_length < MINIMUM_MATCH_LENGTH:
             continue
-        if best is None or result.anti_probability < best[1].anti_probability:
+        key = (result.anti_probability, -result.match_length)
+        if best is None or key < (best[1].anti_probability, -best[1].match_length):
             best = (discovery_id, result)
     return best

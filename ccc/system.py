@@ -519,6 +519,16 @@ class CCCSystem:
                 "a verified finding with no source_material is "
                 "self-inconsistent -- refusing to record it"
             )
+        if not all(isinstance(s, str) and s for s in finding.source_material):
+            raise ValueError(
+                f"source_material {finding.source_material!r} contains a "
+                "non-string or empty entry -- refusing a self-inconsistent finding"
+            )
+        if not finding.conclusion:
+            raise ValueError(
+                "a verified finding with an empty conclusion is "
+                "self-inconsistent -- refusing to record it"
+            )
         if finding.confidence is not None and not 0.0 <= finding.confidence <= 1.0:
             raise ValueError(
                 f"confidence {finding.confidence!r} is outside [0, 1] -- "
@@ -526,6 +536,14 @@ class CCCSystem:
             )
 
         evidence = getattr(finding, "evidence", ())
+        for pair in evidence:
+            if (not isinstance(pair, tuple) or len(pair) != 2
+                    or not all(isinstance(x, str) and x for x in pair)):
+                raise ValueError(
+                    f"evidence entry {pair!r} is not a (source, excerpt) pair "
+                    "of non-empty strings -- refusing a malformed finding "
+                    "rather than raising a bare TypeError deeper in the call"
+                )
         supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
         comparison_text = "\n".join(excerpt for _source, excerpt in evidence) or finding.conclusion
 
