@@ -104,6 +104,17 @@ def test_chatgpt_history_source_is_refused_by_default():
         system.record_external_finding(finding, actor=Actor.model("m"))
 
 
+@pytest.mark.parametrize("corpus", ["Claude_History", "CoPilot_History", "Gemini_History"])
+def test_every_conversation_history_corpus_is_refused_by_default(corpus):
+    """All the *_History archives are private personal-conversation data and
+    are the corpora the recurrence layer consumes -- the guard must cover
+    every one of them, not just ChatGPT_History."""
+    system = CCCSystem()
+    finding = _verified_finding(source_material=(f"{corpus}/transcripts/abc.md",))
+    with pytest.raises(ValueError, match="known-private"):
+        system.record_external_finding(finding, actor=Actor.model("m"))
+
+
 def test_private_source_can_be_explicitly_allowed():
     """The refusal is a default, not an absolute lock -- an explicit,
     named override exists for a deliberate, reviewed case, same pattern as
