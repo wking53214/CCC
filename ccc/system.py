@@ -45,11 +45,20 @@ from .threads import ThreadManager
 # Named, specific, from this project's own history -- not a placeholder or
 # a general secrets pattern. Resume_OS stays private permanently, chosen as
 # the validation domain precisely because it holds real ground truth that
-# must not leak into a public repo's audit trail. ChatGPT_History carries
-# un-scrubbed third-party PII, flagged as a real dependency of this whole
-# system if it's ever ingested at scale, never resolved. A finding whose
-# source cites either one, into a public repository, is refused by default.
-PRIVATE_SOURCE_MARKERS = ("Resume_OS", "ChatGPT_History")
+# must not leak into a public repo's audit trail. The *_History repos are
+# private personal-conversation archives (ChatGPT_History additionally
+# carries un-scrubbed third-party PII); they are the corpora the recurrence
+# layer is built to consume, so a finding citing one is exactly the case
+# this guard exists for. A finding whose source cites any of these, into a
+# public repository, is refused by default (allow_private_source=True for a
+# deliberate, reviewed local run).
+PRIVATE_SOURCE_MARKERS = (
+    "Resume_OS",
+    "ChatGPT_History",
+    "Claude_History",
+    "CoPilot_History",
+    "Gemini_History",
+)
 
 
 def _has_saved_state(path: str | Path) -> bool:
