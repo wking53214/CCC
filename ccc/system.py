@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from .constitutional_rules import ConstitutionalRuleEngine
 from .dialogue import DialogueEngine
 from .discovery import DiscoveryManager
 from . import matching
+from .recurrence import RecurrenceDetector
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
 from .human_resolution import HumanResolutionManager
@@ -28,6 +30,7 @@ from .models import (
     EpistemicStatus,
     ProvenanceStatus,
     RelationshipType,
+    RoadSignCategory,
     new_id,
     utc_now,
 )
@@ -55,6 +58,39 @@ def _has_saved_state(path: str | Path) -> bool:
     resume" rather than a corrupt-JSON error."""
     p = Path(path)
     return p.is_file() and p.stat().st_size > 0
+
+
+# APM ladder position, for picking a recurrence cluster's representative:
+# the member that has climbed furthest is the one escalation must branch on.
+_STAGE_RANK = {
+    AnalysisStage.ANOMALY: 0,
+    AnalysisStage.PATTERN: 1,
+    AnalysisStage.MANDATE: 2,
+}
+
+# Substring stamped into a discovery's `method` when it was recorded as an
+# anti-probability duplicate. A duplicate is a re-observation, not an
+# independent occurrence: it stays reachable through `relationships` for
+# transitive cluster resolution, but is excluded from the occurrence count
+# and from representative selection.
+_DUPLICATE_METHOD_MARKER = "duplicate detection"
+
+
+def _reconstructed_match_text(record) -> str | None:
+    """Best-effort recovery of the text a discovery was matched on for
+    duplicate / recurrence detection, for state files written before
+    discovery_match_texts was persisted. The live value is the joined
+    evidence excerpts, or the conclusion when there is no evidence;
+    supporting_evidence stores them as ``f"{source}: {excerpt}"``, so
+    splitting on the first ": " recovers the excerpt unless a source id
+    itself contains ": ". Imperfect, but a stable approximation beats the
+    discovery being invisible to both matchers forever after an upgrade."""
+    if record.supporting_evidence:
+        return "\n".join(
+            line.split(": ", 1)[1] if ": " in line else line
+            for line in record.supporting_evidence
+        )
+    return record.conclusion or None
 
 
 def _state(artifact: Artifact) -> dict[str, Any]:
@@ -100,11 +136,61 @@ class CCCSystem:
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
         self.dialogue = DialogueEngine(self.human_resolution)
         self._finding_shingle_index = matching.ShingleIndex()
+        self._recurrence = RecurrenceDetector()
         self._recorded_dialogue_signatures: set = set()
         self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
         self.canonicalization = CanonicalizationManager(self.store, self.audit_trail, self.rules)
         self.query_engine = QueryEngine(self.store)
+        self._restore_derived_indexes()
+
+    def _restore_derived_indexes(self) -> None:
+        """Rebuild the accelerators that live outside CCCStore: the finding
+        shingle index, the recurrence detector, and the recorded-dialogue
+        signature set. CCCStore persists the facts; these three are derived
+        structures built empty in __init__, so after CCCStore.load() they
+        would start empty while the store is full -- occurrence #2 arriving
+        in a new session would then match nothing and the
+        anomaly -> pattern -> mandate ladder would never climb across a
+        session boundary, which is the exact case this system exists for.
+
+        A no-op for a fresh store (every source is empty), so it is always
+        safe to run at the end of __init__.
+        """
+        indexed = set()
+        for did, text in self.store.discovery_match_texts.items():
+            if did in self.store.discoveries:
+                self._finding_shingle_index.add(did, text)
+                self._recurrence.register(did, text)
+                indexed.add(did)
+
+        # State file predates discovery_match_texts: reconstruct so prior
+        # findings are not permanently invisible to the matchers. Only in
+        # this case -- a current file's missing entries are direct
+        # discover() records that were never indexed and must stay that way.
+        if not self.store.match_texts_persisted:
+            reconstructed = 0
+            for did, record in self.store.discoveries.items():
+                if did in indexed:
+                    continue
+                text = _reconstructed_match_text(record)
+                if not text:
+                    continue
+                self._finding_shingle_index.add(did, text)
+                self._recurrence.register(did, text)
+                reconstructed += 1
+            if reconstructed:
+                warnings.warn(
+                    f"CCC: rebuilt the duplicate/recurrence index for {reconstructed} "
+                    "discovery(ies) from a state file predating discovery_match_texts; "
+                    "the recovered texts are approximate. Re-save to persist exact values.",
+                    stacklevel=3,
+                )
+
+        for artifact in self.store.artifacts.values():
+            uncertainty_ids = artifact.metadata.get("dialogue_uncertainty_ids")
+            if uncertainty_ids:
+                self._recorded_dialogue_signatures.add(tuple(uncertainty_ids))
 
     @property
     def system_actor(self) -> Actor:
@@ -620,9 +706,66 @@ class CCCSystem:
             matched_id, result = match
             relationships = (matched_id,)
             method = (
-                f"{finding.method} -- duplicate detection: anti-probability "
+                f"{finding.method} -- {_DUPLICATE_METHOD_MARKER}: anti-probability "
                 f"{result.anti_probability:.3e} of coincidental match, "
                 f"{result.match_length} char overlap with {matched_id}"
+            )
+
+        # Recurrence: a non-duplicate finding whose concept signature
+        # matches an existing discovery is a fresh, independent occurrence
+        # of the same pattern -- APM's 2nd (or 3rd). Checked only when this
+        # is NOT an anti-probability duplicate: a re-observation of the same
+        # content is the opposite signal and must not advance a pattern.
+        is_duplicate = bool(relationships)
+        recurrence = None if is_duplicate else self._recurrence.find_recurrence(comparison_text)
+        representative_id = None
+        if recurrence is not None:
+            _best_id, best_jaccard, matches = recurrence
+            # A pattern is a cluster of linked occurrences, not one record,
+            # and lexical drift fragments it: occurrence #5 can match #2 and
+            # #4 without matching #1. Expand each lexical match to its whole
+            # cluster by following relationships back to roots already on
+            # record, so a chain d1 <- d2 <- d3 resolves as one cluster even
+            # when this finding only matched d3. Without this, escalation
+            # branches on a fragment and mints a parallel PATTERN.
+            cluster: set = {did for did, _j in matches}
+            frontier = list(cluster)
+            while frontier:
+                did = frontier.pop()
+                for rel in self.store.discoveries[did].relationships:
+                    if rel in self.store.discoveries and rel not in cluster:
+                        cluster.add(rel)
+                        frontier.append(rel)
+            # A duplicate is a re-observation, not an independent occurrence.
+            # It stays in `cluster` for reachability -- a recurrence that
+            # only matched a re-observation still has to reach the real root
+            # through it -- but it is not itself an occurrence, so it is
+            # excluded from the count and from representative selection.
+            occurrences = [
+                did for did in cluster
+                if _DUPLICATE_METHOD_MARKER not in self.store.discoveries[did].method
+            ] or list(cluster)
+            # Representative: the occurrence furthest along the APM ladder,
+            # earliest-created breaking ties -- never the best lexical match
+            # (occurrence #3 routinely scores highest against #2, still an
+            # ANOMALY, and branching there never reaches the 3rd-occ signal).
+            representative_id = min(
+                occurrences,
+                key=lambda did: (
+                    -_STAGE_RANK[self.store.discoveries[did].stage],
+                    self.store.discoveries[did].created_at,
+                ),
+            )
+            rep = self.store.discoveries[representative_id]
+            # Link the representative only, not every cluster member: a
+            # strong pattern can recur hundreds of times, and every member
+            # links the representative anyway, so the star is fully
+            # reconstructable without an O(cluster) tuple on each record.
+            relationships = (*relationships, representative_id)
+            method = (
+                f"{method} -- recurrence of {representative_id} "
+                f"(best concept overlap {best_jaccard:.0%}, cluster stage "
+                f"{rep.stage.value}, {len(occurrences)} prior occurrence(s))"
             )
 
         record = self.discovery.discover(
@@ -636,8 +779,79 @@ class CCCSystem:
             stage=AnalysisStage.ANOMALY,
             relationships=relationships,
         )
+
+        if representative_id is not None:
+            rep = self.store.discoveries[representative_id]
+            if rep.stage is AnalysisStage.ANOMALY:
+                # 2nd independent occurrence -> the pattern is real enough
+                # to investigate. A machine may make this transition;
+                # discovery.py only gates MANDATE behind a human.
+                self.discovery.advance(
+                    representative_id, stage=AnalysisStage.PATTERN, actor=actor,
+                    reason=f"2nd independent occurrence detected: {record.discovery_id}",
+                )
+            elif rep.stage is AnalysisStage.PATTERN:
+                # 3rd (or later) occurrence. MANDATE is human-only -- this
+                # advances nothing. It keeps ONE REPEATED_RETURN road sign
+                # per pattern (an observable indicator, explicitly not a
+                # conclusion), growing its linked_ids and occurrence count
+                # with each further occurrence: a human triaging one sign
+                # that reads "7 occurrences" can act; one sign per
+                # occurrence is a wall at corpus scale.
+                self._flag_repeated_return(representative_id, record.discovery_id, actor)
+            # rep.stage is MANDATE: a human already established it. The new
+            # occurrence is linked (via relationships, above) and nothing
+            # else -- the machine does not get to add to a human's mandate.
+
+        self.store.discovery_match_texts[record.discovery_id] = comparison_text
         self._finding_shingle_index.add(record.discovery_id, comparison_text)
+        self._recurrence.register(record.discovery_id, comparison_text)
         return record
+
+    def _flag_repeated_return(self, pattern_id: str, occurrence_id: str, actor: Actor) -> None:
+        """Record, or extend, the single REPEATED_RETURN road sign for a
+        pattern that has now recurred a 3rd (or later) time. One sign per
+        pattern, its linked_ids and occurrence_count carrying every
+        occurrence -- not one sign per occurrence."""
+        existing = next(
+            (s for s in self.store.road_signs.values()
+             if s.category is RoadSignCategory.REPEATED_RETURN
+             and s.metadata.get("pattern_id") == pattern_id),
+            None,
+        )
+        if existing is None:
+            self.road_signs.detect_road_sign(
+                category=RoadSignCategory.REPEATED_RETURN,
+                observation=(
+                    f"pattern {pattern_id} has recurred: 3 independent occurrences on "
+                    f"record (latest {occurrence_id}) -- MANDATE candidate, human "
+                    "establishment required"
+                ),
+                actor=actor,
+                linked_ids=(pattern_id, occurrence_id),
+                metadata={"pattern_id": pattern_id, "occurrence_count": 3},
+            )
+            return
+        count = int(existing.metadata.get("occurrence_count", 3)) + 1
+        updated = replace(
+            existing,
+            observation=(
+                f"pattern {pattern_id} has recurred: {count} independent occurrences on "
+                f"record (latest {occurrence_id}) -- MANDATE candidate, human "
+                "establishment required"
+            ),
+            linked_ids=tuple(dict.fromkeys((*existing.linked_ids, occurrence_id))),
+            metadata={**existing.metadata, "occurrence_count": count},
+        )
+        self.store.replace_road_sign(updated)
+        self.audit_trail.record(
+            actor=actor,
+            operation="UPDATE_ROAD_SIGN",
+            object_id=existing.road_sign_id,
+            previous_state={"occurrence_count": count - 1},
+            new_state={"occurrence_count": count},
+            reason=f"further occurrence of pattern {pattern_id}: {occurrence_id}",
+        )
 
     def record_dialogue_conclusion(self, outcome, *, question: str,
                                     human_actor: Actor, context: str = ""):
