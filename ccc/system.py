@@ -20,6 +20,7 @@ from .lineage import LineageManager
 from .models import (
     Actor,
     ActorType,
+    AnalysisStage,
     Artifact,
     ArtifactState,
     EpistemicStatus,
@@ -455,6 +456,42 @@ class CCCSystem:
 
     def discover(self, **kwargs):
         return self.discovery.discover(**kwargs)
+
+    def record_external_finding(self, finding, *, actor: Actor,
+                                 epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE):
+        """Record a finding from an external evidence-search system (such as
+        Ecology's FindingRecord) as a CCC anomaly.
+
+        This package does not import the producing system. Anything
+        supplying `.conclusion`, `.method`, `.source_material`,
+        `.confidence`, and `.verified` can be recorded this way -- the
+        contract is structural, not a dependency.
+
+        An unverified finding (`.verified` is False) is refused outright: an
+        honest non-answer is not an anomaly worth recording. A finding can
+        only be machine-originated -- pass a MODEL or SYSTEM actor, never
+        HUMAN, since nothing external to CCC gets to assert something as a
+        human-established fact.
+        """
+        if not finding.verified:
+            raise ValueError(
+                "refusing to record an unverified finding as a discovery -- "
+                "an honest non-answer is not an anomaly"
+            )
+        if actor.kind not in (ActorType.MODEL, ActorType.SYSTEM):
+            raise ValueError(
+                "an external finding is machine-originated by construction; "
+                "pass a MODEL or SYSTEM actor, not HUMAN"
+            )
+        return self.discovery.discover(
+            source_material=finding.source_material,
+            method=finding.method,
+            conclusion=finding.conclusion,
+            confidence=finding.confidence,
+            actor=actor,
+            epistemic_status=epistemic_status,
+            stage=AnalysisStage.ANOMALY,
+        )
 
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
