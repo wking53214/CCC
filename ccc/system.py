@@ -49,6 +49,14 @@ from .threads import ThreadManager
 PRIVATE_SOURCE_MARKERS = ("Resume_OS", "ChatGPT_History")
 
 
+def _has_saved_state(path: str | Path) -> bool:
+    """A persistence file worth loading: exists and isn't empty. An empty
+    file (a bare `touch` of the path) is treated as "fresh, nothing to
+    resume" rather than a corrupt-JSON error."""
+    p = Path(path)
+    return p.is_file() and p.stat().st_size > 0
+
+
 def _state(artifact: Artifact) -> dict[str, Any]:
     return {
         "artifact_id": artifact.artifact_id,
@@ -67,7 +75,17 @@ class CCCSystem:
     version = "0.1.0"
 
     def __init__(self, *, store: CCCStore | None = None, persistence_path: str | Path | None = None) -> None:
-        self.store = store or CCCStore(persistence_path)
+        if store is not None:
+            self.store = store
+        elif persistence_path is not None and _has_saved_state(persistence_path):
+            # persistence_path meant "resume from here if there's something
+            # to resume" -- it used to only mean "save here later," so
+            # CCCSystem(persistence_path=p) silently started empty even when
+            # p held a real prior state, and the only way to actually load
+            # was CCCStore.load(p) + CCCSystem(store=...) as two steps.
+            self.store = CCCStore.load(persistence_path)
+        else:
+            self.store = CCCStore(persistence_path)
         self.audit_trail = AuditTrail(self.store)
         self.rules = ConstitutionalRuleEngine(self.store)
         self.lineage = LineageManager(self.store, self.audit_trail, self.rules)
