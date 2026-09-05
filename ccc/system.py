@@ -792,13 +792,17 @@ class CCCSystem:
                 )
             elif rep.stage is AnalysisStage.PATTERN:
                 # 3rd (or later) occurrence. MANDATE is human-only -- this
-                # advances nothing. It keeps ONE REPEATED_RETURN road sign
-                # per pattern (an observable indicator, explicitly not a
-                # conclusion), growing its linked_ids and occurrence count
-                # with each further occurrence: a human triaging one sign
-                # that reads "7 occurrences" can act; one sign per
-                # occurrence is a wall at corpus scale.
-                self._flag_repeated_return(representative_id, record.discovery_id, actor)
+                # advances nothing. Every 3rd-and-later occurrence records
+                # its OWN REPEATED_RETURN road sign (an observable
+                # indicator, explicitly not a conclusion): APM's rule is
+                # halt-and-review on the third strike, and a per-occurrence
+                # trail is the pressure that produces -- each sign still
+                # carries pattern_id + occurrence_count, so a reviewer can
+                # still collapse them by pattern.
+                self._flag_repeated_return(
+                    representative_id, record.discovery_id, actor,
+                    occurrence_count=len(occurrences) + 1,
+                )
             # rep.stage is MANDATE: a human already established it. The new
             # occurrence is linked (via relationships, above) and nothing
             # else -- the machine does not get to add to a human's mandate.
@@ -808,49 +812,25 @@ class CCCSystem:
         self._recurrence.register(record.discovery_id, comparison_text)
         return record
 
-    def _flag_repeated_return(self, pattern_id: str, occurrence_id: str, actor: Actor) -> None:
-        """Record, or extend, the single REPEATED_RETURN road sign for a
-        pattern that has now recurred a 3rd (or later) time. One sign per
-        pattern, its linked_ids and occurrence_count carrying every
-        occurrence -- not one sign per occurrence."""
-        existing = next(
-            (s for s in self.store.road_signs.values()
-             if s.category is RoadSignCategory.REPEATED_RETURN
-             and s.metadata.get("pattern_id") == pattern_id),
-            None,
-        )
-        if existing is None:
-            self.road_signs.detect_road_sign(
-                category=RoadSignCategory.REPEATED_RETURN,
-                observation=(
-                    f"pattern {pattern_id} has recurred: 3 independent occurrences on "
-                    f"record (latest {occurrence_id}) -- MANDATE candidate, human "
-                    "establishment required"
-                ),
-                actor=actor,
-                linked_ids=(pattern_id, occurrence_id),
-                metadata={"pattern_id": pattern_id, "occurrence_count": 3},
-            )
-            return
-        count = int(existing.metadata.get("occurrence_count", 3)) + 1
-        updated = replace(
-            existing,
+    def _flag_repeated_return(
+        self, pattern_id: str, occurrence_id: str, actor: Actor, *, occurrence_count: int
+    ) -> None:
+        """Record a REPEATED_RETURN road sign for the 3rd-or-later
+        occurrence of a pattern. One sign per occurrence -- APM halts and
+        reviews on the third strike, and the per-occurrence trail is that
+        pressure made visible. `occurrence_count` is the true count of
+        independent (non-duplicate) occurrences on record including this
+        one; `pattern_id` groups the signs for a reviewer who wants them
+        collapsed."""
+        self.road_signs.detect_road_sign(
+            category=RoadSignCategory.REPEATED_RETURN,
             observation=(
-                f"pattern {pattern_id} has recurred: {count} independent occurrences on "
-                f"record (latest {occurrence_id}) -- MANDATE candidate, human "
-                "establishment required"
+                f"occurrence {occurrence_count} of pattern {pattern_id}: {occurrence_id} "
+                "-- MANDATE candidate, human establishment required"
             ),
-            linked_ids=tuple(dict.fromkeys((*existing.linked_ids, occurrence_id))),
-            metadata={**existing.metadata, "occurrence_count": count},
-        )
-        self.store.replace_road_sign(updated)
-        self.audit_trail.record(
             actor=actor,
-            operation="UPDATE_ROAD_SIGN",
-            object_id=existing.road_sign_id,
-            previous_state={"occurrence_count": count - 1},
-            new_state={"occurrence_count": count},
-            reason=f"further occurrence of pattern {pattern_id}: {occurrence_id}",
+            linked_ids=(pattern_id, occurrence_id),
+            metadata={"pattern_id": pattern_id, "occurrence_count": occurrence_count},
         )
 
     def record_dialogue_conclusion(self, outcome, *, question: str,
