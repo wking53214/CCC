@@ -85,6 +85,17 @@ class CCCStore:
         self.threads: dict[str, Thread] = {}
         self.branches: dict[str, Branch] = {}
         self.discoveries: dict[str, DiscoveryRecord] = {}
+        # discovery_id -> the exact text that discovery was matched on for
+        # duplicate / recurrence detection (the joined evidence excerpts, or
+        # the conclusion when there is no evidence). Persisted because the
+        # shingle index and the recurrence detector are in-memory accelerators
+        # rebuilt from this on load -- see CCCSystem._restore_derived_indexes.
+        self.discovery_match_texts: dict[str, str] = {}
+        # True once a state file that includes discovery_match_texts has been
+        # loaded (or for a fresh store). False only after loading a file
+        # written before that field existed -- the signal for CCCSystem to
+        # reconstruct match texts rather than trust an absent list.
+        self.match_texts_persisted: bool = True
         self.simulations: dict[str, SimulationRecord] = {}
         self.uncertainties: dict[str, UncertaintyRecord] = {}
         self.conflicts: dict[str, ConflictRecord] = {}
@@ -220,6 +231,7 @@ class CCCStore:
             "threads": [_primitive(item) for item in self.threads.values()],
             "branches": [_primitive(item) for item in self.branches.values()],
             "discoveries": [_primitive(item) for item in self.discoveries.values()],
+            "discovery_match_texts": dict(self.discovery_match_texts),
             "simulations": [_primitive(item) for item in self.simulations.values()],
             "uncertainties": [_primitive(item) for item in self.uncertainties.values()],
             "conflicts": [_primitive(item) for item in self.conflicts.values()],
@@ -420,6 +432,10 @@ class CCCStore:
                     created_at=value["created_at"],
                 )
             )
+        store.match_texts_persisted = "discovery_match_texts" in raw
+        store.discovery_match_texts = {
+            str(k): str(v) for k, v in raw.get("discovery_match_texts", {}).items()
+        }
         for value in raw.get("simulations", []):
             store.add_simulation(
                 SimulationRecord(

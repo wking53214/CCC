@@ -87,6 +87,24 @@ def test_the_same_dialogue_conclusion_cannot_be_recorded_twice(system):
         )
 
 
+def test_the_double_record_guard_survives_a_reopen(tmp_path):
+    """The guard is an in-memory set rebuilt in __init__. A reopened
+    session must repopulate it from the persisted conclusion artifacts,
+    or the same dialogue's conclusion could be recorded a second time in
+    a new process."""
+    path = tmp_path / "dlg.json"
+
+    s1 = CCCSystem(persistence_path=path)
+    outcome, _ = _run_and_record(s1, respond=lambda c: "A")
+    s1.save()
+
+    s2 = CCCSystem(persistence_path=path)
+    with pytest.raises(ValueError, match="already recorded"):
+        s2.record_dialogue_conclusion(
+            outcome, question="Which is it?", human_actor=Actor.human("william"), context="ctx",
+        )
+
+
 def test_a_confirmed_outcome_with_no_choice_is_refused(system):
     rec = system.human_resolution.ask(
         context="c", question="q", candidates=("A", "B"), actor=Actor.model("m"),

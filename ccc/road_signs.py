@@ -21,6 +21,7 @@ class RoadSignManager:
         source_material: tuple[str, ...] = (),
         actor: Actor,
         confidence: float | None = None,
+        linked_ids: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> RoadSign:
         self.rules.evaluate(
@@ -36,6 +37,7 @@ class RoadSignManager:
             source_material=tuple(source_material),
             detected_by=actor,
             confidence=confidence,
+            linked_ids=tuple(linked_ids),
             metadata=metadata or {},
             is_conclusion=False,
         )
