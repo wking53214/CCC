@@ -82,6 +82,7 @@ class CCCSystem:
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
         self.dialogue = DialogueEngine(self.human_resolution)
         self._finding_shingle_index = matching.ShingleIndex()
+        self._recorded_dialogue_signatures: set = set()
         self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
         self.canonicalization = CanonicalizationManager(self.store, self.audit_trail, self.rules)
@@ -619,6 +620,93 @@ class CCCSystem:
         )
         self._finding_shingle_index.add(record.discovery_id, comparison_text)
         return record
+
+    def record_dialogue_conclusion(self, outcome, *, question: str,
+                                    human_actor: Actor, context: str = ""):
+        """Turn a terminated dialogue into a durable, queryable fact.
+
+        The dialogue engine reaches conclusions; without this they stay as
+        a resolved_choice string on an UncertaintyRecord and nothing more --
+        not part of the knowledge model, not queryable as a fact.
+
+        A CONFIRMED answer becomes a USER_ESTABLISHED / INTERPRETATION
+        artifact: a human confirmed it through the CCC-HUMAN-001-gated
+        resolve(), so it's legitimately human-established -- an
+        interpretation of the evidence, not raw evidence. A 42 becomes a
+        USER_ESTABLISHED / UNKNOWN artifact, so "we looked and the record
+        doesn't establish this" is itself a durable fact, not a gap that
+        looks identical to never having investigated.
+
+        Either way the artifact's metadata links every UncertaintyRecord in
+        the dialogue, so the rounds that produced the conclusion stay
+        traceable from it.
+        """
+        if human_actor.kind is not ActorType.HUMAN:
+            raise ValueError(
+                "a dialogue conclusion is human-established by definition -- "
+                "pass a human actor, the same one who resolved the dialogue"
+            )
+        if outcome.terminal not in ("CONFIRMED", "UNKNOWN"):
+            raise ValueError(
+                f"dialogue outcome {outcome.terminal!r} is not a terminal state -- "
+                "nothing to record"
+            )
+        uncertainty_ids = list(outcome.uncertainty_ids)
+        if not uncertainty_ids:
+            raise ValueError(
+                "outcome has no uncertainty_ids -- it did not come from a real "
+                "dialogue round, refusing to record a conclusion with no rounds behind it"
+            )
+        for uid in uncertainty_ids:
+            if uid not in self.store.uncertainties:
+                raise ValueError(
+                    f"uncertainty_id {uid!r} is not in the store -- the outcome's "
+                    "rounds don't exist, refusing to record an untraceable conclusion"
+                )
+        signature = tuple(uncertainty_ids)
+        if signature in self._recorded_dialogue_signatures:
+            raise ValueError(
+                "this dialogue's conclusion is already recorded -- "
+                "refusing to record it twice"
+            )
+
+        if outcome.terminal == "CONFIRMED":
+            if not outcome.choice:
+                raise ValueError(
+                    "a CONFIRMED outcome with no choice is malformed -- "
+                    "refusing to record 'Confirmed: None'"
+                )
+            # Structured, not a bare f-string concat: a question containing
+            # "Confirmed:" or its own newlines can't make the recorded fact
+            # ambiguous about what was actually confirmed.
+            content = (
+                "DIALOGUE CONCLUSION (confirmed)\n"
+                f"question: {question!r}\n"
+                f"confirmed: {outcome.choice!r}"
+            )
+            epistemic = EpistemicStatus.INTERPRETATION
+            reason = "human confirmed a dialogue candidate"
+        elif outcome.terminal == "UNKNOWN":
+            content = (
+                "DIALOGUE CONCLUSION (42 -- the record does not establish this)\n"
+                f"question: {question!r}"
+            )
+            epistemic = EpistemicStatus.UNKNOWN
+            reason = "human resolved a dialogue as 42 -- the record does not establish this"
+        artifact = self.ingest(
+            content,
+            actor=human_actor,
+            provenance_status=ProvenanceStatus.USER_ESTABLISHED,
+            epistemic_status=epistemic,
+            reason=reason,
+            authorization_basis=f"dialogue conclusion, {outcome.rounds} round(s)",
+            metadata={
+                "dialogue_uncertainty_ids": uncertainty_ids,
+                "dialogue_context": context,
+            },
+        )
+        self._recorded_dialogue_signatures.add(signature)
+        return artifact
 
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
