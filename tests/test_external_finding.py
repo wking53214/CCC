@@ -86,6 +86,34 @@ def test_verified_true_with_no_source_material_is_self_inconsistent():
         system.record_external_finding(broken, actor=Actor.model("m"))
 
 
+def test_resume_os_source_is_refused_by_default():
+    """CCC is public; Resume_OS stays private permanently, chosen as this
+    project's validation domain specifically because its ground truth
+    isn't exposed. A finding citing it must not leak into a public repo's
+    audit trail by accident."""
+    system = CCCSystem()
+    finding = _verified_finding(source_material=("/home/wking53214/Resume_OS/sources/manifest.json",))
+    with pytest.raises(ValueError, match="known-private"):
+        system.record_external_finding(finding, actor=Actor.model("m"))
+
+
+def test_chatgpt_history_source_is_refused_by_default():
+    system = CCCSystem()
+    finding = _verified_finding(source_material=("ChatGPT_History/transcripts/x.md",))
+    with pytest.raises(ValueError, match="known-private"):
+        system.record_external_finding(finding, actor=Actor.model("m"))
+
+
+def test_private_source_can_be_explicitly_allowed():
+    """The refusal is a default, not an absolute lock -- an explicit,
+    named override exists for a deliberate, reviewed case, same pattern as
+    every other refusal in this method."""
+    system = CCCSystem()
+    finding = _verified_finding(source_material=("Resume_OS/README.md",))
+    record = system.record_external_finding(finding, actor=Actor.model("m"), allow_private_source=True)
+    assert record.discovery_id
+
+
 def test_non_string_source_material_entry_is_refused():
     """Flood-test finding: a bare int in source_material passed through with
     zero validation before this fix."""
