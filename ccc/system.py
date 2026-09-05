@@ -11,6 +11,7 @@ from .branches import BranchManager
 from .canonicalization import CanonicalizationManager
 from .conflict import ConflictManager
 from .constitutional_rules import ConstitutionalRuleEngine
+from .dialogue import DialogueEngine
 from .discovery import DiscoveryManager
 from . import matching
 from .epistemic_state import EpistemicManager
@@ -36,6 +37,16 @@ from .road_signs import RoadSignManager
 from .simulation import SimulationManager
 from .store import CCCStore
 from .threads import ThreadManager
+
+
+# Named, specific, from this project's own history -- not a placeholder or
+# a general secrets pattern. Resume_OS stays private permanently, chosen as
+# the validation domain precisely because it holds real ground truth that
+# must not leak into a public repo's audit trail. ChatGPT_History carries
+# un-scrubbed third-party PII, flagged as a real dependency of this whole
+# system if it's ever ingested at scale, never resolved. A finding whose
+# source cites either one, into a public repository, is refused by default.
+PRIVATE_SOURCE_MARKERS = ("Resume_OS", "ChatGPT_History")
 
 
 def _state(artifact: Artifact) -> dict[str, Any]:
@@ -69,6 +80,7 @@ class CCCSystem:
         self.threads = ThreadManager(self.store, self.audit_trail, self.rules)
         self.branches = BranchManager(self.store, self.audit_trail, self.rules, self.lineage, self.threads)
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
+        self.dialogue = DialogueEngine(self.human_resolution)
         self._finding_shingle_index = matching.ShingleIndex()
         self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
@@ -460,7 +472,8 @@ class CCCSystem:
         return self.discovery.discover(**kwargs)
 
     def record_external_finding(self, finding, *, actor: Actor,
-                                 epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE):
+                                 epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE,
+                                 allow_private_source: bool = False):
         """Record a finding from an external evidence-search system (such as
         Ecology's FindingRecord) as a CCC anomaly.
 
@@ -470,7 +483,20 @@ class CCCSystem:
         of (source, excerpt) pairs -- can be recorded this way; the contract
         is structural, not a dependency.
 
-        Three refusals, none of them silent downgrades:
+        Four refusals, none of them silent downgrades:
+
+        - A finding whose `.source_material` names a known-private source
+          (PRIVATE_SOURCE_MARKERS below) is refused unless
+          `allow_private_source=True` is passed explicitly. CCC is a public
+          repository; Resume_OS stays private permanently specifically
+          because it's this project's validation domain (real ground
+          truth, deliberately not exposed), and ChatGPT_History carries
+          un-scrubbed third-party PII that was flagged, not resolved. A
+          content-search system pointed at either one by mistake must not
+          silently leak into a public audit trail. This is a narrow,
+          named-marker check, not a general secrets scanner -- it catches
+          the two specific, already-identified cases, honestly, nothing
+          more.
 
         - An unverified finding (`.verified` is False) is refused outright:
           an honest non-answer is not an anomaly worth recording.
@@ -524,6 +550,18 @@ class CCCSystem:
             raise ValueError(
                 f"source_material {finding.source_material!r} contains a "
                 "non-string or empty entry -- refusing a self-inconsistent finding"
+            )
+        # Shape is validated (all entries are real, non-empty strings) --
+        # only now is it safe to search them for a private-source marker.
+        if not allow_private_source and any(
+            marker in source
+            for source in finding.source_material
+            for marker in PRIVATE_SOURCE_MARKERS
+        ):
+            raise ValueError(
+                f"source_material {finding.source_material!r} names a known-private "
+                "source (Resume_OS or ChatGPT_History) -- refusing to record into "
+                "this public repository's audit trail without allow_private_source=True"
             )
         if not finding.conclusion:
             raise ValueError(
