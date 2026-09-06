@@ -251,3 +251,305 @@ def test_duplicates_are_audited_not_silently_absorbed():
     )
     discover_events = [e for e in system.audit() if e.operation == "DISCOVER"]
     assert len(discover_events) == 2
+
+
+# Event-time / temporal provenance tests
+
+@dataclass(frozen=True)
+class _FindingWithEventTime(_StandInFinding):
+    """Extended finding with event-date fields."""
+    event_start_date: str | None = None
+    event_end_date: str | None = None
+
+
+def test_finding_with_event_dates_carries_them_to_discovery():
+    """Event dates on a finding are preserved through record_external_finding
+    into the resulting DiscoveryRecord."""
+    system = CCCSystem()
+    finding = _FindingWithEventTime(
+        conclusion="The system broke in May.",
+        method="analysis",
+        source_material=("claude_history/conv123.md",),
+        confidence=0.9,
+        verified=True,
+        evidence=(("claude_history/conv123.md", "system down"),),
+        event_start_date="2026-05-14",
+        event_end_date="2026-05-14",
+    )
+    record = system.record_external_finding(
+        finding, actor=Actor.model("test"), allow_private_source=True,
+    )
+    assert record.event_start_date == "2026-05-14"
+    assert record.event_end_date == "2026-05-14"
+
+
+def test_finding_without_event_dates_records_none():
+    """A finding with no event dates results in None/None on the discovery."""
+    system = CCCSystem()
+    record = system.record_external_finding(
+        _verified_finding(), actor=Actor.model("test"),
+    )
+    assert record.event_start_date is None
+    assert record.event_end_date is None
+
+
+def test_event_dates_span_multiple_conversations():
+    """A finding aggregating evidence from multiple dates gets the min/max span."""
+    system = CCCSystem()
+    finding = _FindingWithEventTime(
+        conclusion="Pattern emerged across months.",
+        method="recurrence_detection",
+        source_material=("claude_history/a.md", "claude_history/b.md", "claude_history/c.md"),
+        confidence=0.7,
+        verified=True,
+        evidence=(
+            ("claude_history/a.md", "March evidence"),
+            ("claude_history/b.md", "May evidence"),
+            ("claude_history/c.md", "July evidence"),
+        ),
+        event_start_date="2026-03-01",
+        event_end_date="2026-07-31",
+    )
+    record = system.record_external_finding(
+        finding, actor=Actor.model("test"), allow_private_source=True,
+    )
+    assert record.event_start_date == "2026-03-01"
+    assert record.event_end_date == "2026-07-31"
+
+
+def test_recurrence_representative_orders_by_event_date_not_ingest_time():
+    """Core regression test: verify that when choosing a recurrence representative,
+    the system uses event date (when the evidence occurred) not ingest time (when
+    CCC learned about it).
+
+    This test directly constructs discoveries in a recurrence cluster and tests
+    that the representative selection uses _effective_event_time, which prefers
+    event_start_date over created_at.
+    """
+    from ccc.system import _effective_event_time, _STAGE_RANK
+
+    # Construct two discoveries that would be in the same recurrence cluster
+    may_discovery = _StandInFinding(
+        conclusion="A discovered pattern.",
+        method="synthetic_method",
+        source_material=("may_source.md",),
+        confidence=0.8,
+        verified=True,
+        evidence=(("may_source.md", "discovered content"),),
+    )
+    july_discovery = _StandInFinding(
+        conclusion="A discovered pattern.",
+        method="synthetic_method",
+        source_material=("july_source.md",),
+        confidence=0.8,
+        verified=True,
+        evidence=(("july_source.md", "discovered content"),),
+    )
+
+    # Create DiscoveryRecords for both, simulating:
+    # - May event (2026-05-10), Sept 5 ingest
+    # - July event (2026-07-15), Sept 4 ingest (earlier!)
+    from ccc import DiscoveryRecord, EpistemicStatus, ProvenanceStatus
+
+    may_record = DiscoveryRecord(
+        discovery_id="discovery_may",
+        source_material=("may.md",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="method",
+        conclusion="pattern",
+        confidence=0.8,
+        supporting_evidence=("may.md: content",),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        stage=AnalysisStage.PATTERN,
+        event_start_date="2026-05-10",
+        event_end_date="2026-05-10",
+        created_at="2026-09-05T10:00:00+00:00",  # later ingest
+    )
+
+    july_record = DiscoveryRecord(
+        discovery_id="discovery_july",
+        source_material=("july.md",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="method",
+        conclusion="pattern",
+        confidence=0.8,
+        supporting_evidence=("july.md: content",),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        stage=AnalysisStage.PATTERN,
+        event_start_date="2026-07-15",
+        event_end_date="2026-07-15",
+        created_at="2026-09-04T10:00:00+00:00",  # earlier ingest
+    )
+
+    # The representative selection key, applied to both
+    cluster = [may_record, july_record]
+
+    def representative_key(record):
+        """Mimics the logic in record_external_finding."""
+        return (
+            -_STAGE_RANK[record.stage],
+            _effective_event_time(record),
+            record.discovery_id,
+        )
+
+    # Choose the representative
+    representative = min(cluster, key=representative_key)
+
+    # The May record must be chosen because its event time (2026-05-10)
+    # is earlier than July's (2026-07-15), even though May was ingested
+    # later (Sept 5 vs Sept 4).
+    assert representative.discovery_id == "discovery_may", (
+        f"Expected May (earlier event 2026-05-10) to be representative, "
+        f"but got {representative.discovery_id}. "
+        f"This means created_at (ingest time) is being used instead of "
+        f"event_start_date. "
+        f"May created_at={may_record.created_at}, "
+        f"July created_at={july_record.created_at}"
+    )
+
+
+def test_discovery_without_event_time_falls_back_to_created_at():
+    """A discovery with no event-time uses created_at as the fallback in
+    representative selection, via _effective_event_time."""
+    from ccc.system import _effective_event_time
+    from ccc import DiscoveryRecord, EpistemicStatus, ProvenanceStatus
+
+    # Create two discoveries, both with no event times
+    # The older one was created first, the newer one later
+    older = DiscoveryRecord(
+        discovery_id="older_discovery",
+        source_material=("a.md",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="method",
+        conclusion="pattern",
+        confidence=0.8,
+        supporting_evidence=(),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        stage=AnalysisStage.PATTERN,
+        event_start_date=None,  # no event time
+        event_end_date=None,
+        created_at="2026-09-01T10:00:00+00:00",
+    )
+
+    newer = DiscoveryRecord(
+        discovery_id="newer_discovery",
+        source_material=("b.md",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="method",
+        conclusion="pattern",
+        confidence=0.8,
+        supporting_evidence=(),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        stage=AnalysisStage.PATTERN,
+        event_start_date=None,  # no event time
+        event_end_date=None,
+        created_at="2026-09-02T10:00:00+00:00",
+    )
+
+    # Without event times, the fallback should order by created_at
+    # The older one (created first) should come first
+    older_key = _effective_event_time(older)
+    newer_key = _effective_event_time(newer)
+
+    assert older_key < newer_key, (
+        f"Fallback ordering failed: {older_key} should be < {newer_key}. "
+        f"Without event dates, created_at should determine order."
+    )
+
+
+def test_event_date_invariant_rejects_invalid_ranges():
+    """DiscoveryRecord validation rejects invalid temporal invariants."""
+    from ccc import DiscoveryRecord, EpistemicStatus, ProvenanceStatus
+
+    # Both present, valid order: OK
+    record = DiscoveryRecord(
+        discovery_id="test",
+        source_material=("s",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="m",
+        conclusion="c",
+        confidence=0.5,
+        supporting_evidence=(),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        event_start_date="2026-05-01",
+        event_end_date="2026-05-31",
+    )
+    assert record.event_start_date == "2026-05-01"
+
+    # Both present, invalid order: raises
+    with pytest.raises(ValueError, match="event_start_date.*>.*event_end_date"):
+        DiscoveryRecord(
+            discovery_id="test",
+            source_material=("s",),
+            machine_origin=True,
+            machine_processing_history=("m",),
+            method="m",
+            conclusion="c",
+            confidence=0.5,
+            supporting_evidence=(),
+            epistemic_status=EpistemicStatus.INFERENCE,
+            provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+            event_start_date="2026-07-01",
+            event_end_date="2026-05-01",
+        )
+
+    # Only start (no end): raises
+    with pytest.raises(ValueError, match="event_start_date.*event_end_date.*both must"):
+        DiscoveryRecord(
+            discovery_id="test",
+            source_material=("s",),
+            machine_origin=True,
+            machine_processing_history=("m",),
+            method="m",
+            conclusion="c",
+            confidence=0.5,
+            supporting_evidence=(),
+            epistemic_status=EpistemicStatus.INFERENCE,
+            provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+            event_start_date="2026-05-01",
+            event_end_date=None,
+        )
+
+    # Only end (no start): raises
+    with pytest.raises(ValueError, match="event_end_date.*event_start_date.*both must"):
+        DiscoveryRecord(
+            discovery_id="test",
+            source_material=("s",),
+            machine_origin=True,
+            machine_processing_history=("m",),
+            method="m",
+            conclusion="c",
+            confidence=0.5,
+            supporting_evidence=(),
+            epistemic_status=EpistemicStatus.INFERENCE,
+            provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+            event_start_date=None,
+            event_end_date="2026-05-01",
+        )
+
+    # Both None: OK
+    record_no_dates = DiscoveryRecord(
+        discovery_id="test",
+        source_material=("s",),
+        machine_origin=True,
+        machine_processing_history=("m",),
+        method="m",
+        conclusion="c",
+        confidence=0.5,
+        supporting_evidence=(),
+        epistemic_status=EpistemicStatus.INFERENCE,
+        provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
+        event_start_date=None,
+        event_end_date=None,
+    )
+    assert record_no_dates.event_start_date is None

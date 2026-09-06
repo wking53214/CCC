@@ -382,6 +382,26 @@ class DiscoveryRecord:
     attribution: str | None = None
     created_by: Actor = field(default_factory=Actor.system)
     created_at: str = field(default_factory=utc_now)
+    event_start_date: str | None = None
+    event_end_date: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.event_start_date is not None and self.event_end_date is None:
+            raise ValueError(
+                "event_start_date is set but event_end_date is not -- "
+                "both must be present or both must be absent"
+            )
+        if self.event_end_date is not None and self.event_start_date is None:
+            raise ValueError(
+                "event_end_date is set but event_start_date is not -- "
+                "both must be present or both must be absent"
+            )
+        if (self.event_start_date is not None and self.event_end_date is not None
+                and self.event_start_date > self.event_end_date):
+            raise ValueError(
+                f"event_start_date {self.event_start_date!r} > event_end_date "
+                f"{self.event_end_date!r} -- temporal invariant violated"
+            )
 
 
 @dataclass(frozen=True)
