@@ -37,6 +37,8 @@ class DiscoveryManager:
         epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE,
         stage: AnalysisStage | None = None,
         relationships: tuple[str, ...] = (),
+        event_start_date: str | None = None,
+        event_end_date: str | None = None,
     ) -> DiscoveryRecord:
         if epistemic_status in {EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE} and actor.kind in {ActorType.MODEL, ActorType.SYSTEM}:
             self.rules.evaluate(
@@ -60,6 +62,8 @@ class DiscoveryManager:
             stage=stage,
             attribution=self.HUMAN_123_ATTRIBUTION if stage is not None else None,
             created_by=actor,
+            event_start_date=event_start_date,
+            event_end_date=event_end_date,
         )
         self.store.add_discovery(record)
         self.audit.record(

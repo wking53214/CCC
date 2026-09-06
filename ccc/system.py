@@ -77,6 +77,18 @@ _STAGE_RANK = {
     AnalysisStage.MANDATE: 2,
 }
 
+
+def _effective_event_time(record: "DiscoveryRecord") -> tuple:
+    """Temporal sort key for a discovery: event-time if known, else ingest time.
+
+    Returns a tuple that gives event times priority over ingest times, so a
+    finding from an older conversation sorts earlier even if it was processed
+    later. For discoveries with no known event time, created_at is the fallback.
+    """
+    if record.event_start_date is not None:
+        return (0, record.event_start_date)
+    return (1, record.created_at)
+
 # Substring stamped into a discovery's `method` when it was recorded as an
 # anti-probability duplicate. A duplicate is a re-observation, not an
 # independent occurrence: it stays reachable through `relationships` for
@@ -779,14 +791,16 @@ class CCCSystem:
                 if _DUPLICATE_METHOD_MARKER not in self.store.discoveries[did].method
             ] or list(cluster)
             # Representative: the occurrence furthest along the APM ladder,
-            # earliest-created breaking ties -- never the best lexical match
-            # (occurrence #3 routinely scores highest against #2, still an
-            # ANOMALY, and branching there never reaches the 3rd-occ signal).
+            # ordered by event-time (when the underlying evidence occurred),
+            # breaking ties by discovery_id for determinism. Event time is
+            # preserved separately from created_at (when CCC learned of it);
+            # discoveries with no known event time fall back to created_at.
             representative_id = min(
                 occurrences,
                 key=lambda did: (
                     -_STAGE_RANK[self.store.discoveries[did].stage],
-                    self.store.discoveries[did].created_at,
+                    _effective_event_time(self.store.discoveries[did]),
+                    did,
                 ),
             )
             rep = self.store.discoveries[representative_id]
@@ -801,6 +815,9 @@ class CCCSystem:
                 f"{rep.stage.value}, {len(occurrences)} prior occurrence(s))"
             )
 
+        event_start_date = getattr(finding, "event_start_date", None)
+        event_end_date = getattr(finding, "event_end_date", None)
+
         record = self.discovery.discover(
             source_material=finding.source_material,
             method=method,
@@ -811,6 +828,8 @@ class CCCSystem:
             epistemic_status=epistemic_status,
             stage=AnalysisStage.ANOMALY,
             relationships=relationships,
+            event_start_date=event_start_date,
+            event_end_date=event_end_date,
         )
 
         if representative_id is not None:
