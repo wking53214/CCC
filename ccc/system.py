@@ -28,6 +28,7 @@ from .models import (
     AnalysisStage,
     Artifact,
     ArtifactState,
+    DiscoveryRecord,
     EpistemicStatus,
     ProvenanceStatus,
     RelationshipType,
