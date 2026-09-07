@@ -330,3 +330,105 @@ def test_the_default_threshold_is_reachable_by_a_realistic_provider():
         "CCC's default threshold cannot be reached by a realistic embedding "
         "provider -- semantic recurrence would be a silent no-op"
     )
+
+
+# ---------------------------------------------------------------------------
+# Wired into CCCSystem, where it either changes behaviour or is decoration
+# ---------------------------------------------------------------------------
+
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+from ccc import Actor, CCCSystem
+
+
+@dataclass(frozen=True)
+class _Finding:
+    conclusion: str
+    method: str
+    source_material: Tuple[str, ...]
+    confidence: Optional[float]
+    verified: bool
+    evidence: Tuple[Tuple[str, str], ...] = ()
+
+
+def _finding(text, source="a.md"):
+    return _Finding(conclusion=text, method="test", source_material=(source,),
+                    confidence=0.8, verified=True, evidence=((source, text),))
+
+
+def test_no_provider_leaves_ccc_behaving_exactly_as_before():
+    """The invariant that makes this optional. If wiring the interface in
+    changed the default behaviour, it would not be supplemental."""
+    system = CCCSystem()
+    assert system.semantic_index is None
+    record = system.record_external_finding(
+        _finding("a clean unremarkable finding about widgets"),
+        actor=Actor.model("m"))
+    assert record is not None
+    assert len(system.store.road_signs) == 0
+
+
+def test_a_semantic_only_match_raises_a_candidate_sign_and_escalates_nothing():
+    """Lexical found nothing, semantic did. That is a relationship worth a
+    reviewer's attention and not a recurrence: no stage advances, no cluster
+    forms, and the sign says so in its own text."""
+    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    # make the provider answer for whatever comparison text CCC builds
+    system.semantic_index.query = lambda text, *, limit=10: [
+        SemanticMatch("prior-finding-17", 0.91)]
+
+    record = system.record_external_finding(
+        _finding("an entirely novel observation sharing no words with anything"),
+        actor=Actor.model("m"))
+
+    signs = list(system.store.road_signs.values())
+    assert len(signs) == 1
+    sign = signs[0]
+    assert sign.category.value == "unexpected_connection"
+    assert sign.is_conclusion is False, "a candidate must not be a conclusion"
+    assert "establishes no recurrence" in sign.observation
+    assert sign.metadata["established"] is False
+    assert sign.metadata["nearest_similarity"] == 0.91
+    # nothing advanced
+    assert record.stage.value == "ANOMALY"
+
+
+def test_the_candidate_sign_carries_provider_and_threshold_for_review():
+    """So a reviewer can judge the claim rather than take it -- and can still
+    do so after the model that produced it is gone."""
+    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    system.semantic_index.query = lambda text, *, limit=10: [SemanticMatch("F-1", 0.77)]
+    system.record_external_finding(_finding("novel unrelated observation"),
+                                   actor=Actor.model("m"))
+
+    metadata = list(system.store.road_signs.values())[0].metadata
+    assert metadata["semantic_provider"] == "fake"
+    assert metadata["semantic_threshold"] == 0.30
+    assert metadata["decision"] == "semantic_only"
+
+
+def test_a_below_threshold_neighbour_raises_nothing():
+    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.80)
+    system.semantic_index.query = lambda text, *, limit=10: [SemanticMatch("F-1", 0.20)]
+    system.record_external_finding(_finding("novel unrelated observation"),
+                                   actor=Actor.model("m"))
+    assert len(system.store.road_signs) == 0
+
+
+def test_a_broken_provider_cannot_stop_a_finding_being_recorded():
+    """Losing the provider costs reach, never integrity or availability."""
+    system = CCCSystem(semantic_index=BrokenIndex(), semantic_threshold=0.30)
+    record = system.record_external_finding(_finding("some finding"),
+                                            actor=Actor.model("m"))
+    assert record is not None
+    assert len(system.store.road_signs) == 0
+
+
+def test_findings_are_registered_with_the_provider_for_future_queries():
+    """A provider that is never told about new findings can only ever match
+    against an empty index."""
+    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    record = system.record_external_finding(_finding("a finding worth indexing"),
+                                            actor=Actor.model("m"))
+    assert any(fid == record.discovery_id for fid, _ in system.semantic_index.added)
