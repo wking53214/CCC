@@ -328,24 +328,6 @@ def test_recurrence_representative_orders_by_event_date_not_ingest_time():
     """
     from ccc.system import _effective_event_time, _STAGE_RANK
 
-    # Construct two discoveries that would be in the same recurrence cluster
-    may_discovery = _StandInFinding(
-        conclusion="A discovered pattern.",
-        method="synthetic_method",
-        source_material=("may_source.md",),
-        confidence=0.8,
-        verified=True,
-        evidence=(("may_source.md", "discovered content"),),
-    )
-    july_discovery = _StandInFinding(
-        conclusion="A discovered pattern.",
-        method="synthetic_method",
-        source_material=("july_source.md",),
-        confidence=0.8,
-        verified=True,
-        evidence=(("july_source.md", "discovered content"),),
-    )
-
     # Create DiscoveryRecords for both, simulating:
     # - May event (2026-05-10), Sept 5 ingest
     # - July event (2026-07-15), Sept 4 ingest (earlier!)

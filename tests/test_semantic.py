@@ -10,7 +10,12 @@ supplemental, and if losing it could break CCC, it would not be supplemental.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
 import pytest
+
+from ccc import Actor, CCCSystem
 
 from ccc.semantic import (
     DECISION_CONFIRMED,
@@ -335,12 +340,6 @@ def test_the_default_threshold_is_reachable_by_a_realistic_provider():
 # ---------------------------------------------------------------------------
 # Wired into CCCSystem, where it either changes behaviour or is decoration
 # ---------------------------------------------------------------------------
-
-from dataclasses import dataclass
-from typing import Optional, Tuple
-
-from ccc import Actor, CCCSystem
-
 
 @dataclass(frozen=True)
 class _Finding:
