@@ -16,6 +16,7 @@ from .dialogue import DialogueEngine
 from .discovery import DiscoveryManager
 from . import matching
 from .recurrence import RecurrenceDetector
+from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
 from .human_resolution import HumanResolutionManager
@@ -131,7 +132,19 @@ class CCCSystem:
 
     version = "0.1.0"
 
-    def __init__(self, *, store: CCCStore | None = None, persistence_path: str | Path | None = None) -> None:
+    def __init__(self, *, store: CCCStore | None = None,
+                 persistence_path: str | Path | None = None,
+                 semantic_index=None,
+                 semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD) -> None:
+        """
+        semantic_index: optional provider satisfying ccc.semantic.SemanticIndex.
+            Injected, never imported -- CCC defines the interface and owns the
+            policy; the model lives outside. None (the default) means
+            recurrence stays purely lexical and behaves exactly as it did
+            before the interface existed.
+        semantic_threshold: CCC's declared policy for how similar counts.
+            Provider-dependent and uncalibrated; see ccc/semantic.py.
+        """
         if store is not None:
             self.store = store
         elif persistence_path is not None and _has_saved_state(persistence_path):
@@ -158,6 +171,8 @@ class CCCSystem:
         self.dialogue = DialogueEngine(self.human_resolution)
         self._finding_shingle_index = matching.ShingleIndex()
         self._recurrence = RecurrenceDetector()
+        self.semantic_index = semantic_index
+        self.semantic_threshold = semantic_threshold
         self._recorded_dialogue_signatures: set = set()
         self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
@@ -763,6 +778,28 @@ class CCCSystem:
         # content is the opposite signal and must not advance a pattern.
         is_duplicate = bool(relationships)
         recurrence = None if is_duplicate else self._recurrence.find_recurrence(comparison_text)
+
+        # Semantic evidence, when a provider is attached. Consulted for its
+        # opinion and recorded either way; it never overrides the lexical
+        # verdict, because a semantic-only match is a CANDIDATE and
+        # establishes nothing. See ccc/semantic.py for why that asymmetry
+        # exists -- a model's judgement does not silently become
+        # authoritative in a governed store.
+        recurrence_decision = None
+        if not is_duplicate:
+            recurrence_decision = evaluate_recurrence(
+                text=comparison_text,
+                lexical_match=recurrence is not None,
+                semantic_index=self.semantic_index,
+                semantic_threshold=self.semantic_threshold,
+            )
+            if recurrence_decision.is_candidate:
+                # Lexical found nothing and semantic did. Recorded as an
+                # observable indicator, not acted on: escalation still
+                # requires the mechanism CCC actually trusts.
+                self._flag_semantic_candidate(record_actor=actor,
+                                              decision=recurrence_decision)
+
         representative_id = None
         if recurrence is not None:
             _best_id, best_jaccard, matches = recurrence
@@ -862,6 +899,13 @@ class CCCSystem:
         self.store.discovery_match_texts[record.discovery_id] = comparison_text
         self._finding_shingle_index.add(record.discovery_id, comparison_text)
         self._recurrence.register(record.discovery_id, comparison_text)
+        if self.semantic_index is not None:
+            try:
+                self.semantic_index.add(record.discovery_id, comparison_text)
+            except Exception:  # noqa: BLE001
+                # A provider that cannot index must not stop CCC recording a
+                # finding. Losing the provider costs reach, never integrity.
+                pass
         return record
 
     def _flag_repeated_return(
@@ -883,6 +927,42 @@ class CCCSystem:
             actor=actor,
             linked_ids=(pattern_id, occurrence_id),
             metadata={"pattern_id": pattern_id, "occurrence_count": occurrence_count},
+        )
+
+    def _flag_semantic_candidate(self, *, record_actor: Actor, decision) -> None:
+        """Record an UNEXPECTED_CONNECTION road sign for a semantic-only match.
+
+        Lexical recurrence found nothing and the semantic provider did. That
+        is a relationship worth a reviewer's attention and NOT a recurrence:
+        it establishes nothing, advances no stage, and joins no cluster.
+
+        A road sign is the right shape for it precisely because a road sign is
+        an observable indicator and explicitly not a conclusion -- which is
+        exactly what a model's similarity score is. The threshold, provider
+        and nearest score travel in the metadata so the reviewer can judge the
+        claim rather than take it.
+        """
+        nearest = decision.semantic_matches[0] if decision.semantic_matches else None
+        self.road_signs.detect_road_sign(
+            category=RoadSignCategory.UNEXPECTED_CONNECTION,
+            observation=(
+                "semantic-only recurrence candidate: lexical matching found no "
+                "prior occurrence, "
+                + (f"but {decision.semantic_provider} places this nearest to "
+                   f"{nearest.finding_id} at similarity {nearest.similarity:.3f} "
+                   f"(threshold {decision.semantic_threshold}). "
+                   if nearest else "")
+                + "Candidate only -- establishes no recurrence and advances no stage."
+            ),
+            actor=record_actor,
+            linked_ids=tuple(m.finding_id for m in decision.semantic_matches[:3]),
+            metadata={
+                "decision": decision.decision,
+                "semantic_provider": decision.semantic_provider,
+                "semantic_threshold": decision.semantic_threshold,
+                "nearest_similarity": nearest.similarity if nearest else None,
+                "established": False,
+            },
         )
 
     def record_dialogue_conclusion(self, outcome, *, question: str,
