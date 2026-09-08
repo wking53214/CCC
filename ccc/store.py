@@ -430,6 +430,13 @@ class CCCStore:
                     attribution=value.get("attribution"),
                     created_by=_actor(value["created_by"]),
                     created_at=value["created_at"],
+                    # Serialized all along, never restored (measured 2026-09-08):
+                    # after a reopen every record's event time fell back to
+                    # created_at, and event time is the tiebreaker that picks a
+                    # recurrence cluster's representative. Same inputs, a
+                    # different governed outcome, no warning.
+                    event_start_date=value.get("event_start_date"),
+                    event_end_date=value.get("event_end_date"),
                 )
             )
         store.match_texts_persisted = "discovery_match_texts" in raw
