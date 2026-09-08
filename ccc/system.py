@@ -229,6 +229,19 @@ class CCCSystem:
             if uncertainty_ids:
                 self._recorded_dialogue_signatures.add(tuple(uncertainty_ids))
 
+        # The semantic index is a derived structure too. Before this the
+        # lexical detectors were rebuilt on load and the semantic index was
+        # not, so after a reopen every prior finding was invisible to a
+        # non-persistent provider -- the cross-session case the rebuild
+        # above exists for (measured 2026-09-08).
+        if self.semantic_index is not None:
+            for did, text in self.store.discovery_match_texts.items():
+                if did in self.store.discoveries:
+                    try:
+                        self.semantic_index.add(did, text)
+                    except Exception:  # noqa: BLE001 -- losing the provider costs reach, never integrity
+                        pass
+
     @property
     def system_actor(self) -> Actor:
         return Actor.system()
@@ -898,6 +911,24 @@ class CCCSystem:
             # else -- the machine does not get to add to a human's mandate.
 
         self.store.discovery_match_texts[record.discovery_id] = comparison_text
+        # A provider that failed used to leave no trace at all: the decision
+        # went out of scope and the trail filled with correct-looking
+        # lexical_only verdicts while a whole signal was dead (measured
+        # 2026-09-08). The failure is now an audit event on the finding.
+        if recurrence_decision is not None and recurrence_decision.semantic_error:
+            self.audit_trail.record(
+                actor=self.system_actor,
+                operation="semantic_provider_failed",
+                object_id=record.discovery_id,
+                previous_state=None,
+                new_state={
+                    "semantic_provider": recurrence_decision.semantic_provider,
+                    "semantic_threshold": recurrence_decision.semantic_threshold,
+                    "semantic_error": recurrence_decision.semantic_error,
+                    "decision": recurrence_decision.decision,
+                },
+                reason="the semantic provider did not answer; this decision is lexical-only",
+            )
         self._finding_shingle_index.add(record.discovery_id, comparison_text)
         self._recurrence.register(record.discovery_id, comparison_text)
         if self.semantic_index is not None:
@@ -1178,5 +1209,9 @@ class CCCSystem:
         return self.store.save(path)
 
     @classmethod
-    def load(cls, path: str | Path) -> "CCCSystem":
-        return cls(store=CCCStore.load(path))
+    def load(cls, path: str | Path, *, semantic_index=None,
+             semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD) -> "CCCSystem":
+        # The provider is attached at load so the derived semantic index is
+        # rebuilt from the store along with the lexical ones.
+        return cls(store=CCCStore.load(path), semantic_index=semantic_index,
+                   semantic_threshold=semantic_threshold)

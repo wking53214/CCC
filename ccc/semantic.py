@@ -243,6 +243,31 @@ def provider_name(index: Optional[SemanticIndex]) -> Optional[str]:
     return getattr(index, "provider_name", None) or type(index).__name__
 
 
+def _validated(raw) -> tuple[SemanticMatch, ...]:
+    """The provider's answer, checked and ordered strongest first.
+
+    Measured 2026-09-08: a non-numeric similarity escaped both `except`
+    clauses (the comparison ran outside the guard) and took recording
+    down; a provider returning ascending order made the recorded "nearest"
+    the weakest qualifying match, because CCC trusted the docstring's
+    "strongest first" without enforcing it. A similarity that is not a
+    finite number in [0, 1] is a provider failure, handled like any other.
+    """
+    import math
+    out = []
+    for m in raw:
+        similarity = getattr(m, "similarity", None)
+        finding_id = getattr(m, "finding_id", None)
+        if isinstance(similarity, bool) or not isinstance(similarity, (int, float)) or not math.isfinite(similarity):
+            raise ValueError(f"provider returned a non-numeric similarity {similarity!r} for {finding_id!r}")
+        if not 0.0 <= similarity <= 1.0:
+            raise ValueError(f"provider returned similarity {similarity!r} outside [0, 1] for {finding_id!r}")
+        if not isinstance(finding_id, str) or not finding_id:
+            raise ValueError(f"provider returned a match with no finding id: {m!r}")
+        out.append(SemanticMatch(finding_id, float(similarity)))
+    return tuple(sorted(out, key=lambda m: -m.similarity))
+
+
 def evaluate_recurrence(
     *,
     text: str,
@@ -268,7 +293,7 @@ def evaluate_recurrence(
 
     name = provider_name(semantic_index)
     try:
-        matches = tuple(semantic_index.query(text, limit=limit))
+        matches = _validated(semantic_index.query(text, limit=limit))
     except SemanticUnavailable as exc:
         return RecurrenceDecision(
             decision=combine_recurrence(lexical_match=lexical_match, semantic_match=False),

@@ -239,7 +239,7 @@ def test_ccc_stays_free_of_model_dependencies():
     forbidden = {"onnxruntime", "sentence_transformers", "chromadb", "torch",
                  "transformers", "numpy", "faiss", "scipy", "sklearn"}
     offenders = []
-    for path in pathlib.Path(__file__).parent.parent.joinpath("ccc").glob("*.py"):
+    for path in pathlib.Path(__file__).parent.parent.joinpath("ccc").rglob("*.py"):
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
