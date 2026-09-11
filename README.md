@@ -1,18 +1,26 @@
 # Cognitive Continuity Constitution (CCC)
 
-> **Frozen since 2026-09-08.** CCC is an optional recurrence and continuity
+> **Unfrozen 2026-09-11.** CCC is an optional recurrence and continuity
 > memory for the governed action gate in
 > [observe-perceive](https://github.com/wking53214/observe-perceive), not a
 > product on its own. It is dependency-free and passes its own suite with
 > no sibling present (135 tests). The gate records into it through an
 > adapter after a decision; nothing in the gate requires it.
 >
-> No feature work here for the 90 days starting 2026-09-08. Bug fixes and
-> dependency bumps are fine. It unfreezes when a gate customer wants "we
-> refused this shape before" as a feature, which the memo expects after the
-> first pilots, not before. See
-> `docs/audit/COMMERCIAL_RED_TEAM_2026-09-08.md` in observe-perceive,
-> Parts 19 and 35.
+> The 90-day freeze set on 2026-09-08 is lifted early, by the owner's
+> decision. It was set on the evidence available that day, which
+> predates two things that change the picture: the private `CNS`
+> package, one measured schema that the library's repositories join
+> on rather than re-typing, and `ghost_tools`' kernel scan, which
+> measures duplication and drift against it. Neither existed when the
+> freeze was written.
+>
+> The commercial reading above is **not** superseded. Everything the
+> audit established about this repo still holds, including anything it
+> says is missing; lifting the freeze removes a restriction on effort,
+> not a finding. See
+> `docs/audit/COMMERCIAL_RED_TEAM_2026-09-08.md` in observe-perceive, Parts 19 and 35,
+> for what the freeze was based on.
 
 ## Executable constitutional governance for AI continuity
 
