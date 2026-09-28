@@ -1,5 +1,13 @@
 # Cognitive Continuity Constitution (CCC)
 
+**Role in the governed action stack:** OPTIONAL continuity / recurrence memory for the governed action gate — not a standalone product. Wired from [observe-perceive](https://github.com/wking53214/observe-perceive) when enabled. Related epistemic posture: [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel).
+
+```text
+Live path: Admission → OBSERVE/Keys → Locks → PERCEIVE → Decision → Conservation → Execution → Custody
+```
+
+---
+
 > **Unfrozen 2026-09-11.** CCC is an optional recurrence and continuity
 > memory for the governed action gate in
 > [observe-perceive](https://github.com/wking53214/observe-perceive), not a
