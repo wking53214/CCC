@@ -4,7 +4,7 @@
 > memory for the governed action gate in
 > [observe-perceive](https://github.com/wking53214/observe-perceive), not a
 > product on its own. It is dependency-free and passes its own suite with
-> no sibling present (135 tests). The gate records into it through an
+> no sibling present (142 tests plus 1 expected failure). The gate records into it through an
 > adapter after a decision; nothing in the gate requires it.
 >
 > The 90-day freeze set on 2026-09-08 is lifted early, by the owner's
@@ -112,7 +112,7 @@ the runner never promotes them to `PASS`.
 ## Status
 
 Implemented for the explicit requirements in the build directive.
-Current validation: **27 pytest passing**; harness **62 total — 44 PASS, 0
+Current validation: **142 pytest passing, 1 expected failure**; harness **62 total — 44 PASS, 0
 FAIL, 0 ERROR, 0 SKIPPED, 18 UNSPECIFIED**; demonstration runs end to end.
 
 [`IMPLEMENTATION.md`](IMPLEMENTATION.md) is the detailed report, including the

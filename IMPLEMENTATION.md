@@ -232,7 +232,7 @@ python3 -m ccc.testing
 
 At the current validation point:
 
-- pytest: 27 passed;
+- pytest: 142 passed, 1 xfailed;
 - constitutional harness: 62 total, 44 PASS, 0 FAIL, 0 ERROR, 0 SKIPPED,
   18 UNSPECIFIED;
 - demonstration: starts successfully, blocks machine self-promotion,
