@@ -40,3 +40,104 @@ HERALD / TIE / Ecology may feed claim-like records; no hard imports
 ```
 
 Proprietary. Copyright (c) 2026 William N. King. All rights reserved. See LICENSE.
+
+## 8. Connecting to CNS (optional)
+
+CCC stands alone: no runtime dependency, nothing imported from CNS when the
+package loads, and the whole suite passes without CNS installed. If CNS is
+present, `ccc.cns_connector` expresses an attempted transition as a CNS gate
+result, so it can be resolved alongside gates from other repositories.
+
+```bash
+pip install -e '.[cns]'      # from a checkout
+```
+
+```python
+from ccc import Actor, CCCSystem
+from ccc.cns_connector import CccGate, attempt
+
+system = CCCSystem()
+proposal = system.derive("a machine inference", actor=Actor.model("m"))
+gate = CccGate(system)
+
+by_model = gate.check(attempt(
+    "accept", proposal.artifact_id, actor=Actor.model("m"),
+    reason="consensus", authorization_basis="machine consensus",
+))
+by_model.outcome   # TERMINAL_BREACH: a model attempting human authority is blocked
+
+by_human = gate.check(attempt(
+    "accept", proposal.artifact_id, actor=Actor.human("h"),
+    reason="reviewed", authorization_basis="",
+))
+by_human.outcome   # RETRY: supply the authorization basis and this call is admitted
+by_human.reason    # "CCC-PROVENANCE-002: user provenance requires ..."
+```
+
+`check` runs the attempt on a scratch copy of the store (CCC's own JSON
+snapshot round trip), so the live system, its audit trail and its rule
+decisions are left exactly as they were. The real operation still enforces the
+same rules inline when you perform it; the connector never replaces that, and a
+test proves it does not change what CCC decides.
+
+| CCC | CNS |
+|---|---|
+| where it judges | `ALPHA`: the judged transitions evaluate their rules before they change any record, so a refusal means the transition never starts (a test checks that a refusal changes no record). CCC has no outcome end, so `cns_chain(system).complete()` is `False` by design. `validate_constitution()` is a read-only report that gates nothing, and is not mapped. |
+| the attempt is admitted (the call returns) | `PASS` |
+| `ConstitutionViolation` that a human supplying what it asks for would get admitted (checked, see below) | `RETRY` |
+| any other `ConstitutionViolation`: a model, system or external actor attempting a human-only operation (CCC's own "blocked"), or a refusal no human input reaches (erased material, machine consensus promoted to human-established fact, a simulation promoted to history, a claim attached to itself) | `TERMINAL_BREACH` |
+| `InvalidTransition`, `NotFound`, `ValueError`, `KeyError` | `TERMINAL_BREACH` |
+| any other exception | not translated, it propagates: never a `PASS` |
+| `reason` | CCC's own text, `"<rule_id>: <reason>"` |
+| judged content | `subject` label (default the operation name) plus `subject_digest` of the attempted call: the operation and every argument, bound to the real signature with defaults applied |
+
+**How `RETRY` is decided.** Not from a rule's name or from the prose of its
+registry entry. After a refusal, the connector runs the same operation, by the
+same actor, on the same target, again on a second scratch copy, with only the
+human inputs CCC's rules ask for added: a non-empty `authorization_basis`,
+`human_event=True` where the operation takes one, and a human-established
+record standing as the evidence root (as `evidence_ids`, as `source_material`,
+and for `classify` attached to the artifact). If CCC admits that call the
+verdict is `RETRY`; otherwise it is `TERMINAL_BREACH`, including when CCC cannot
+run the call at all even with those inputs added (an argument of the wrong type).
+The probe never changes the actor, so a model that attempts a human-only
+operation is blocked whatever it adds, and the human who could do it is a
+different actor making a different call, with a verdict of their own. The
+stand-in root exists on the scratch copy only; `RETRY` says a human-established
+record in that role would be enough, and a real human has to have or make one.
+
+The judged transitions are `ccc.cns_connector.TRANSITIONS` (22 operations: those
+that move material toward human authority, promote an epistemic status, rewrite
+history, or resolve something that belongs to a human). Left out, on purpose:
+`derive` (it ingests first and attaches evidence second, so a refusal can follow
+a change), the aliases `record`, `infer` and `interpret`, the `resolve`
+dispatcher (its three targets are judged directly), and the operations that only
+record something new (`detect_conflict`, `detect_inflection`, `ask`, `simulate`,
+`propose_term`, road signs, threads, branches). `attempt()` raises `ValueError`
+for anything outside the set.
+
+The digest binds the attempted call, not the store's state at the time. Arguments
+must be strings, numbers, booleans, `None`, sequences and mappings of those, plus
+`Actor` and enums. Anything else raises `TypeError` when the attempt is built,
+rather than yielding an unbound verdict, and so does anything the digest could not
+take later: NaN or an infinity, text with a lone surrogate, an integer wider than
+2048 bits, and nesting (or a cycle) deeper than 64 containers. CCC itself accepts
+some of these. An attempt keeps its own copy of its arguments; if a nested value is
+changed afterwards, `judge` and `Attempt.run` raise `AttemptChanged` instead of
+running something that was not digested.
+
+Each check costs one snapshot of the store, O(store): a 5000-artifact store takes
+about 1.5 to 2 seconds where the real operation takes about 0.2 milliseconds. The
+snapshot is a JSON file of the whole store, live content included, written to a
+private temporary directory (mode 0700) and removed when the check ends. A store
+CCC cannot snapshot (metadata JSON cannot render, nesting too deep) cannot be
+preflighted: `judge` raises `PreflightError`, which is neither a `ValueError` nor a
+`TypeError`, so it cannot be mistaken for a refusal.
+
+Without CNS installed, `judge`, `CccGate`, `cns_chain`, `attempt_digest` and
+`to_cns_result` raise `CnsNotInstalled` (an `ImportError`) with the install command,
+as does an installed CNS too old to bind verdicts to what they judged. `attempt`,
+`Attempt.run`, `cns_available` and `TRANSITIONS` work either way, and nothing else in
+CCC changes. CI installs only `pytest` and `ruff`, so the connected test module
+(`tests/test_cns_connector.py`) skips there and runs wherever the extra is
+installed; the independence tests run everywhere and never skip.

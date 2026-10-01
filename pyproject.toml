@@ -14,6 +14,11 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# Optional: lets CCC's attempted transitions be judged as CNS gate results. CCC
+# imports nothing from CNS unless ccc.cns_connector is used. Pinned to tag v1.4.0.
+cns = [
+    "cns @ git+https://github.com/wking53214/cns.git@3b465dbcc1a6a4ab6f1040f93d44483196abd737",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

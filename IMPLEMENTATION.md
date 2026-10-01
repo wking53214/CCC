@@ -45,6 +45,11 @@ Modules are separated by responsibility:
 - `canonicalization.py`: proposed/uncertain/external/canonical/deprecated/superseded terminology.
 - `query.py`: discoverability and presentation ranking without deletion.
 - `audit.py`: append-only in-process consequential transition events.
+- `cns_connector.py`: optional connector that expresses an attempted transition as a
+  CNS gate result. Nothing else imports it, and it imports CNS lazily, only when called.
+  A constitutional refusal is `RETRY` only if a human supplying the missing
+  authorization basis, human event or evidence root is shown, on a scratch copy of the
+  store, to get the same call admitted; otherwise it is `TERMINAL_BREACH`.
 - `testing/harness.py`: H01–H62 machine-readable registry and result runner.
 
 ## Data model and state transitions
@@ -128,6 +133,12 @@ for provenance, epistemic state, Chain A, Chain B, sovereignty, historical
 integrity, erasure cascades, correction, supersession, conflicts, Road Signs,
 inflection points, threads, branches, anomaly → pattern → mandate, simulation,
 canonical terms, queryability, persistence, and auditability.
+
+`tests/test_cns_independence.py` proves CCC works with CNS blocked outright (and
+with a too-old CNS in front of it) and never skips; `tests/test_cns_connector.py`
+covers the optional CNS connector and skips when CNS is not installed. CI installs
+only `pytest` and `ruff`, so that module does not run there; it runs wherever the
+`cns` extra is installed.
 
 `ccc.testing.harness` maintains exactly H01 through H62. No old harness
 registry exists in this repository, so the 18 rows whose meanings cannot be
@@ -232,7 +243,8 @@ python3 -m ccc.testing
 
 At the current validation point:
 
-- pytest: 27 passed;
+- pytest: 157 passed, 1 xfailed, 1 skipped without CNS installed (the connected-CNS
+  test module); 774 passed, 1 xfailed with the optional `cns` extra;
 - constitutional harness: 62 total, 44 PASS, 0 FAIL, 0 ERROR, 0 SKIPPED,
   18 UNSPECIFIED;
 - demonstration: starts successfully, blocks machine self-promotion,
