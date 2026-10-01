@@ -39,4 +39,4 @@ observe-perceive decision → orchestrator_ccc_adapter → CCC (opt)
 HERALD / TIE / Ecology may feed claim-like records; no hard imports
 ```
 
-Proprietary. Copyright (c) 2026 William King. All rights reserved. See LICENSE.
+Proprietary. Copyright (c) 2026 William N. King. All rights reserved. See LICENSE.
