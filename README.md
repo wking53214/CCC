@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **recurrence / continuity memory** for governed claims. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. ~135–142 tests.
+Dependency-free **recurrence / continuity memory** for governed claims. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 213 test functions measured in this tree (README previously approximated ~135–142).
 
 ## 1. Pipeline Position & Role
 
