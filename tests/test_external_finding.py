@@ -42,7 +42,7 @@ def _verified_finding(confidence=0.6, source_material=("ecology/README.md", "eco
 
 
 def test_verified_finding_is_recorded_as_an_anomaly():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(
         _verified_finding(), actor=Actor.model("claude-session"),
     )
@@ -55,7 +55,7 @@ def test_verified_finding_is_recorded_as_an_anomaly():
 
 
 def test_unverified_finding_is_refused_not_recorded_at_lower_confidence():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     unverified = _StandInFinding(
         conclusion="", method="m", source_material=(), confidence=None, verified=False,
     )
@@ -65,13 +65,13 @@ def test_unverified_finding_is_refused_not_recorded_at_lower_confidence():
 
 def test_human_actor_is_rejected_for_an_external_finding():
     """Nothing external to CCC gets to assert a human-established fact."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     with pytest.raises(ValueError, match="MODEL or SYSTEM"):
         system.record_external_finding(_verified_finding(), actor=Actor.human("william"))
 
 
 def test_system_actor_is_also_accepted():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(
         _verified_finding(), actor=Actor.system("ecology-pipeline"),
     )
@@ -79,7 +79,7 @@ def test_system_actor_is_also_accepted():
 
 
 def test_verified_true_with_no_source_material_is_self_inconsistent():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     broken = _StandInFinding(
         conclusion="something", method="m", source_material=(), confidence=0.5, verified=True,
     )
@@ -87,49 +87,88 @@ def test_verified_true_with_no_source_material_is_self_inconsistent():
         system.record_external_finding(broken, actor=Actor.model("m"))
 
 
-def test_resume_os_source_is_refused_by_default():
-    """CCC is public; Resume_OS stays private permanently, chosen as this
-    project's validation domain specifically because its ground truth
-    isn't exposed. A finding citing it must not leak into a public repo's
-    audit trail by accident."""
-    system = CCCSystem(text_matcher=TextMatcher())
-    finding = _verified_finding(source_material=("/home/wking53214/Resume_OS/sources/manifest.json",))
+PRIVATE = ("private_corpus", "personal_archive")
+
+
+def _guarded():
+    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=PRIVATE)
+
+
+@pytest.mark.parametrize("source", [
+    "/home/someone/private_corpus/sources/manifest.json",
+    "personal_archive/transcripts/x.md",
+])
+def test_a_stated_private_source_is_refused_by_default(source):
+    """A finding citing a source the caller stated as private must not reach
+    the audit trail by accident. Which sources are private is the caller's
+    statement; CCC names none."""
+    finding = _verified_finding(source_material=(source,))
     with pytest.raises(ValueError, match="known-private"):
-        system.record_external_finding(finding, actor=Actor.model("m"))
+        _guarded().record_external_finding(finding, actor=Actor.model("m"))
 
 
-def test_chatgpt_history_source_is_refused_by_default():
-    system = CCCSystem(text_matcher=TextMatcher())
-    finding = _verified_finding(source_material=("ChatGPT_History/transcripts/x.md",))
-    with pytest.raises(ValueError, match="known-private"):
-        system.record_external_finding(finding, actor=Actor.model("m"))
-
-
-@pytest.mark.parametrize("corpus", ["Claude_History", "CoPilot_History", "Gemini_History"])
-def test_every_conversation_history_corpus_is_refused_by_default(corpus):
-    """All the *_History archives are private personal-conversation data and
-    are the corpora the recurrence layer consumes -- the guard must cover
-    every one of them, not just ChatGPT_History."""
-    system = CCCSystem(text_matcher=TextMatcher())
-    finding = _verified_finding(source_material=(f"{corpus}/transcripts/abc.md",))
-    with pytest.raises(ValueError, match="known-private"):
-        system.record_external_finding(finding, actor=Actor.model("m"))
+def test_unstated_sources_are_not_treated_as_private():
+    finding = _verified_finding(source_material=("public_docs/README.md",))
+    assert _guarded().record_external_finding(finding, actor=Actor.model("m")).discovery_id
 
 
 def test_private_source_can_be_explicitly_allowed():
     """The refusal is a default, not an absolute lock -- an explicit,
     named override exists for a deliberate, reviewed case, same pattern as
     every other refusal in this method."""
-    system = CCCSystem(text_matcher=TextMatcher())
-    finding = _verified_finding(source_material=("Resume_OS/README.md",))
-    record = system.record_external_finding(finding, actor=Actor.model("m"), allow_private_source=True)
+    finding = _verified_finding(source_material=("private_corpus/README.md",))
+    record = _guarded().record_external_finding(
+        finding, actor=Actor.model("m"), allow_private_source=True)
     assert record.discovery_id
+
+
+def test_no_stated_private_sources_means_no_machine_findings():
+    """The guard cannot be lost by forgetting to configure it: until the
+    caller states its private sources (an empty list included), every machine
+    finding is refused and nothing is written."""
+    from ccc.errors import PrivateSourcesNotStated
+    system = CCCSystem(text_matcher=TextMatcher())
+    with pytest.raises(PrivateSourcesNotStated):
+        system.record_external_finding(_verified_finding(), actor=Actor.model("m"))
+    assert not system.store.discoveries and not system.store.audit_events
+
+
+def test_an_empty_statement_means_none_are_private():
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    finding = _verified_finding(source_material=("private_corpus/README.md",))
+    assert system.record_external_finding(finding, actor=Actor.model("m")).discovery_id
+
+
+@pytest.mark.parametrize("bad", ["private_corpus", ("ok", ""), ("ok", 3), (None,)])
+def test_a_malformed_private_source_list_is_refused_at_construction(bad):
+    with pytest.raises(TypeError):
+        CCCSystem(text_matcher=TextMatcher(), private_source_markers=bad)
+
+
+def test_the_statement_survives_a_reload(tmp_path):
+    path = tmp_path / "state.json"
+    CCCSystem(persistence_path=path).save()
+    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=PRIVATE)
+    finding = _verified_finding(source_material=("private_corpus/x.md",))
+    with pytest.raises(ValueError, match="known-private"):
+        reopened.record_external_finding(finding, actor=Actor.model("m"))
+
+
+def test_ccc_source_names_no_repositories():
+    """CCC's code states no repository names of its own; a caller supplies them."""
+    from pathlib import Path
+    import ccc
+    for path in Path(ccc.__file__).parent.rglob("*.py"):
+        text = path.read_text()
+        for name in ("Resume_OS", "ChatGPT_History", "Claude_History",
+                     "CoPilot_History", "Gemini_History"):
+            assert name not in text, f"{path.name} names {name}"
 
 
 def test_non_string_source_material_entry_is_refused():
     """Flood-test finding: a bare int in source_material passed through with
     zero validation before this fix."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     broken = _StandInFinding(
         conclusion="x", method="m", source_material=(123,), confidence=0.5, verified=True,
     )
@@ -138,7 +177,7 @@ def test_non_string_source_material_entry_is_refused():
 
 
 def test_empty_conclusion_with_verified_true_is_self_inconsistent():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     broken = _verified_finding()
     broken = _StandInFinding(
         conclusion="", method=broken.method, source_material=broken.source_material,
@@ -152,21 +191,21 @@ def test_none_in_an_evidence_pair_is_refused_cleanly_not_a_bare_typeerror():
     """Flood-test finding: this used to crash with a raw
     TypeError: sequence item 0: expected str instance, NoneType found --
     a low-level leak, not a deliberate refusal."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     broken = _verified_finding(evidence=(("a.md", None),))
     with pytest.raises(ValueError, match="not a \\(source, excerpt\\) pair"):
         system.record_external_finding(broken, actor=Actor.model("m"))
 
 
 def test_confidence_outside_unit_interval_is_refused():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     broken = _verified_finding(confidence=1.5)
     with pytest.raises(ValueError, match=r"outside \[0, 1\]"):
         system.record_external_finding(broken, actor=Actor.model("m"))
 
 
 def test_evidence_pairs_become_supporting_evidence_not_a_collapsed_number():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(
         _verified_finding(evidence=(
             ("ecology/README.md", "no persisted identity, provenance, or temporal model yet"),
@@ -192,7 +231,7 @@ def test_identical_long_content_is_recorded_and_tagged_as_a_duplicate():
     re-observation is itself an auditable fact. It's tagged via
     relationships pointing at what it matches, not returned as the same
     record, and never let it look like an independent second occurrence."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     first = system.record_external_finding(
         _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
     )
@@ -207,7 +246,7 @@ def test_identical_long_content_is_recorded_and_tagged_as_a_duplicate():
 
 
 def test_unrelated_long_content_is_not_flagged_as_a_duplicate():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     system.record_external_finding(
         _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
     )
@@ -226,7 +265,7 @@ def test_short_shared_phrase_is_not_falsely_flagged_as_a_duplicate():
     """A short common phrase matching is unremarkable, not evidence of
     duplication -- the floor exists so the entropy formula isn't misapplied
     to noise-length overlaps."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     system.record_external_finding(
         _verified_finding(evidence=(("a.md", "the system works well"),)), actor=Actor.model("m"),
     )
@@ -242,7 +281,7 @@ def test_duplicates_are_audited_not_silently_absorbed():
     """The earlier version of this fix returned the existing record with no
     audit trail at all -- a duplicate submission left zero trace. Every
     finding, duplicate or not, now goes through discover() and is audited."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     system.record_external_finding(
         _verified_finding(evidence=(("a.md", _LONG_EXCERPT),)), actor=Actor.model("m"),
     )
@@ -266,7 +305,7 @@ class _FindingWithEventTime(_StandInFinding):
 def test_finding_with_event_dates_carries_them_to_discovery():
     """Event dates on a finding are preserved through record_external_finding
     into the resulting DiscoveryRecord."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     finding = _FindingWithEventTime(
         conclusion="The system broke in May.",
         method="analysis",
@@ -286,7 +325,7 @@ def test_finding_with_event_dates_carries_them_to_discovery():
 
 def test_finding_without_event_dates_records_none():
     """A finding with no event dates results in None/None on the discovery."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(
         _verified_finding(), actor=Actor.model("test"),
     )
@@ -296,7 +335,7 @@ def test_finding_without_event_dates_records_none():
 
 def test_event_dates_span_multiple_conversations():
     """A finding aggregating evidence from multiple dates gets the min/max span."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     finding = _FindingWithEventTime(
         conclusion="Pattern emerged across months.",
         method="recurrence_detection",

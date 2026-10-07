@@ -34,7 +34,7 @@ def _finding(conclusion, source, excerpt=None):
 # --- integration with record_external_finding --------------------------
 
 def test_second_independent_occurrence_advances_the_pattern():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
 
     first = system.record_external_finding(
@@ -56,7 +56,7 @@ def test_second_independent_occurrence_advances_the_pattern():
 def test_a_byte_level_duplicate_does_not_advance_a_pattern():
     """A re-observation of the same content is the opposite of an
     independent occurrence -- it must not push the count toward MANDATE."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     text = "the governance terminology escalated into grandiose theological jargon during the arc"
     first = system.record_external_finding(_finding(text, "a.md"), actor=actor)
@@ -66,7 +66,7 @@ def test_a_byte_level_duplicate_does_not_advance_a_pattern():
 
 
 def test_third_occurrence_records_a_road_sign_not_a_mandate():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     # Three occurrences that share concepts but are genuinely differently
     # worded. Verified numerically (scratchpad/fixture_check.py): every
@@ -118,7 +118,7 @@ def test_third_occurrence_records_a_road_sign_not_a_mandate():
     "specific generator -- none exists in this system today."
 ), strict=True)
 def test_shared_templated_preamble_does_not_collapse_two_findings():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     stem = "Based on the retrieved source excerpts, the analysis concludes that "
     a = system.record_external_finding(_finding(
@@ -138,7 +138,7 @@ def test_each_occurrence_past_the_second_records_its_own_road_sign():
     escalating pressure. Each still carries pattern_id + a true
     occurrence_count, so a reviewer can collapse them by pattern. MANDATE
     stays human-only throughout."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     variants = [
         "governance terminology escalated into grandiose theological jargon",
@@ -171,7 +171,7 @@ def test_a_drifted_third_occurrence_resolves_to_the_cluster_root_not_a_fragment(
     to #1 must still resolve the cluster to #1 -- otherwise #2 gets advanced
     to a second, parallel PATTERN and the recurrence is undercounted.
     Fixtures verified numerically: F1<->F2 0.75, F2<->F3 0.60, F1<->F3 0.40."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     d1 = system.record_external_finding(_finding(
         "governance terminology escalated grandiose theological jargon", "1.md"), actor=actor)
@@ -192,7 +192,7 @@ def test_a_duplicate_in_the_chain_is_not_counted_as_an_occurrence():
     lexically. The cluster walk reaches A through B (correct -- C's pattern
     IS A's), but B is a re-observation, not an independent occurrence, and
     must not inflate the count."""
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     shared = "governance terminology escalated grandiose theological jargon across sessions repeatedly"
     a = system.record_external_finding(_finding("cA", "a.md", excerpt=shared), actor=actor)
@@ -212,7 +212,7 @@ def test_a_duplicate_in_the_chain_is_not_counted_as_an_occurrence():
 
 
 def test_genuinely_novel_findings_stay_separate_anomalies():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     actor = Actor.model("ecology")
     a = system.record_external_finding(_finding("the ledger uses a global hash chain with per-block digests", "x.md"), actor=actor)
     b = system.record_external_finding(_finding("customer retention improved after the onboarding redesign shipped", "y.md"), actor=actor)
@@ -233,13 +233,13 @@ def test_recurrence_detection_survives_a_reopen(tmp_path):
     path = tmp_path / "state.json"
     actor = Actor.model("ecology")
 
-    s1 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+    s1 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
     d1 = s1.record_external_finding(_finding(
         "governance terminology escalated into grandiose theological jargon", "m.md"), actor=actor)
     assert s1.store.discoveries[d1.discovery_id].stage is AnalysisStage.ANOMALY
     s1.save()
 
-    s2 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)  # one line, fresh "process"
+    s2 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)  # one line, fresh "process"
     d2 = s2.record_external_finding(_finding(
         "grandiose theological jargon: the governance terminology escalated once again", "y.md"), actor=actor)
     assert s2.store.discoveries[d1.discovery_id].stage is AnalysisStage.PATTERN  # climbed across the boundary
@@ -258,7 +258,7 @@ def test_a_pre_field_state_file_reconstructs_match_texts_and_warns(tmp_path):
     actor = Actor.model("ecology")
     excerpt = "governance terminology escalated into grandiose theological jargon"
 
-    s1 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+    s1 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
     d1 = s1.record_external_finding(_finding("c", "old.md", excerpt=excerpt), actor=actor)
     s1.save()
 
@@ -267,7 +267,7 @@ def test_a_pre_field_state_file_reconstructs_match_texts_and_warns(tmp_path):
     path.write_text(json.dumps(raw))
 
     with pytest.warns(UserWarning, match="predating discovery_match_texts"):
-        s2 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+        s2 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
 
     # the reconstructed text still drives recurrence detection
     s2.record_external_finding(_finding(
@@ -281,11 +281,11 @@ def test_duplicate_detection_survives_a_reopen(tmp_path):
     excerpt = ("Ecology's README describes a living, branching, converging memory model; "
                "its code is a retrieval pipeline with no identity or temporal model at all.")
 
-    s1 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+    s1 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
     first = s1.record_external_finding(_finding("c", "a.md", excerpt=excerpt), actor=actor)
     s1.save()
 
-    s2 = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+    s2 = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
     second = s2.record_external_finding(_finding("c", "b.md", excerpt=excerpt), actor=actor)
     assert second.relationships == (first.discovery_id,)
     assert "duplicate detection" in second.method

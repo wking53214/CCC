@@ -21,6 +21,7 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
+from .errors import PrivateSourcesNotStated
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
@@ -49,23 +50,16 @@ from .store import CCCStore
 from .threads import ThreadManager
 
 
-# Named, specific, from this project's own history -- not a placeholder or
-# a general secrets pattern. Resume_OS stays private permanently, chosen as
-# the validation domain precisely because it holds real ground truth that
-# must not leak into a public repo's audit trail. The *_History repos are
-# private personal-conversation archives (ChatGPT_History additionally
-# carries un-scrubbed third-party PII); they are the corpora the recurrence
-# layer is built to consume, so a finding citing one is exactly the case
-# this guard exists for. A finding whose source cites any of these, into a
-# public repository, is refused by default (allow_private_source=True for a
-# deliberate, reviewed local run).
-PRIVATE_SOURCE_MARKERS = (
-    "Resume_OS",
-    "ChatGPT_History",
-    "Claude_History",
-    "CoPilot_History",
-    "Gemini_History",
-)
+def _stated_private_sources(value) -> tuple[str, ...] | None:
+    """The caller's private-source list, checked. None means not stated."""
+    if value is None:
+        return None
+    if isinstance(value, str) or not all(isinstance(m, str) and m for m in value):
+        raise TypeError(
+            "private_source_markers must be a collection of non-empty strings "
+            f"(an empty one states there are none); got {value!r}"
+        )
+    return tuple(value)
 
 
 def _has_saved_state(path: str | Path) -> bool:
@@ -142,8 +136,14 @@ class CCCSystem:
                  persistence_path: str | Path | None = None,
                  semantic_index=None,
                  semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
-                 text_matcher=None) -> None:
+                 text_matcher=None,
+                 private_source_markers=None) -> None:
         """
+        private_source_markers: the sources a machine finding must not cite
+            unless allow_private_source=True, matched as substrings of each
+            source_material entry. CCC names no repositories; the application
+            states them. Required by record_external_finding, which refuses
+            until it is stated; an empty collection states there are none.
         text_matcher: provider satisfying ccc.text_matching.TextMatcher
             (cccb.TextMatcher). Injected, never imported. Required only by
             record_external_finding, which refuses without one; see
@@ -182,6 +182,7 @@ class CCCSystem:
         self.dialogue = DialogueEngine(self.human_resolution)
         require_matcher(text_matcher)
         self.text_matcher = text_matcher
+        self.private_source_markers = _stated_private_sources(private_source_markers)
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
         self._recorded_dialogue_signatures: set = set()
@@ -676,18 +677,16 @@ class CCCSystem:
 
         Four refusals, none of them silent downgrades:
 
-        - A finding whose `.source_material` names a known-private source
-          (PRIVATE_SOURCE_MARKERS below) is refused unless
-          `allow_private_source=True` is passed explicitly. CCC is a public
-          repository; Resume_OS stays private permanently specifically
-          because it's this project's validation domain (real ground
-          truth, deliberately not exposed), and ChatGPT_History carries
-          un-scrubbed third-party PII that was flagged, not resolved. A
-          content-search system pointed at either one by mistake must not
-          silently leak into a public audit trail. This is a narrow,
-          named-marker check, not a general secrets scanner -- it catches
-          the two specific, already-identified cases, honestly, nothing
-          more.
+        - A finding whose `.source_material` names a private source is
+          refused unless `allow_private_source=True` is passed explicitly.
+          Which sources are private is the caller's statement
+          (`private_source_markers` at construction), not CCC's: CCC names
+          no repositories. Until it is stated, every machine finding is
+          refused (PrivateSourcesNotStated), so the guard cannot be lost by
+          forgetting to configure it. A content-search system pointed at a
+          private corpus by mistake must not silently leak into an audit
+          trail. This is a narrow substring check, not a general secrets
+          scanner.
 
         - An unverified finding (`.verified` is False) is refused outright:
           an honest non-answer is not an anomaly worth recording.
@@ -729,6 +728,13 @@ class CCCSystem:
                 "new occurrence and climb the anomaly -> pattern ladder. "
                 + _MATCHER_HINT
             )
+        if self.private_source_markers is None:
+            raise PrivateSourcesNotStated(
+                "refusing to record a machine finding before the private sources "
+                "are stated: pass CCCSystem(private_source_markers=...), an empty "
+                "collection if there are none, so the private-source guard cannot "
+                "be lost by omission"
+            )
         if not finding.verified:
             raise ValueError(
                 "refusing to record an unverified finding as a discovery -- "
@@ -754,12 +760,12 @@ class CCCSystem:
         if not allow_private_source and any(
             marker in source
             for source in finding.source_material
-            for marker in PRIVATE_SOURCE_MARKERS
+            for marker in self.private_source_markers
         ):
             raise ValueError(
                 f"source_material {finding.source_material!r} names a known-private "
-                "source (Resume_OS or ChatGPT_History) -- refusing to record into "
-                "this public repository's audit trail without allow_private_source=True"
+                "source (one of the stated private_source_markers) -- refusing to "
+                "record it into the audit trail without allow_private_source=True"
             )
         if not finding.conclusion:
             raise ValueError(
@@ -1227,8 +1233,10 @@ class CCCSystem:
     @classmethod
     def load(cls, path: str | Path, *, semantic_index=None,
              semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
-             text_matcher=None) -> "CCCSystem":
+             text_matcher=None,
+             private_source_markers=None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
-                   semantic_threshold=semantic_threshold, text_matcher=text_matcher)
+                   semantic_threshold=semantic_threshold, text_matcher=text_matcher,
+                   private_source_markers=private_source_markers)
