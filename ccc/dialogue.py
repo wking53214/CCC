@@ -11,6 +11,13 @@ confirmed choice or an explicit 42 (the record doesn't establish this -- a
 complete, honest answer, not a failure, same spirit as Triad-42's "no 42
 identified" and CCC's own PROVENANCE_UNCERTAIN).
 
+Scope of "42" here: it is an answer a *human* gives in this loop, meaning the
+record does not establish this, and it is recorded as that human's resolution.
+Triad-42's "42" is a different mechanism with the same spirit: a machine step
+that searches for a high-leverage synthesis, where "no 42 identified" is a
+complete result. The two share a name and no code; neither meaning applies in
+the other repository.
+
 This is deliberately a thin wrapper, not a reimplementation: every round
 still goes through the real ask()/resolve() calls, so the audit trail,
 CCC-HUMAN-001 gating, and UncertaintyRecord storage are all the real thing,

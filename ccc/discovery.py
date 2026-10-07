@@ -1,4 +1,16 @@
-"""Machine discovery records and the explicit 1 -> 2 -> 3 progression."""
+"""Machine discovery records and the explicit 1 -> 2 -> 3 progression.
+
+TERMINOLOGY, EXPLICITLY SCOPED
+------------------------------
+Here the ladder counts independent sightings of the same finding over time.
+A machine may raise an ANOMALY to a PATTERN; MANDATE means an established
+requirement that only a human may authorize.
+
+Triad-42 uses the same three words for something else: within one review,
+three same-scope findings make a "mandate" cluster, which obliges the reviewer
+to examine it and grants nothing. Its own findings module says so. The two
+share vocabulary and no code; neither meaning applies in the other repository.
+"""
 
 from __future__ import annotations
 

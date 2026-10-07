@@ -42,6 +42,13 @@ raise an anomaly to a pattern but never to a mandate. Without a matcher,
 imports nothing from CCCb (`ccc/text_matching.py`, `tests/test_text_matching.py`).
 Install for development and tests: `pip install -e '.[dev,match]'`.
 
+**Words shared with Triad-42, different meanings.** "Anomaly / pattern /
+mandate" here counts sightings over time, and a mandate is a requirement only a
+human may set; in Triad-42 the same words grade findings within one review, and
+a "mandate" only obliges the reviewer to look. "42" here is a human's
+"the record doesn't establish this"; in Triad-42 it is a machine synthesis step.
+No shared code. See the docstrings of `ccc/discovery.py` and `ccc/dialogue.py`.
+
 **Private sources are the caller's statement.** CCC names no repositories. The
 application that records machine findings states which sources are private:
 `CCCSystem(private_source_markers=(...))`, matched as substrings of each
