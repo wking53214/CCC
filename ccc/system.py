@@ -14,8 +14,13 @@ from .conflict import ConflictManager
 from .constitutional_rules import ConstitutionalRuleEngine
 from .dialogue import DialogueEngine
 from .discovery import DiscoveryManager
-from . import matching
-from .recurrence import RecurrenceDetector
+from .text_matching import (
+    TextMatcherMissing,
+    checked_duplicate,
+    checked_recurrence,
+    require_matcher,
+)
+from .text_matching import INSTALL_HINT as _MATCHER_HINT
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
@@ -136,8 +141,13 @@ class CCCSystem:
     def __init__(self, *, store: CCCStore | None = None,
                  persistence_path: str | Path | None = None,
                  semantic_index=None,
-                 semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD) -> None:
+                 semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
+                 text_matcher=None) -> None:
         """
+        text_matcher: provider satisfying ccc.text_matching.TextMatcher
+            (cccb.TextMatcher). Injected, never imported. Required only by
+            record_external_finding, which refuses without one; see
+            ccc/text_matching.py.
         semantic_index: optional provider satisfying ccc.semantic.SemanticIndex.
             Injected, never imported -- CCC defines the interface and owns the
             policy; the model lives outside. None (the default) means
@@ -170,8 +180,8 @@ class CCCSystem:
         self.branches = BranchManager(self.store, self.audit_trail, self.rules, self.lineage, self.threads)
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
         self.dialogue = DialogueEngine(self.human_resolution)
-        self._finding_shingle_index = matching.ShingleIndex()
-        self._recurrence = RecurrenceDetector()
+        require_matcher(text_matcher)
+        self.text_matcher = text_matcher
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
         self._recorded_dialogue_signatures: set = set()
@@ -181,10 +191,14 @@ class CCCSystem:
         self.query_engine = QueryEngine(self.store)
         self._restore_derived_indexes()
 
+    def _index_match_text(self, discovery_id: str, text: str) -> None:
+        if self.text_matcher is not None:
+            self.text_matcher.add(discovery_id, text)
+
     def _restore_derived_indexes(self) -> None:
-        """Rebuild the accelerators that live outside CCCStore: the finding
-        shingle index, the recurrence detector, and the recorded-dialogue
-        signature set. CCCStore persists the facts; these three are derived
+        """Rebuild the accelerators that live outside CCCStore: the attached
+        text matcher's indexes and the recorded-dialogue signature set.
+        CCCStore persists the facts; these are derived
         structures built empty in __init__, so after CCCStore.load() they
         would start empty while the store is full -- occurrence #2 arriving
         in a new session would then match nothing and the
@@ -197,8 +211,7 @@ class CCCSystem:
         indexed = set()
         for did, text in self.store.discovery_match_texts.items():
             if did in self.store.discoveries:
-                self._finding_shingle_index.add(did, text)
-                self._recurrence.register(did, text)
+                self._index_match_text(did, text)
                 indexed.add(did)
 
         # State file predates discovery_match_texts: reconstruct so prior
@@ -213,8 +226,7 @@ class CCCSystem:
                 text = _reconstructed_match_text(record)
                 if not text:
                     continue
-                self._finding_shingle_index.add(did, text)
-                self._recurrence.register(did, text)
+                self._index_match_text(did, text)
                 reconstructed += 1
             if reconstructed:
                 warnings.warn(
@@ -692,7 +704,7 @@ class CCCSystem:
           this intake), and isn't solved here.
 
         Duplicate detection is content-based and anti-probabilistic
-        (ccc.matching), not a path comparison: it asks how implausible this
+        (measured by the attached text matcher, cccb.matching), not a path comparison: it asks how implausible this
         finding's content overlap with an existing discovery would be as
         pure coincidence between two independent, honest processes, using
         the entropy of the matched text, not whether file paths line up.
@@ -710,6 +722,13 @@ class CCCSystem:
         duplicate-tagged records; that filtering isn't built yet, but the
         tag it depends on now exists and is on the record.
         """
+        if self.text_matcher is None:
+            raise TextMatcherMissing(
+                "refusing to record a machine finding with no text matcher "
+                "attached: without it a re-submitted finding could count as a "
+                "new occurrence and climb the anomaly -> pattern ladder. "
+                + _MATCHER_HINT
+            )
         if not finding.verified:
             raise ValueError(
                 "refusing to record an unverified finding as a discovery -- "
@@ -765,24 +784,21 @@ class CCCSystem:
         supporting_evidence = tuple(f"{source}: {excerpt}" for source, excerpt in evidence)
         comparison_text = "\n".join(excerpt for _source, excerpt in evidence) or finding.conclusion
 
-        # Indexed lookup, not a scan of every prior discovery: candidates
-        # are only the ones sharing at least one shingle with this finding,
-        # so cost is independent of how many prior findings exist for the
-        # (common) case of genuinely novel content. See ShingleIndex's
-        # docstring for why this is safe -- exhaustive shingle extraction
-        # has no recall gap, unlike a sampled/strided index.
-        candidates = self._finding_shingle_index.candidates_for(comparison_text)
-        match = matching.best_match_against(comparison_text, candidates)
+        # Duplicate check first. The matcher measures; CCC decides what a
+        # duplicate means (below: linked, tagged, never counted).
+        known = self.store.discoveries
+        duplicate = checked_duplicate(
+            self.text_matcher.duplicate_of(comparison_text), known)
 
         method = finding.method
         relationships: tuple = ()
-        if match is not None and match[1].implausible_as_coincidence:
-            matched_id, result = match
+        if duplicate is not None:
+            matched_id, anti_probability, match_length = duplicate
             relationships = (matched_id,)
             method = (
                 f"{finding.method} -- {_DUPLICATE_METHOD_MARKER}: anti-probability "
-                f"{result.anti_probability:.3e} of coincidental match, "
-                f"{result.match_length} char overlap with {matched_id}"
+                f"{anti_probability:.3e} of coincidental match, "
+                f"{match_length} char overlap with {matched_id}"
             )
 
         # Recurrence: a non-duplicate finding whose concept signature
@@ -791,7 +807,8 @@ class CCCSystem:
         # is NOT an anti-probability duplicate: a re-observation of the same
         # content is the opposite signal and must not advance a pattern.
         is_duplicate = bool(relationships)
-        recurrence = None if is_duplicate else self._recurrence.find_recurrence(comparison_text)
+        recurrence = None if is_duplicate else checked_recurrence(
+            self.text_matcher.recurrence_of(comparison_text), known)
 
         # Semantic evidence, when a provider is attached. Consulted for its
         # opinion and recorded either way; it never overrides the lexical
@@ -929,8 +946,7 @@ class CCCSystem:
                 },
                 reason="the semantic provider did not answer; this decision is lexical-only",
             )
-        self._finding_shingle_index.add(record.discovery_id, comparison_text)
-        self._recurrence.register(record.discovery_id, comparison_text)
+        self._index_match_text(record.discovery_id, comparison_text)
         if self.semantic_index is not None:
             try:
                 self.semantic_index.add(record.discovery_id, comparison_text)
@@ -1210,8 +1226,9 @@ class CCCSystem:
 
     @classmethod
     def load(cls, path: str | Path, *, semantic_index=None,
-             semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD) -> "CCCSystem":
+             semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
+             text_matcher=None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
-                   semantic_threshold=semantic_threshold)
+                   semantic_threshold=semantic_threshold, text_matcher=text_matcher)
