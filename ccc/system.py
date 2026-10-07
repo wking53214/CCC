@@ -18,7 +18,7 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
-from .errors import PrivateSourcesNotStated
+from .errors import InvalidTransition, PrivateSourcesNotStated
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
@@ -490,6 +490,23 @@ class CCCSystem:
             actor.kind is ActorType.HUMAN and bool(authorization_basis),
             reason="historical lifecycle changes require an explicit human operation",
         )
+        if relationship is RelationshipType.SUPERSEDES:
+            # One successor per record (carried over from innovation_os's
+            # "superseded_decision_cannot_be_current", 2026-10-07). Superseding
+            # a record twice would leave two replacements that each look
+            # current, a conflict nothing records. Supersede the newest one
+            # instead. Corrections and amendments of an old version stay
+            # allowed: fixing the historical record is legitimate.
+            successors = [
+                event.source_id
+                for event in self.lineage.related(artifact_id, RelationshipType.SUPERSEDES)
+                if event.target_id == artifact_id
+            ]
+            if successors:
+                raise InvalidTransition(
+                    f"{artifact_id} is already superseded by {successors[0]}; "
+                    "supersede that record instead"
+                )
         new_artifact = self.ingest(
             content,
             actor=actor,
