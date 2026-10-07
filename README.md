@@ -45,9 +45,21 @@ Install for development and tests: `pip install -e '.[dev,match]'`.
 **Words shared with Triad-42, different meanings.** "Anomaly / pattern /
 mandate" here counts sightings over time, and a mandate is a requirement only a
 human may set; in Triad-42 the same words grade findings within one review, and
-a "mandate" only obliges the reviewer to look. "42" here is a human's
-"the record doesn't establish this"; in Triad-42 it is a machine synthesis step.
-No shared code. See the docstrings of `ccc/discovery.py` and `ccc/dialogue.py`.
+a "mandate" only obliges the reviewer to look. No shared code. See the
+docstring of `ccc/discovery.py`. (CCC's "42" dialogue loop, the other shared
+word, is buried; see below.)
+
+**Buried record types.** Turning points (inflection), threads and branches,
+simulations, official terms (canonicalization) and the confirm/refine/42
+dialogue loop were removed on 2026-10-06: nothing in ≡TACK used them and no
+article of the ≡TACK Constitution v4.0 (Developed Candidate) requires CCC to
+hold them. They are in wking53214/Graveyard,
+`ccc/2026-10-06-unused-record-types/`, with how to revive them. Conflicts and
+human resolution of open questions stay: Articles XLV, XLVI and LVI require
+conflicts to be preserved until a human resolves them. State files that hold
+the buried sections still load, and those sections are written back unchanged
+(`ccc.store.RETIRED_SECTIONS`). Artifacts keep their `thread_id` and
+`branch_id` fields as plain labels.
 
 **Private sources are the caller's statement.** CCC names no repositories. The
 application that records machine findings states which sources are private:
@@ -134,14 +146,13 @@ different actor making a different call, with a verdict of their own. The
 stand-in root exists on the scratch copy only; `RETRY` says a human-established
 record in that role would be enough, and a real human has to have or make one.
 
-The judged transitions are `ccc.cns_connector.TRANSITIONS` (22 operations: those
+The judged transitions are `ccc.cns_connector.TRANSITIONS` (18 operations: those
 that move material toward human authority, promote an epistemic status, rewrite
 history, or resolve something that belongs to a human). Left out, on purpose:
 `derive` (it ingests first and attaches evidence second, so a refusal can follow
 a change), the aliases `record`, `infer` and `interpret`, the `resolve`
 dispatcher (its three targets are judged directly), and the operations that only
-record something new (`detect_conflict`, `detect_inflection`, `ask`, `simulate`,
-`propose_term`, road signs, threads, branches). `attempt()` raises `ValueError`
+record something new (`detect_conflict`, `ask`, road signs). `attempt()` raises `ValueError`
 for anything outside the set.
 
 The digest binds the attempted call, not the store's state at the time. Arguments

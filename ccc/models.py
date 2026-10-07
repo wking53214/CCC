@@ -87,24 +87,10 @@ class RoadSignCategory(_ValueEnum):
     UNEXPECTED_CONNECTION = "unexpected_connection"
 
 
-class InflectionStatus(_ValueEnum):
-    DETECTED = "DETECTED"
-    RESOLVED = "RESOLVED"
-    REJECTED = "REJECTED"
 
 
-class ThreadStatus(_ValueEnum):
-    OPEN = "OPEN"
-    PAUSED = "PAUSED"
-    RESOLVED = "RESOLVED"
-    CLOSED = "CLOSED"
 
 
-class BranchStatus(_ValueEnum):
-    OPEN = "OPEN"
-    RESUMABLE = "RESUMABLE"
-    RESOLVED = "RESOLVED"
-    CLOSED = "CLOSED"
 
 
 class AnalysisStage(_ValueEnum):
@@ -127,13 +113,6 @@ class ConflictStatus(_ValueEnum):
     RESOLVED = "RESOLVED"
 
 
-class TermStatus(_ValueEnum):
-    CANONICAL = "canonical"
-    PROPOSED = "proposed"
-    UNCERTAIN = "uncertain"
-    EXTERNAL = "external"
-    DEPRECATED = "deprecated"
-    SUPERSEDED = "superseded"
 
 
 def utc_now() -> str:
@@ -322,46 +301,10 @@ class RoadSign:
         object.__setattr__(self, "metadata", _freeze_mapping(self.metadata))
 
 
-@dataclass(frozen=True)
-class InflectionPoint:
-    inflection_id: str
-    artifact_id: str | None
-    thread_id: str | None
-    detected_by: Actor
-    directions: tuple[str, ...]
-    divergence: float | None
-    sensitivity: float | None
-    significance: str | None = None
-    machine_weight: float | None = None
-    status: InflectionStatus = InflectionStatus.DETECTED
-    reason: str = ""
-    timestamp: str = field(default_factory=utc_now)
-    human_resolution: str | None = None
 
 
-@dataclass(frozen=True)
-class Thread:
-    thread_id: str
-    title: str
-    created_by: Actor
-    status: ThreadStatus = ThreadStatus.OPEN
-    parent_thread_id: str | None = None
-    active_artifact_ids: tuple[str, ...] = field(default_factory=tuple)
-    branch_ids: tuple[str, ...] = field(default_factory=tuple)
-    created_at: str = field(default_factory=utc_now)
 
 
-@dataclass(frozen=True)
-class Branch:
-    branch_id: str
-    parent_thread_id: str
-    title: str
-    created_by: Actor
-    status: BranchStatus = BranchStatus.OPEN
-    source_artifact_id: str | None = None
-    deferred: bool = False
-    current_artifact_ids: tuple[str, ...] = field(default_factory=tuple)
-    created_at: str = field(default_factory=utc_now)
 
 
 @dataclass(frozen=True)
@@ -404,31 +347,6 @@ class DiscoveryRecord:
             )
 
 
-@dataclass(frozen=True)
-class SimulationRecord:
-    simulation_id: str
-    inputs: tuple[str, ...]
-    input_provenance: tuple[tuple[str, str], ...]
-    assumptions: tuple[str, ...]
-    shared_assumptions: tuple[str, ...]
-    trajectory: tuple[str, ...]
-    counterfactual: str
-    output: str
-    sensitivity: Mapping[str, Any]
-    limitations: tuple[str, ...]
-    created_by: Actor
-    provenance_status: ProvenanceStatus = ProvenanceStatus.ASSISTANT_PROPOSED
-    epistemic_status: EpistemicStatus = EpistemicStatus.SIMULATION
-    created_at: str = field(default_factory=utc_now)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "inputs", tuple(self.inputs))
-        object.__setattr__(self, "input_provenance", tuple(self.input_provenance))
-        object.__setattr__(self, "assumptions", tuple(self.assumptions))
-        object.__setattr__(self, "shared_assumptions", tuple(self.shared_assumptions))
-        object.__setattr__(self, "trajectory", tuple(self.trajectory))
-        object.__setattr__(self, "limitations", tuple(self.limitations))
-        object.__setattr__(self, "sensitivity", _freeze_mapping(self.sensitivity))
 
 
 @dataclass(frozen=True)
@@ -464,18 +382,6 @@ class ConflictRecord:
     created_at: str = field(default_factory=utc_now)
 
 
-@dataclass(frozen=True)
-class CanonicalTerm:
-    term_id: str
-    term: str
-    definition: str
-    status: TermStatus
-    origin_actor: Actor
-    provenance_status: ProvenanceStatus
-    source_material: tuple[str, ...] = field(default_factory=tuple)
-    canonicalized_by: Actor | None = None
-    superseded_by: str | None = None
-    created_at: str = field(default_factory=utc_now)
 
 
 @dataclass(frozen=True)

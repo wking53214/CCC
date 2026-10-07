@@ -19,9 +19,6 @@ from .models import (
     ActorType,
     Artifact,
     ArtifactState,
-    Branch,
-    BranchStatus,
-    CanonicalTerm,
     ConflictClass,
     ConflictRecord,
     ConflictStatus,
@@ -29,18 +26,12 @@ from .models import (
     EpistemicEvent,
     EpistemicStatus,
     EvidenceLink,
-    InflectionPoint,
-    InflectionStatus,
     LineageEvent,
     ProvenanceEvent,
     ProvenanceStatus,
     RelationshipType,
     RoadSign,
     RoadSignCategory,
-    SimulationRecord,
-    TermStatus,
-    Thread,
-    ThreadStatus,
     UncertaintyRecord,
     AuditEvent,
 )
@@ -69,6 +60,12 @@ def _tuple(value: Iterable[Any] | None) -> tuple[Any, ...]:
     return tuple(value or ())
 
 
+#: State-file sections for record types buried in wking53214/Graveyard
+#: (ccc/2026-10-06-unused-record-types): turning points, threads, branches,
+#: simulations and official terms. Kept verbatim across load and save.
+RETIRED_SECTIONS = ("inflection_points", "threads", "branches", "simulations", "terms")
+
+
 class CCCStore:
     """Canonical object store used by every CCC service."""
 
@@ -81,9 +78,6 @@ class CCCStore:
         self.lineage_events: list[LineageEvent] = []
         self.audit_events: list[AuditEvent] = []
         self.road_signs: dict[str, RoadSign] = {}
-        self.inflection_points: dict[str, InflectionPoint] = {}
-        self.threads: dict[str, Thread] = {}
-        self.branches: dict[str, Branch] = {}
         self.discoveries: dict[str, DiscoveryRecord] = {}
         # discovery_id -> the exact text that discovery was matched on for
         # duplicate / recurrence detection (the joined evidence excerpts, or
@@ -96,11 +90,15 @@ class CCCStore:
         # written before that field existed -- the signal for CCCSystem to
         # reconstruct match texts rather than trust an absent list.
         self.match_texts_persisted: bool = True
-        self.simulations: dict[str, SimulationRecord] = {}
         self.uncertainties: dict[str, UncertaintyRecord] = {}
         self.conflicts: dict[str, ConflictRecord] = {}
-        self.terms: dict[str, CanonicalTerm] = {}
         self.rule_decisions: list[dict[str, Any]] = []
+        # Sections for record types CCC no longer carries (buried in
+        # wking53214/Graveyard, ccc/2026-10-06-unused-record-types). A state
+        # file that holds them loads; the raw contents are kept exactly as
+        # read and written back on save, so nothing is lost and a revival can
+        # read them. Nothing in CCC interprets them.
+        self.retired_sections: dict[str, Any] = {}
 
     def add_artifact(self, artifact: Artifact) -> None:
         self.artifacts[artifact.artifact_id] = artifact
@@ -147,30 +145,6 @@ class CCCStore:
             raise NotFound(f"road sign {road_sign.road_sign_id}")
         self.road_signs[road_sign.road_sign_id] = road_sign
 
-    def add_inflection(self, point: InflectionPoint) -> None:
-        self.inflection_points[point.inflection_id] = point
-
-    def replace_inflection(self, point: InflectionPoint) -> None:
-        if point.inflection_id not in self.inflection_points:
-            raise NotFound(f"inflection {point.inflection_id}")
-        self.inflection_points[point.inflection_id] = point
-
-    def add_thread(self, thread: Thread) -> None:
-        self.threads[thread.thread_id] = thread
-
-    def replace_thread(self, thread: Thread) -> None:
-        if thread.thread_id not in self.threads:
-            raise NotFound(f"thread {thread.thread_id}")
-        self.threads[thread.thread_id] = thread
-
-    def add_branch(self, branch: Branch) -> None:
-        self.branches[branch.branch_id] = branch
-
-    def replace_branch(self, branch: Branch) -> None:
-        if branch.branch_id not in self.branches:
-            raise NotFound(f"branch {branch.branch_id}")
-        self.branches[branch.branch_id] = branch
-
     def add_discovery(self, discovery: DiscoveryRecord) -> None:
         self.discoveries[discovery.discovery_id] = discovery
 
@@ -178,9 +152,6 @@ class CCCStore:
         if discovery.discovery_id not in self.discoveries:
             raise NotFound(f"discovery {discovery.discovery_id}")
         self.discoveries[discovery.discovery_id] = discovery
-
-    def add_simulation(self, simulation: SimulationRecord) -> None:
-        self.simulations[simulation.simulation_id] = simulation
 
     def add_uncertainty(self, uncertainty: UncertaintyRecord) -> None:
         self.uncertainties[uncertainty.uncertainty_id] = uncertainty
@@ -197,14 +168,6 @@ class CCCStore:
         if conflict.conflict_id not in self.conflicts:
             raise NotFound(f"conflict {conflict.conflict_id}")
         self.conflicts[conflict.conflict_id] = conflict
-
-    def add_term(self, term: CanonicalTerm) -> None:
-        self.terms[term.term_id] = term
-
-    def replace_term(self, term: CanonicalTerm) -> None:
-        if term.term_id not in self.terms:
-            raise NotFound(f"term {term.term_id}")
-        self.terms[term.term_id] = term
 
     def links_for_claim(self, claim_id: str, active_only: bool = False) -> tuple[EvidenceLink, ...]:
         links = tuple(link for link in self.evidence_links.values() if link.claim_id == claim_id)
@@ -227,16 +190,12 @@ class CCCStore:
             "lineage_events": [_primitive(item) for item in self.lineage_events],
             "audit_events": [_primitive(item) for item in self.audit_events],
             "road_signs": [_primitive(item) for item in self.road_signs.values()],
-            "inflection_points": [_primitive(item) for item in self.inflection_points.values()],
-            "threads": [_primitive(item) for item in self.threads.values()],
-            "branches": [_primitive(item) for item in self.branches.values()],
             "discoveries": [_primitive(item) for item in self.discoveries.values()],
             "discovery_match_texts": dict(self.discovery_match_texts),
-            "simulations": [_primitive(item) for item in self.simulations.values()],
             "uncertainties": [_primitive(item) for item in self.uncertainties.values()],
             "conflicts": [_primitive(item) for item in self.conflicts.values()],
-            "terms": [_primitive(item) for item in self.terms.values()],
             "rule_decisions": [_primitive(item) for item in self.rule_decisions],
+            **self.retired_sections,
         }
 
     def save(self, path: str | Path | None = None) -> Path:
@@ -366,51 +325,6 @@ class CCCStore:
                     metadata=value.get("metadata", {}),
                 )
             )
-        for value in raw.get("inflection_points", []):
-            store.add_inflection(
-                InflectionPoint(
-                    inflection_id=value["inflection_id"],
-                    artifact_id=value.get("artifact_id"),
-                    thread_id=value.get("thread_id"),
-                    detected_by=_actor(value["detected_by"]),
-                    directions=_tuple(value.get("directions")),
-                    divergence=value.get("divergence"),
-                    sensitivity=value.get("sensitivity"),
-                    significance=value.get("significance"),
-                    machine_weight=value.get("machine_weight"),
-                    status=InflectionStatus(value.get("status", InflectionStatus.DETECTED.value)),
-                    reason=value.get("reason", ""),
-                    timestamp=value["timestamp"],
-                    human_resolution=value.get("human_resolution"),
-                )
-            )
-        for value in raw.get("threads", []):
-            store.add_thread(
-                Thread(
-                    thread_id=value["thread_id"],
-                    title=value["title"],
-                    created_by=_actor(value["created_by"]),
-                    status=ThreadStatus(value.get("status", ThreadStatus.OPEN.value)),
-                    parent_thread_id=value.get("parent_thread_id"),
-                    active_artifact_ids=_tuple(value.get("active_artifact_ids")),
-                    branch_ids=_tuple(value.get("branch_ids")),
-                    created_at=value["created_at"],
-                )
-            )
-        for value in raw.get("branches", []):
-            store.add_branch(
-                Branch(
-                    branch_id=value["branch_id"],
-                    parent_thread_id=value["parent_thread_id"],
-                    title=value["title"],
-                    created_by=_actor(value["created_by"]),
-                    status=BranchStatus(value.get("status", BranchStatus.OPEN.value)),
-                    source_artifact_id=value.get("source_artifact_id"),
-                    deferred=value.get("deferred", False),
-                    current_artifact_ids=_tuple(value.get("current_artifact_ids")),
-                    created_at=value["created_at"],
-                )
-            )
         for value in raw.get("discoveries", []):
             store.add_discovery(
                 DiscoveryRecord(
@@ -443,25 +357,6 @@ class CCCStore:
         store.discovery_match_texts = {
             str(k): str(v) for k, v in raw.get("discovery_match_texts", {}).items()
         }
-        for value in raw.get("simulations", []):
-            store.add_simulation(
-                SimulationRecord(
-                    simulation_id=value["simulation_id"],
-                    inputs=_tuple(value.get("inputs")),
-                    input_provenance=tuple(tuple(item) for item in value.get("input_provenance", [])),
-                    assumptions=_tuple(value.get("assumptions")),
-                    shared_assumptions=_tuple(value.get("shared_assumptions")),
-                    trajectory=_tuple(value.get("trajectory")),
-                    counterfactual=value["counterfactual"],
-                    output=value["output"],
-                    sensitivity=value.get("sensitivity", {}),
-                    limitations=_tuple(value.get("limitations")),
-                    created_by=_actor(value["created_by"]),
-                    provenance_status=ProvenanceStatus(value.get("provenance_status", ProvenanceStatus.ASSISTANT_PROPOSED.value)),
-                    epistemic_status=EpistemicStatus(value.get("epistemic_status", EpistemicStatus.SIMULATION.value)),
-                    created_at=value["created_at"],
-                )
-            )
         for value in raw.get("uncertainties", []):
             store.add_uncertainty(
                 UncertaintyRecord(
@@ -497,20 +392,8 @@ class CCCStore:
                     created_at=value["created_at"],
                 )
             )
-        for value in raw.get("terms", []):
-            store.add_term(
-                CanonicalTerm(
-                    term_id=value["term_id"],
-                    term=value["term"],
-                    definition=value["definition"],
-                    status=TermStatus(value["status"]),
-                    origin_actor=_actor(value["origin_actor"]),
-                    provenance_status=ProvenanceStatus(value["provenance_status"]),
-                    source_material=_tuple(value.get("source_material")),
-                    canonicalized_by=_actor(value["canonicalized_by"]) if value.get("canonicalized_by") else None,
-                    superseded_by=value.get("superseded_by"),
-                    created_at=value["created_at"],
-                )
-            )
         store.rule_decisions.extend(raw.get("rule_decisions", []))
+        store.retired_sections = {
+            key: raw[key] for key in RETIRED_SECTIONS if raw.get(key)
+        }
         return store

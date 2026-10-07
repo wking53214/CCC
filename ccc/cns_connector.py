@@ -142,11 +142,10 @@ before it changes a record. Not judged, on purpose:
   first and attaches evidence second, so a refusal at the attach step follows an
   ingest. It is not a judgement that happens entirely before the work starts.
 * ``record`` and the other aliases of judged operations.
-* ``resolve``, a dispatcher over ``resolve_uncertainty``, ``record_resolution``
-  and ``resolve_inflection``, which are judged directly.
+* ``resolve``, a dispatcher over ``resolve_uncertainty`` and
+  ``record_resolution``, which are judged directly.
 * Operations that only record something new and validate its shape
-  (``detect_conflict``, ``detect_inflection``, ``ask``, ``simulate``,
-  ``propose_term``, road signs, threads and branches). They move nothing toward
+  (``detect_conflict``, ``ask`` and road signs). They move nothing toward
   human authority.
 
 An operation outside :data:`TRANSITIONS` raises ``ValueError`` when an
@@ -169,12 +168,10 @@ from pathlib import Path
 from types import MappingProxyType, ModuleType
 from typing import Any, Callable, Iterator, Mapping
 
-from .canonicalization import CanonicalizationManager
 from .conflict import ConflictManager
 from .discovery import DiscoveryManager
 from .errors import CCCError, ConstitutionViolation
 from .human_resolution import HumanResolutionManager
-from .inflection import InflectionManager
 from .models import Actor, EpistemicStatus
 from .store import CCCStore
 from .system import CCCSystem
@@ -235,12 +232,8 @@ TRANSITIONS: tuple[str, ...] = (
     "discover",
     "adopt_discovery",
     "advance_discovery",
-    "canonicalize",
-    "deprecate_term",
-    "supersede_term",
     "record_resolution",
     "resolve_uncertainty",
-    "resolve_inflection",
 )
 
 #: Facade methods that forward ``*args, **kwargs`` and so say nothing about their
@@ -250,12 +243,8 @@ _FORWARDED = {
     "discover": DiscoveryManager.discover,
     "adopt_discovery": DiscoveryManager.adopt,
     "advance_discovery": DiscoveryManager.advance,
-    "canonicalize": CanonicalizationManager.canonicalize,
-    "deprecate_term": CanonicalizationManager.deprecate,
-    "supersede_term": CanonicalizationManager.supersede,
     "record_resolution": ConflictManager.record_resolution,
     "resolve_uncertainty": HumanResolutionManager.resolve,
-    "resolve_inflection": InflectionManager.resolve_inflection,
 }
 
 #: What the connector names from ``cns.gate``. An older CNS lacks some of it.

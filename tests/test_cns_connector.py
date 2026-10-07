@@ -137,7 +137,6 @@ def _world() -> SimpleNamespace:
         actor=model,
         stage=AnalysisStage.PATTERN,
     )
-    w.term = system.propose_term(term="continuity", definition="d", actor=model)
     w.conflict = system.detect_conflict(
         material_ids=(w.fact.artifact_id, w.fact2.artifact_id),
         why_material="two human facts disagree",
@@ -147,13 +146,6 @@ def _world() -> SimpleNamespace:
         actor=model,
     )
     w.uncertainty = system.ask(context="a context", question="which one?", actor=model)
-    w.inflection = system.detect_inflection(
-        artifact_id=w.fact.artifact_id,
-        directions=("up", "down"),
-        divergence=0.5,
-        sensitivity=0.5,
-        actor=model,
-    )
     return w
 
 
@@ -620,147 +612,6 @@ SCENARIOS = [
         ),
         "pass", ADMITTED,
     ),
-    # Canonical terminology.
-    (
-        "canonicalize: by a model",
-        lambda w: attempt(
-            "canonicalize", w.term.term_id, actor=w.model,
-            source_material=(_id(w.fact),), reason="consensus",
-            authorization_basis="machine consensus",
-        ),
-        "blocked", "CCC-CANON-001",
-    ),
-    (
-        "canonicalize: from a machine-proposed source",
-        lambda w: attempt(
-            "canonicalize", w.term.term_id, actor=w.human,
-            source_material=(_id(w.proposal),), reason="cite the proposal",
-            authorization_basis="explicit human action",
-        ),
-        "gated", "CCC-CANON-001",
-    ),
-    (
-        "canonicalize: by a human from a human-established source",
-        lambda w: attempt(
-            "canonicalize", w.term.term_id, actor=w.human,
-            source_material=(_id(w.fact),), reason="established",
-            authorization_basis="explicit human action",
-        ),
-        "pass", ADMITTED,
-    ),
-    (
-        "canonicalize: by a human who names no source",
-        lambda w: attempt(
-            "canonicalize", w.term.term_id, actor=w.human, source_material=(),
-            reason="established", authorization_basis="explicit human action",
-        ),
-        "gated", "CCC-CANON-001",
-    ),
-    (
-        "canonicalize: by a human who gives no basis",
-        lambda w: attempt(
-            "canonicalize", w.term.term_id, actor=w.human,
-            source_material=(_id(w.fact),), reason="established",
-            authorization_basis="",
-        ),
-        "gated", "CCC-CANON-001",
-    ),
-    (
-        "canonicalize: a term that does not exist",
-        lambda w: attempt(
-            "canonicalize", "term_missing", actor=w.human,
-            source_material=(_id(w.fact),), reason="established",
-            authorization_basis="explicit human action",
-        ),
-        "blocked", "KeyError",
-    ),
-    (
-        "canonicalize: a model, on a term that does not exist",
-        lambda w: attempt(
-            "canonicalize", "term_missing", actor=w.model,
-            source_material=(_id(w.fact),), reason="consensus",
-            authorization_basis="machine consensus",
-        ),
-        "blocked", "CCC-CANON-001",
-    ),
-    (
-        "canonicalize: no basis and a term that does not exist",
-        lambda w: attempt(
-            "canonicalize", "term_missing", actor=w.human,
-            source_material=(_id(w.fact),), reason="established",
-            authorization_basis="",
-        ),
-        "blocked", "CCC-CANON-001",
-    ),
-    (
-        "deprecate_term: by a model",
-        lambda w: attempt(
-            "deprecate_term", w.term.term_id, actor=w.model, reason="veto",
-            authorization_basis="model vote",
-        ),
-        "blocked", "CCC-HUMAN-001",
-    ),
-    (
-        "deprecate_term: by a human",
-        lambda w: attempt(
-            "deprecate_term", w.term.term_id, actor=w.human, reason="obsolete",
-            authorization_basis="explicit human action",
-        ),
-        "pass", ADMITTED,
-    ),
-    (
-        "deprecate_term: by a human who gives no basis",
-        lambda w: attempt(
-            "deprecate_term", w.term.term_id, actor=w.human, reason="obsolete",
-            authorization_basis="",
-        ),
-        "gated", "CCC-HUMAN-001",
-    ),
-    (
-        "supersede_term: by a model",
-        lambda w: attempt(
-            "supersede_term", w.term.term_id, definition="a better definition",
-            actor=w.model, source_material=(_id(w.fact),), reason="consensus",
-            authorization_basis="machine consensus",
-        ),
-        "blocked", "CCC-CANON-001",
-    ),
-    (
-        "supersede_term: by a human from a human-established source",
-        lambda w: attempt(
-            "supersede_term", w.term.term_id, definition="a better definition",
-            actor=w.human, source_material=(_id(w.fact),), reason="superseded",
-            authorization_basis="explicit human action",
-        ),
-        "pass", ADMITTED,
-    ),
-    (
-        "supersede_term: from a machine-proposed source",
-        lambda w: attempt(
-            "supersede_term", w.term.term_id, definition="a better definition",
-            actor=w.human, source_material=(_id(w.proposal),), reason="cite the proposal",
-            authorization_basis="explicit human action",
-        ),
-        "gated", "CCC-CANON-001",
-    ),
-    (
-        "supersede_term: by a human who gives no basis",
-        lambda w: attempt(
-            "supersede_term", w.term.term_id, definition="a better definition",
-            actor=w.human, source_material=(_id(w.fact),), reason="superseded",
-            authorization_basis="",
-        ),
-        "gated", "CCC-CANON-001",
-    ),
-    (
-        "supersede_term: a term that does not exist",
-        lambda w: attempt(
-            "supersede_term", "term_missing", definition="a better definition",
-            actor=w.human, source_material=(_id(w.fact),), reason="superseded",
-            authorization_basis="explicit human action",
-        ),
-        "blocked", "KeyError",
-    ),
     # Resolutions that belong to a human.
     (
         "record_resolution: by a model",
@@ -802,22 +653,6 @@ SCENARIOS = [
         ),
         "pass", ADMITTED,
     ),
-    (
-        "resolve_inflection: by a model",
-        lambda w: attempt(
-            "resolve_inflection", w.inflection.inflection_id, significance="material",
-            actor=w.model, reason="consensus", authorization_basis="machine consensus",
-        ),
-        "blocked", "CCC-HUMAN-001",
-    ),
-    (
-        "resolve_inflection: by a human",
-        lambda w: attempt(
-            "resolve_inflection", w.inflection.inflection_id, significance="material",
-            actor=w.human, reason="decided", authorization_basis="explicit human decision",
-        ),
-        "pass", ADMITTED,
-    ),
 ]
 
 SCENARIO_IDS = [name for name, *_ in SCENARIOS]
@@ -848,12 +683,6 @@ REPAIRS = {
     "decide: by a human who gives no basis": _supply_basis,
     **{f"{op}: by a human who gives no basis": _supply_basis for op in _HISTORY},
     "adopt_discovery: by a human who gives no basis": _supply_basis,
-    "canonicalize: by a human who gives no basis": _supply_basis,
-    "deprecate_term: by a human who gives no basis": _supply_basis,
-    "supersede_term: by a human who gives no basis": _supply_basis,
-    "supersede_term: from a machine-proposed source": lambda w, att: _with(
-        att, source_material=(_id(w.fact),)
-    ),
     "record_resolution: by a human who gives no basis": _supply_basis,
     "classify: a human cannot promote an inference with no evidence root": (
         _attach_a_human_root_then_retry
@@ -866,12 +695,6 @@ REPAIRS = {
     ),
     "advance: a mandate needs the human event": lambda w, att: _with(
         att, human_event=True
-    ),
-    "canonicalize: from a machine-proposed source": lambda w, att: _with(
-        att, source_material=(_id(w.fact),)
-    ),
-    "canonicalize: by a human who names no source": lambda w, att: _with(
-        att, source_material=(_id(w.fact),)
     ),
 }
 
@@ -1116,11 +939,6 @@ def test_the_same_fault_gets_the_same_verdict_whichever_rule_fires():
         "correct": lambda a, b: attempt(
             "correct", _id(w.fact), content="c", actor=a, reason="r",
             authorization_basis=b),
-        "deprecate_term": lambda a, b: attempt(
-            "deprecate_term", w.term.term_id, actor=a, reason="r", authorization_basis=b),
-        "supersede_term": lambda a, b: attempt(
-            "supersede_term", w.term.term_id, definition="d", actor=a,
-            source_material=(_id(w.fact),), reason="r", authorization_basis=b),
         "adopt_discovery": lambda a, b: attempt(
             "adopt_discovery", w.anomaly.discovery_id, actor=a, reason="r",
             authorization_basis=b),
@@ -1170,9 +988,6 @@ def test_a_refusal_whose_repaired_call_cannot_run_is_a_breach_not_a_crash():
             authorization_basis="",
         ),
         attempt("decide", {"a": 1}, actor=w.human, reason="r", authorization_basis=""),
-        attempt(
-            "deprecate_term", {}, actor=w.human, reason="r", authorization_basis="",
-        ),
         attempt(
             "record_resolution", [], choice="a", actor=w.human, reason="r",
             authorization_basis="",
@@ -1446,7 +1261,7 @@ def test_a_different_operation_with_the_same_arguments_digests_differently():
 
 
 def test_operations_that_forward_their_arguments_are_bound_to_real_names():
-    """adopt_discovery, advance_discovery, canonicalize and the other forwarding
+    """adopt_discovery, advance_discovery and the other forwarding
     operations take ``*args, **kwargs`` on the facade; the digest must not depend on
     how a caller spells them."""
     human = Actor.human("h")
@@ -1470,27 +1285,6 @@ def test_operations_that_forward_their_arguments_are_bound_to_real_names():
         authorization_basis=None,
     )
     assert attempt_digest(c) == attempt_digest(d)
-
-    e = attempt(
-        "canonicalize", "term_x", actor=human, source_material=("artifact_x",),
-        reason="r", authorization_basis="b",
-    )
-    f = attempt(
-        "canonicalize", term_id="term_x", actor=human, source_material=["artifact_x"],
-        reason="r", authorization_basis="b",
-    )
-    assert attempt_digest(e) == attempt_digest(f)
-
-    s = attempt(
-        "supersede_term", "term_x", definition="d", actor=human,
-        source_material=("artifact_x",), reason="r", authorization_basis="b",
-    )
-    u = attempt(
-        "supersede_term", term_id="term_x", definition="d", actor=human,
-        source_material=["artifact_x"], reason="r", authorization_basis="b",
-    )
-    assert attempt_digest(s) == attempt_digest(u)
-    assert s.content["arguments"]["term_id"] == "term_x"
 
     g = attempt(
         "resolve_uncertainty", "uncertainty_x", choice="a", actor=human, reason="r",
@@ -1589,12 +1383,13 @@ def test_an_attempt_changed_after_it_was_built_is_not_run_or_judged():
     must not make ``run`` execute something that was never digested."""
     w = _world()
     att = attempt(
-        "canonicalize", w.term.term_id, actor=w.human,
-        source_material=[_id(w.proposal)], reason="r", authorization_basis=GOOD,
+        "advance_discovery", w.pattern.discovery_id, stage=AnalysisStage.MANDATE,
+        actor=w.human, reason="r", evidence_ids=[_id(w.proposal)],
+        human_event=True, authorization_basis=GOOD,
     )
     digest = attempt_digest(att)
-    assert judge(w.system, att).outcome is RETRY  # a machine-proposed source
-    att.kwargs["source_material"][0] = _id(w.fact)  # now a human fact
+    judge(w.system, att)  # judged as built, on a scratch copy
+    att.kwargs["evidence_ids"][0] = _id(w.fact)  # now a human fact
     with pytest.raises(AttemptChanged):
         judge(w.system, att)
     with pytest.raises(AttemptChanged):
@@ -1602,7 +1397,7 @@ def test_an_attempt_changed_after_it_was_built_is_not_run_or_judged():
     with pytest.raises(AttemptChanged):
         CccGate(w.system).check(att)
     assert attempt_digest(att) == digest  # the content is still what was built
-    assert w.system.store.terms[w.term.term_id].status.value != "CANONICAL"
+    assert w.system.store.discoveries[w.pattern.discovery_id].stage is AnalysisStage.PATTERN
 
 
 def test_the_content_of_an_attempt_cannot_be_edited_through_the_property():

@@ -211,10 +211,10 @@ def test_the_parts_that_need_no_cns_work_with_cns_blocked():
             assert copy.deepcopy(att).content == att.content
             assert pickle.loads(pickle.dumps(att)).content == att.content
             edited = attempt(
-                "canonicalize", "term_x", actor=human, source_material=["artifact_x"],
-                reason="r", authorization_basis="b",
+                "advance_discovery", "discovery_x", stage="PATTERN", actor=human,
+                reason="r", evidence_ids=["artifact_x"],
             )
-            edited.kwargs["source_material"][0] = "artifact_y"
+            edited.kwargs["evidence_ids"][0] = "artifact_y"
             try:
                 edited.run(system)
             except AttemptChanged:
