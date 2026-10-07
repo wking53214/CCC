@@ -71,6 +71,14 @@ The required provenance statuses are closed in `ProvenanceStatus`:
 `USER_ESTABLISHED`, `USER_ACCEPTED`, `ASSISTANT_PROPOSED`, `UNRESOLVED`,
 `REJECTED`, and `PROVENANCE_UNCERTAIN`.
 
+`REJECTED` is final: no transition leaves it, including to `UNRESOLVED`. A
+human who changes course supersedes the record with a new one, and the
+rejection stays on record. A record may be superseded only once; superseding
+it again is refused and names the existing successor, so a decision's history
+is one line, never two competing replacements. Corrections and amendments of
+an old version are still allowed. Both rules came from innovation_os's
+invariants (2026-10-07).
+
 The required epistemic statuses are closed in `EpistemicStatus`:
 
 `HISTORICAL_RECORD`, `EVIDENCE`, `INFERENCE`, `INTERPRETATION`, `SIMULATION`,

@@ -21,7 +21,12 @@ _ALLOWED_TRANSITIONS: dict[ProvenanceStatus, frozenset[ProvenanceStatus]] = {
     ProvenanceStatus.USER_ACCEPTED: frozenset({ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.REJECTED, ProvenanceStatus.UNRESOLVED}),
     ProvenanceStatus.ASSISTANT_PROPOSED: frozenset({ProvenanceStatus.USER_ACCEPTED, ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.REJECTED, ProvenanceStatus.UNRESOLVED, ProvenanceStatus.PROVENANCE_UNCERTAIN}),
     ProvenanceStatus.UNRESOLVED: frozenset({ProvenanceStatus.USER_ACCEPTED, ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.REJECTED, ProvenanceStatus.PROVENANCE_UNCERTAIN}),
-    ProvenanceStatus.REJECTED: frozenset({ProvenanceStatus.USER_ACCEPTED, ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.UNRESOLVED}),
+    # A rejection is final (carried over from innovation_os's
+    # "rejected_artifact_cannot_be_approved", 2026-10-07). Nothing leaves
+    # REJECTED, including UNRESOLVED, which would otherwise be a two-step way
+    # back to acceptance. A human who changes course supersedes the record
+    # with a new one; the rejection stays on record beside it.
+    ProvenanceStatus.REJECTED: frozenset(),
     ProvenanceStatus.PROVENANCE_UNCERTAIN: frozenset({ProvenanceStatus.USER_ACCEPTED, ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.REJECTED, ProvenanceStatus.UNRESOLVED}),
 }
 
@@ -100,6 +105,11 @@ class ProvenanceManager:
             raise ConstitutionViolation("CCC-HISTORY-002", "erased material cannot be promoted")
         if target is current:
             raise InvalidTransition(f"{current.value} -> {target.value} is not a transition")
+        if current is ProvenanceStatus.REJECTED:
+            raise InvalidTransition(
+                f"REJECTED -> {target.value}: a rejection is final; "
+                "to change course, supersede the record with a new one"
+            )
         if target not in _ALLOWED_TRANSITIONS[current]:
             raise InvalidTransition(f"{current.value} -> {target.value} is not permitted")
 
