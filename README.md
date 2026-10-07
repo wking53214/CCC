@@ -33,6 +33,8 @@ Fail-closed on unconstitutional promotions (AI→human authority conversion is i
 
 ## 6. Inputs, Outputs & Type Contracts
 
+**Recurring groups are listed, read-only.** `CCCSystem.recurring_groups()` lists the groups of linked machine findings CCC has recorded, most serious first: each group's stage, independent occurrences, re-observed duplicates, first and last dates, and `needs_human_review` (a PATTERN with three or more occurrences, the point where CCC raises REPEATED_RETURN road signs). It reads the same links `record_external_finding` writes, so it cannot disagree with CCC's own ladder, and it writes nothing.
+
 **Text matching is plugged in, not built in.** Deciding whether a machine
 finding is a re-submission or a recurrence of an earlier one needs a
 measurement of how alike two texts are. That measurement lives in

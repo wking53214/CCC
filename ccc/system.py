@@ -687,6 +687,17 @@ class CCCSystem:
     def discover(self, **kwargs):
         return self.discovery.discover(**kwargs)
 
+    def recurring_groups(self, *, min_occurrences: int = 1):
+        """Read-only: the groups of linked machine findings CCC has recorded,
+        most serious first (see ccc/recurring.py). Each group carries its
+        stage, its independent occurrences, its re-observed duplicates, its
+        first and last dates, and whether it has reached the point where CCC
+        raises REPEATED_RETURN road signs (needs_human_review). Recomputed
+        from the store on every call; nothing is written."""
+        from .recurring import recurring_groups
+
+        return recurring_groups(self.store.discoveries, min_occurrences=min_occurrences)
+
     def record_external_finding(self, finding, *, actor: Actor,
                                  epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE,
                                  allow_private_source: bool = False):
