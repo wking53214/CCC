@@ -16,6 +16,7 @@ from typing import Optional, Tuple
 import pytest
 
 from ccc import Actor, CCCSystem
+from cccb import TextMatcher
 
 from ccc.semantic import (
     DECISION_CONFIRMED,
@@ -359,7 +360,7 @@ def _finding(text, source="a.md"):
 def test_no_provider_leaves_ccc_behaving_exactly_as_before():
     """The invariant that makes this optional. If wiring the interface in
     changed the default behaviour, it would not be supplemental."""
-    system = CCCSystem()
+    system = CCCSystem(text_matcher=TextMatcher())
     assert system.semantic_index is None
     record = system.record_external_finding(
         _finding("a clean unremarkable finding about widgets"),
@@ -372,7 +373,7 @@ def test_a_semantic_only_match_raises_a_candidate_sign_and_escalates_nothing():
     """Lexical found nothing, semantic did. That is a relationship worth a
     reviewer's attention and not a recurrence: no stage advances, no cluster
     forms, and the sign says so in its own text."""
-    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
     # make the provider answer for whatever comparison text CCC builds
     system.semantic_index.query = lambda text, *, limit=10: [
         SemanticMatch("prior-finding-17", 0.91)]
@@ -396,7 +397,7 @@ def test_a_semantic_only_match_raises_a_candidate_sign_and_escalates_nothing():
 def test_the_candidate_sign_carries_provider_and_threshold_for_review():
     """So a reviewer can judge the claim rather than take it -- and can still
     do so after the model that produced it is gone."""
-    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
     system.semantic_index.query = lambda text, *, limit=10: [SemanticMatch("F-1", 0.77)]
     system.record_external_finding(_finding("novel unrelated observation"),
                                    actor=Actor.model("m"))
@@ -408,7 +409,7 @@ def test_the_candidate_sign_carries_provider_and_threshold_for_review():
 
 
 def test_a_below_threshold_neighbour_raises_nothing():
-    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.80)
+    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=FakeSemanticIndex(), semantic_threshold=0.80)
     system.semantic_index.query = lambda text, *, limit=10: [SemanticMatch("F-1", 0.20)]
     system.record_external_finding(_finding("novel unrelated observation"),
                                    actor=Actor.model("m"))
@@ -417,7 +418,7 @@ def test_a_below_threshold_neighbour_raises_nothing():
 
 def test_a_broken_provider_cannot_stop_a_finding_being_recorded():
     """Losing the provider costs reach, never integrity or availability."""
-    system = CCCSystem(semantic_index=BrokenIndex(), semantic_threshold=0.30)
+    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=BrokenIndex(), semantic_threshold=0.30)
     record = system.record_external_finding(_finding("some finding"),
                                             actor=Actor.model("m"))
     assert record is not None
@@ -427,7 +428,7 @@ def test_a_broken_provider_cannot_stop_a_finding_being_recorded():
 def test_findings_are_registered_with_the_provider_for_future_queries():
     """A provider that is never told about new findings can only ever match
     against an empty index."""
-    system = CCCSystem(semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
+    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=FakeSemanticIndex(), semantic_threshold=0.30)
     record = system.record_external_finding(_finding("a finding worth indexing"),
                                             actor=Actor.model("m"))
     assert any(fid == record.discovery_id for fid, _ in system.semantic_index.added)
