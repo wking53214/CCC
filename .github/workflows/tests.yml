@@ -29,6 +29,23 @@ jobs:
           # CCCb: the plugged-in text matcher. Required by the matching tests;
           # installed here so they fail, not skip, if it cannot be found.
           python -m pip install -e '.[match]'
+      - name: Authorise reads of private CNS (with-CNS job only)
+        # CNS is a private repo. The job's own token can read only this repo,
+        # so the library's fine-grained read token (Contents: read, the same
+        # LIBRARY_READ_TOKEN secret GSA-815, ghost_tools, observe-perceive and
+        # sentinel_os use) is applied to the CNS URLs only, in both spellings
+        # the library pins. A missing secret fails here, by name.
+        if: matrix.cns == 'with'
+        env:
+          LIBRARY_READ_TOKEN: ${{ secrets.LIBRARY_READ_TOKEN }}
+        run: |
+          if [ -z "$LIBRARY_READ_TOKEN" ]; then
+            echo "::error::LIBRARY_READ_TOKEN secret is not set; private CNS cannot be fetched"
+            exit 1
+          fi
+          for name in CNS cns; do
+            git config --global url."https://x-access-token:${LIBRARY_READ_TOKEN}@github.com/wking53214/${name}".insteadOf "https://github.com/wking53214/${name}"
+          done
       - name: Install CNS (with-CNS job only, pinned by the [cns] extra)
         if: matrix.cns == 'with'
         run: python -m pip install -e '.[match,cns]'
