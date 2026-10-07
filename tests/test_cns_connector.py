@@ -1,7 +1,8 @@
 """The connected half: what CCC's attempted transitions become when CNS is
 installed.
 
-Skipped when CNS is absent. The independence half, which must hold in both
+Skipped when CNS is absent, except in CI's with-CNS job (CCC_REQUIRE_CNS=1),
+where a missing CNS fails the build. The independence half, which must hold in both
 environments, is in ``test_cns_independence.py`` and never skips.
 
 The scenario table below is the contract. Each row names one attempted
@@ -21,6 +22,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import json
+import os
 import pickle
 import stat
 import tempfile
@@ -29,9 +31,14 @@ from types import SimpleNamespace
 
 import pytest
 
-cns_gate = pytest.importorskip(
-    "cns.gate", reason="cns not installed; run in an environment with the [cns] extra"
-)
+if os.environ.get("CCC_REQUIRE_CNS") == "1":
+    # CI's with-CNS job sets this: a missing CNS must fail the build, not skip
+    # this module and report green while 60+ tests never ran.
+    import cns.gate as cns_gate
+else:
+    cns_gate = pytest.importorskip(
+        "cns.gate", reason="cns not installed; run in an environment with the [cns] extra"
+    )
 
 from ccc import (  # noqa: E402
     Actor,

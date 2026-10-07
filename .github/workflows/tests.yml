@@ -12,6 +12,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+        # without: proves CCC stands alone (CNS is optional).
+        # with: runs the CNS connector tests, and fails if CNS is missing
+        # instead of skipping them.
+        cns: ["without", "with"]
+    name: test (py${{ matrix.python-version }}, ${{ matrix.cns }} CNS)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,7 +29,12 @@ jobs:
           # CCCb: the plugged-in text matcher. Required by the matching tests;
           # installed here so they fail, not skip, if it cannot be found.
           python -m pip install -e '.[match]'
+      - name: Install CNS (with-CNS job only, pinned by the [cns] extra)
+        if: matrix.cns == 'with'
+        run: python -m pip install -e '.[match,cns]'
       - name: Test
+        env:
+          CCC_REQUIRE_CNS: ${{ matrix.cns == 'with' && '1' || '0' }}
         run: python -m pytest -q
       - name: Lint (hard gate)
         run: ruff check .
