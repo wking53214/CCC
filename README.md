@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and the human's right to erase. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 213 test functions measured in this tree (README previously approximated ~135–142).
+Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and the human's right to erase. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
 
 ## 1. Pipeline Position & Role
 
@@ -177,9 +177,11 @@ Without CNS installed, `judge`, `CccGate`, `cns_chain`, `attempt_digest` and
 `to_cns_result` raise `CnsNotInstalled` (an `ImportError`) with the install command,
 as does an installed CNS too old to bind verdicts to what they judged. `attempt`,
 `Attempt.run`, `cns_available` and `TRANSITIONS` work either way, and nothing else in
-CCC changes. CI installs only `pytest` and `ruff`, so the connected test module
-(`tests/test_cns_connector.py`) skips there and runs wherever the extra is
-installed; the independence tests run everywhere and never skip.
+CCC changes. CI runs two jobs per Python version. **Without CNS** proves CCC stands alone:
+the connected test module (`tests/test_cns_connector.py`) skips there by design.
+**With CNS** installs the pinned `[cns]` extra and sets `CCC_REQUIRE_CNS=1`, so
+the connected module runs, and a missing CNS fails the build instead of
+skipping it. The independence tests run in both and never skip.
 
 ### Answering CNS's record lookup (`ccc.record_status`)
 
