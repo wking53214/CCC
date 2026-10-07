@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from .audit import AuditTrail
 from .conflict import ConflictManager
@@ -107,6 +107,64 @@ def _reconstructed_match_text(record) -> str | None:
             for line in record.supporting_evidence
         )
     return record.conclusion or None
+
+
+def _decision_record(options, selected_option, rejected, deferred, assumptions) -> dict[str, Any]:
+    """How a decision was reached, validated before anything is written.
+
+    Returns the metadata keys to store, or an empty dict when nothing was
+    given, so a plain decision is recorded exactly as before. Raises
+    ValueError on an incomplete or contradictory record.
+    """
+
+    def strings(name: str, values) -> tuple[str, ...]:
+        if isinstance(values, str):
+            raise ValueError(f"{name} must be a sequence of strings, not a string")
+        items = tuple(values or ())
+        if any(not isinstance(item, str) or not item.strip() for item in items):
+            raise ValueError(f"{name} may contain only non-empty strings")
+        if len(items) != len(set(items)):
+            raise ValueError(f"{name} may not repeat an entry")
+        return items
+
+    options = strings("options", options)
+    deferred = strings("deferred", deferred)
+    assumptions = strings("assumptions", assumptions)
+    rejected = dict(rejected or {})
+    for option, why in rejected.items():
+        if not isinstance(option, str) or not isinstance(why, str) or not why.strip():
+            raise ValueError("each rejected option needs a non-empty reason")
+
+    record: dict[str, Any] = {}
+    if assumptions:
+        record["assumptions"] = assumptions
+    if not options:
+        if selected_option is not None or rejected or deferred:
+            raise ValueError("selected_option, rejected and deferred need the options considered")
+        return record
+
+    if selected_option not in options:
+        raise ValueError("selected_option must be one of the options considered")
+    disposed = set(rejected) | set(deferred)
+    if not disposed <= set(options):
+        raise ValueError("rejected and deferred options must be among the options considered")
+    if selected_option in disposed:
+        raise ValueError("the selected option cannot also be rejected or deferred")
+    if set(rejected) & set(deferred):
+        raise ValueError("an option is either rejected or deferred, not both")
+    silent = [option for option in options if option != selected_option and option not in disposed]
+    if silent:
+        raise ValueError(
+            "every option not selected needs a disposition (rejected with a reason, or deferred): "
+            + ", ".join(silent)
+        )
+    record.update({
+        "options": options,
+        "selected_option": selected_option,
+        "rejected": tuple((option, rejected[option]) for option in options if option in rejected),
+        "deferred": deferred,
+    })
+    return record
 
 
 def _state(artifact: Artifact) -> dict[str, Any]:
@@ -439,8 +497,23 @@ class CCCSystem:
         reason: str,
         authorization_basis: str,
         recommendation_id: str | None = None,
+        options: Sequence[str] = (),
+        selected_option: str | None = None,
+        rejected: Mapping[str, str] | None = None,
+        deferred: Sequence[str] = (),
+        assumptions: Sequence[str] = (),
     ) -> Artifact:
-        """Record a human decision; a model recommendation is never a decision."""
+        """Record a human decision; a model recommendation is never a decision.
+
+        Optionally records how it was reached, in the shape of the decision
+        records in decisions/: the options considered, the one selected,
+        each other option's disposition (rejected with a reason, or deferred,
+        which is not rejection), and the assumptions the decision rests on.
+        When options are given, every option other than the selected one
+        must be rejected or deferred, so no alternative is dismissed
+        silently. All of it is stored with the decision and in its audit
+        entry; a decision recorded without it is unchanged.
+        """
 
         self.rules.evaluate(
             "CCC-HUMAN-001",
@@ -450,13 +523,14 @@ class CCCSystem:
         )
         if recommendation_id is not None:
             self.store.require_artifact(recommendation_id)
+        how = _decision_record(options, selected_option, rejected, deferred, assumptions)
         decision = self.ingest(
             choice,
             actor=actor,
             provenance_status=ProvenanceStatus.USER_ESTABLISHED,
             epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
             source_material=(recommendation_id,) if recommendation_id else (),
-            metadata={"decision": True, "recommendation_id": recommendation_id},
+            metadata={"decision": True, "recommendation_id": recommendation_id, **how},
             reason=reason,
             authorization_basis=authorization_basis,
         )
@@ -465,7 +539,7 @@ class CCCSystem:
             operation="DECIDE",
             object_id=decision.artifact_id,
             previous_state=None,
-            new_state={"decision": True, "recommendation_id": recommendation_id},
+            new_state={"decision": True, "recommendation_id": recommendation_id, **how},
             reason=reason,
             provenance=decision.provenance_status,
             evidence=(recommendation_id,) if recommendation_id else (),
