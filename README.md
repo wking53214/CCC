@@ -141,3 +141,15 @@ as does an installed CNS too old to bind verdicts to what they judged. `attempt`
 CCC changes. CI installs only `pytest` and `ruff`, so the connected test module
 (`tests/test_cns_connector.py`) skips there and runs wherever the extra is
 installed; the independence tests run everywhere and never skip.
+
+### Answering CNS's record lookup (`ccc.record_status`)
+
+A second, separate service for CNS, and it needs no CNS at all. Rule 2 of the
+Triad governance design is "no CCC record, no use": before CNS lets Triad output
+into a decision path, it asks CCC whether that exact output was recorded. CNS asks;
+only CCC reads its own store to answer. `MachineRecords(system).status(source,
+candidate_id, text_digest)` answers `held`, `absent`, `altered`, `erased` or
+`redacted`. Only records created by the named machine actor count, the fingerprint
+is recomputed from the stored text, and a human erasure or redaction of any matching
+record wins over every other copy. It is a read: no record, audit event or rule
+decision is written. Tests: `tests/test_record_status.py`, which run in CI.
