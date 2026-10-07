@@ -19,6 +19,11 @@ dev = ["pytest>=8"]
 cns = [
     "cns @ git+https://github.com/wking53214/cns.git@3b465dbcc1a6a4ab6f1040f93d44483196abd737",
 ]
+# The text matcher record_external_finding requires (see ccc/text_matching.py).
+# CCC imports nothing from it; the application plugs it in. Pinned by commit.
+match = [
+    "cccb @ git+https://github.com/wking53214/CCCb.git@23911917e25f48522da7318b2e250d119536591f",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

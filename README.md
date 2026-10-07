@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **recurrence / continuity memory** for governed claims. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 213 test functions measured in this tree (README previously approximated ~135–142).
+Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and the human's right to erase. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 213 test functions measured in this tree (README previously approximated ~135–142).
 
 ## 1. Pipeline Position & Role
 
@@ -22,13 +22,26 @@ Package `ccc/` + `tests/`. Stdlib only. Adapter after orchestrator decision; ski
 
 ## 4. Brutally Honest Current Status & Gaps
 
-Commercial red team: **FEATURE** (recurrence detection). Unfrozen 2026-09-11; findings not superseded. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given — not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
+Commercial red team: **FEATURE** (recurrence detection; the measurement now lives in [CCCb](https://github.com/wking53214/CCCb), the guard stays here). Unfrozen 2026-09-11; findings not superseded. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given — not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
 
 ## 5. Core Invariants & Guarantees
 
 Fail-closed on unconstitutional promotions (AI→human authority conversion is in the GEMS/CCC shared doctrine). Recurrence is explicit. Stdlib-only so the suite runs with no sibling.
 
 ## 6. Inputs, Outputs & Type Contracts
+
+**Text matching is plugged in, not built in.** Deciding whether a machine
+finding is a re-submission or a recurrence of an earlier one needs a
+measurement of how alike two texts are. That measurement lives in
+[CCCb](https://github.com/wking53214/CCCb) (split out of this repo at
+`d039efd`) and plugs in the way Ecology's semantic provider does:
+`CCCSystem(text_matcher=cccb.TextMatcher())`. CCC keeps the rules: a
+re-observation is linked and never counted as an occurrence, and a machine may
+raise an anomaly to a pattern but never to a mandate. Without a matcher,
+`record_external_finding` refuses loudly; nothing else in CCC needs one. CCC
+imports nothing from CCCb (`ccc/text_matching.py`, `tests/test_text_matching.py`).
+Install for development and tests: `pip install -e '.[dev,match]'`.
+
 
 Adapter in observe-perceive. Extra pin: `cognitive-continuity-constitution @ git+…/CCC@2cf7aa19`. Ecology duck-types a FindingRecord toward CCC (`finding.py`) without importing this package.
 
