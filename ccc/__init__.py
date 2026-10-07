@@ -30,6 +30,7 @@ from .models import (
     RuleDecision,
     UncertaintyRecord,
 )
+from .recurring import RecurringGroup
 from .system import CCCSystem
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     "LineageEvent",
     "ProvenanceEvent",
     "ProvenanceStatus",
+    "RecurringGroup",
     "RoadSign",
     "RoadSignCategory",
     "RelationshipType",
