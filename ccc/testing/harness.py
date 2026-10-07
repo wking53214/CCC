@@ -20,7 +20,6 @@ from ..models import (
     ProvenanceStatus,
     RoadSignCategory,
     RelationshipType,
-    TermStatus,
 )
 
 
@@ -145,20 +144,8 @@ def _h12():
     return (sign.road_sign_id,)
 
 
-def _h13():
-    system = CCCSystem()
-    point = system.detect_inflection(thread_id="thread-not-required", directions=("redirected",), divergence=0.8, sensitivity=0.2, machine_weight=0.9, actor=_model())
-    assert point.significance is None and point.divergence != point.sensitivity
-    return (point.inflection_id,)
 
 
-def _h14():
-    system = CCCSystem()
-    thread = system.create_thread(title="primary", actor=_human())
-    branch = system.create_branch(thread.thread_id, title="deferred branch", actor=_model(), deferred=True)
-    assert branch.branch_id in system.store.threads[thread.thread_id].branch_ids
-    assert any(event.relationship is RelationshipType.BRANCH_OF for event in system.store.lineage_events) is False
-    return (thread.thread_id, branch.branch_id)
 
 
 def _h15():
@@ -178,21 +165,8 @@ def _h16():
     return (discovery.discovery_id,)
 
 
-def _h17():
-    system = CCCSystem()
-    source = _fact(system)
-    sim = system.simulate(inputs=(source.artifact_id,), assumptions=("steady demand",), shared_assumptions=("same baseline",), trajectory=("a", "b"), counterfactual="if demand changes", output="modeled output", sensitivity={"demand": 0.8}, limitations=("not history",), actor=_model())
-    assert sim.epistemic_status is EpistemicStatus.SIMULATION and sim.shared_assumptions == ("same baseline",)
-    return (sim.simulation_id,)
 
 
-def _h18():
-    system = CCCSystem()
-    source = _fact(system)
-    term = system.propose_term(term="CCC", definition="proposed term", actor=_model())
-    canonical = system.canonicalize(term.term_id, actor=_human(), source_material=(source.artifact_id,), reason="human terminology decision", authorization_basis="human review")
-    assert canonical.status is TermStatus.CANONICAL
-    return (canonical.term_id,)
 
 
 def _h19():
@@ -309,13 +283,6 @@ def _h32():
     return ("open conflict",)
 
 
-def _h33():
-    system = CCCSystem()
-    thread = system.create_thread(title="primary", actor=_human())
-    branch = system.create_branch(thread.thread_id, title="branch", actor=_human())
-    system.close_branch(branch.branch_id, actor=_human(), reason="pause")
-    assert branch.branch_id in system.store.branches
-    return (branch.branch_id,)
 
 
 def _h34():
@@ -361,28 +328,10 @@ def _h39():
     return (claim.artifact_id,)
 
 
-def _h40():
-    system = CCCSystem()
-    sim = system.simulate(inputs=(), assumptions=("a",), shared_assumptions=("shared",), trajectory=("x",), counterfactual="if", output="out", sensitivity={}, limitations=("limited",), actor=_model())
-    assert sim.shared_assumptions == ("shared",) and "shared" in sim.shared_assumptions
-    return (sim.simulation_id,)
 
 
-def _h41():
-    system = CCCSystem()
-    source = _fact(system)
-    sim = system.simulate(inputs=(source.artifact_id,), assumptions=(), shared_assumptions=(), trajectory=(), counterfactual="if", output="out", sensitivity={}, limitations=("limited",), actor=_model())
-    assert sim.input_provenance == ((source.artifact_id, ProvenanceStatus.USER_ESTABLISHED.value),)
-    return sim.input_provenance
 
 
-def _h42():
-    system = CCCSystem()
-    unknown = system.ingest("unknown origin", actor=Actor.system())
-    term = system.propose_term(term="unknown", definition="unknown", actor=_model())
-    blocked, evidence = _blocked(lambda: system.canonicalize(term.term_id, actor=_human(), source_material=(unknown.artifact_id,), reason="silent", authorization_basis="human"))
-    assert blocked
-    return evidence
 
 
 def _h43():
@@ -414,12 +363,8 @@ _EXECUTABLE = {
     "H10": ("REQ.CONFLICT.PRESERVE", "Evidence conflict is classified and kept open.", _h10),
     "H11": ("REQ.UNCERTAINTY.PRESERVE", "Uncertainty exposes candidates without forced choice.", _h11),
     "H12": ("REQ.ROAD_SIGNS.INDICATORS_NOT_CONCLUSIONS", "Road Sign remains an indicator.", _h12),
-    "H13": ("REQ.INFLECTION.SEPARATE_DIMENSIONS", "Inflection dimensions remain separate.", _h13),
-    "H14": ("REQ.THREADS.BRANCH_LINEAGE", "Threads and deferred branches remain explicit.", _h14),
     "H15": ("REQ.ANALYSIS.ONE_TWO_THREE", "Anomaly advances through pattern to human mandate.", _h15),
     "H16": ("REQ.DISCOVERY.MACHINE_ATTRIBUTION", "Machine discovery retains machine origin.", _h16),
-    "H17": ("REQ.SIMULATION.ASSUMPTIONS", "Simulation preserves assumptions and limitations.", _h17),
-    "H18": ("REQ.CANONICALIZATION.HUMAN_STATUS", "Canonical term requires human source decision.", _h18),
     "H19": ("REQ.QUERYABILITY.NO_PRESENTATION_DELETION", "Query filters expose all requested dimensions.", _h19),
     "H20": ("REQ.AUDIT.CONSEQUENTIAL_TRANSITIONS", "Audit identifies actor and operation.", _h20),
     "H21": ("REQ.HISTORY.LINEAGE", "Correction is a distinct audited operation.", _h21),
@@ -434,19 +379,32 @@ _EXECUTABLE = {
     "H30": ("REQ.CONFLICT.PRESERVE", "Conflict resolution is separately recorded.", _h30),
     "H31": ("REQ.HUMAN_SOVEREIGNTY.NO_MACHINE_VETO", "Machine cannot author a human correction.", _h31),
     "H32": ("REQ.CONFLICT.PRESERVE", "Detection does not silently resolve conflict.", _h32),
-    "H33": ("REQ.THREADS.BRANCH_LINEAGE", "Closed branch remains queryable.", _h33),
     "H34": ("REQ.EPISTEMIC.EVIDENCE_BASIS", "Inference promotion requires human action and root.", _h34),
     "H35": ("REQ.EVIDENCE.ROOT_INTEGRITY", "Erasure cascade is transitive.", _h35),
     "H36": ("REQ.QUERYABILITY.NO_PRESENTATION_DELETION", "Presentation ranking does not delete.", _h36),
     "H37": ("REQ.QUERYABILITY.NO_PRESENTATION_DELETION", "Unsurfaced discovery remains stored.", _h37),
     "H38": ("REQ.UNCERTAINTY.PRESERVE", "Unknown provenance is explicit.", _h38),
     "H39": ("REQ.EVIDENCE.ROOT_INTEGRITY", "Redaction cascades evidentiary consequences.", _h39),
-    "H40": ("REQ.SIMULATION.ASSUMPTIONS", "Shared simulation assumptions are explicit.", _h40),
-    "H41": ("REQ.SIMULATION.ASSUMPTIONS", "Simulation captures input provenance.", _h41),
-    "H42": ("REQ.CANONICALIZATION.HUMAN_STATUS", "Unknown-origin terminology is not silently canonical.", _h42),
     "H43": ("REQ.ANALYSIS.ONE_TWO_THREE", "Anomaly cannot jump directly to mandate.", _h43),
     "H44": ("REQ.AUDIT.CONSEQUENTIAL_TRANSITIONS", "Constitutional validator reports invariant status.", _h44),
 }
+
+
+#: Checks whose subject was buried in wking53214/Graveyard
+#: (ccc/2026-10-06-unused-record-types). The numbers stay reserved so a revival
+#: restores them in place, and they report RETIRED rather than UNSPECIFIED: their
+#: meaning is known, the feature is just no longer here.
+_RETIRED = {
+    "H13": ("REQ.INFLECTION.SEPARATE_DIMENSIONS", "Inflection dimensions remain separate."),
+    "H14": ("REQ.THREADS.BRANCH_LINEAGE", "Threads and deferred branches remain explicit."),
+    "H17": ("REQ.SIMULATION.ASSUMPTIONS", "Simulation preserves assumptions and limitations."),
+    "H18": ("REQ.CANONICALIZATION.HUMAN_STATUS", "Canonical term requires human source decision."),
+    "H33": ("REQ.THREADS.BRANCH_LINEAGE", "Closed branch remains queryable."),
+    "H40": ("REQ.SIMULATION.ASSUMPTIONS", "Shared simulation assumptions are explicit."),
+    "H41": ("REQ.SIMULATION.ASSUMPTIONS", "Simulation captures input provenance."),
+    "H42": ("REQ.CANONICALIZATION.HUMAN_STATUS", "Unknown-origin terminology is not silently canonical."),
+}
+_RETIRED_NOTE = "RETIRED: feature buried in wking53214/Graveyard ccc/2026-10-06-unused-record-types"
 
 
 def harness_registry() -> tuple[dict[str, str], ...]:
@@ -461,6 +419,15 @@ def harness_registry() -> tuple[dict[str, str], ...]:
                 "test_description": description,
                 "expected_result": "PASS",
                 "historical_meaning": "UNSPECIFIED",
+            })
+        elif harness_id in _RETIRED:
+            requirement, description = _RETIRED[harness_id]
+            rows.append({
+                "harness_id": harness_id,
+                "constitutional_requirement": requirement,
+                "test_description": description,
+                "expected_result": "RETIRED",
+                "historical_meaning": _RETIRED_NOTE,
             })
         else:
             rows.append({
@@ -477,6 +444,9 @@ def run_harness() -> dict:
     records = []
     for row in harness_registry():
         check = _EXECUTABLE.get(row["harness_id"])
+        if row["expected_result"] == "RETIRED":
+            records.append({**row, "actual_result": "RETIRED", "status": "RETIRED", "evidence": [], "implementation_version": "0.1.0"})
+            continue
         if check is None:
             records.append({**row, "actual_result": "UNSPECIFIED", "status": "UNSPECIFIED", "evidence": [], "implementation_version": "0.1.0"})
             continue
@@ -488,7 +458,7 @@ def run_harness() -> dict:
             records.append({**row, "actual_result": "FAIL", "status": "FAIL", "evidence": [str(exc)], "implementation_version": "0.1.0"})
         except Exception as exc:  # pragma: no cover - the JSON result is the diagnostic
             records.append({**row, "actual_result": "ERROR", "status": "ERROR", "evidence": [f"{type(exc).__name__}: {exc}"], "implementation_version": "0.1.0"})
-    counts = {status.lower(): sum(item["status"] == status for item in records) for status in ("PASS", "FAIL", "ERROR", "SKIPPED", "UNSPECIFIED")}
+    counts = {status.lower(): sum(item["status"] == status for item in records) for status in ("PASS", "FAIL", "ERROR", "SKIPPED", "UNSPECIFIED", "RETIRED")}
     return {
         "implementation_version": "0.1.0",
         "records": records,
@@ -498,6 +468,7 @@ def run_harness() -> dict:
         "errors": counts["error"],
         "skipped": counts["skipped"],
         "unspecified": counts["unspecified"],
+        "retired": counts["retired"],
     }
 
 

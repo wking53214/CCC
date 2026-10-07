@@ -15,9 +15,10 @@ def test_harness_results_are_machine_readable_and_do_not_promote_unspecified():
     assert result["total"] == 62
     assert result["failed"] == 0
     assert result["errors"] == 0
-    assert result["passed"] == 44
+    assert result["passed"] == 36
     assert result["unspecified"] == 18
-    assert result["passed"] + result["failed"] + result["errors"] + result["skipped"] + result["unspecified"] == result["total"]
+    assert result["retired"] == 8
+    assert result["passed"] + result["failed"] + result["errors"] + result["skipped"] + result["unspecified"] + result["retired"] == result["total"]
     assert all(item["status"] != "PASS" for item in result["records"] if item["expected_result"] == "UNSPECIFIED")
 
 

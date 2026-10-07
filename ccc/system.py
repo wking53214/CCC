@@ -8,11 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from .audit import AuditTrail
-from .branches import BranchManager
-from .canonicalization import CanonicalizationManager
 from .conflict import ConflictManager
 from .constitutional_rules import ConstitutionalRuleEngine
-from .dialogue import DialogueEngine
 from .discovery import DiscoveryManager
 from .text_matching import (
     TextMatcherMissing,
@@ -26,7 +23,6 @@ from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
 from .human_resolution import HumanResolutionManager
-from .inflection import InflectionManager
 from .lineage import LineageManager
 from .models import (
     Actor,
@@ -45,9 +41,7 @@ from .models import (
 from .provenance import ProvenanceManager
 from .query import QueryEngine
 from .road_signs import RoadSignManager
-from .simulation import SimulationManager
 from .store import CCCStore
-from .threads import ThreadManager
 
 
 def _stated_private_sources(value) -> tuple[str, ...] | None:
@@ -175,20 +169,13 @@ class CCCSystem:
         self.epistemic = EpistemicManager(self.store, self.audit_trail, self.rules, self.evidence)
         self.human_resolution = HumanResolutionManager(self.store, self.audit_trail, self.rules)
         self.road_signs = RoadSignManager(self.store, self.audit_trail, self.rules)
-        self.inflection = InflectionManager(self.store, self.audit_trail, self.rules)
-        self.threads = ThreadManager(self.store, self.audit_trail, self.rules)
-        self.branches = BranchManager(self.store, self.audit_trail, self.rules, self.lineage, self.threads)
         self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
-        self.dialogue = DialogueEngine(self.human_resolution)
         require_matcher(text_matcher)
         self.text_matcher = text_matcher
         self.private_source_markers = _stated_private_sources(private_source_markers)
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
-        self._recorded_dialogue_signatures: set = set()
-        self.simulation = SimulationManager(self.store, self.audit_trail, self.rules)
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
-        self.canonicalization = CanonicalizationManager(self.store, self.audit_trail, self.rules)
         self.query_engine = QueryEngine(self.store)
         self._restore_derived_indexes()
 
@@ -198,7 +185,7 @@ class CCCSystem:
 
     def _restore_derived_indexes(self) -> None:
         """Rebuild the accelerators that live outside CCCStore: the attached
-        text matcher's indexes and the recorded-dialogue signature set.
+        text matcher's indexes.
         CCCStore persists the facts; these are derived
         structures built empty in __init__, so after CCCStore.load() they
         would start empty while the store is full -- occurrence #2 arriving
@@ -236,11 +223,6 @@ class CCCSystem:
                     "the recovered texts are approximate. Re-save to persist exact values.",
                     stacklevel=3,
                 )
-
-        for artifact in self.store.artifacts.values():
-            uncertainty_ids = artifact.metadata.get("dialogue_uncertainty_ids")
-            if uncertainty_ids:
-                self._recorded_dialogue_signatures.add(tuple(uncertainty_ids))
 
         # The semantic index is a derived structure too. Before this the
         # lexical detectors were rebuilt on load and the semantic index was
@@ -628,38 +610,6 @@ class CCCSystem:
     def query_road_signs(self, **kwargs):
         return self.road_signs.query_road_signs(**kwargs)
 
-    def detect_inflection(self, **kwargs):
-        return self.inflection.detect_inflection(**kwargs)
-
-    def resolve_inflection(self, *args, **kwargs):
-        return self.inflection.resolve_inflection(*args, **kwargs)
-
-    def create_thread(self, **kwargs):
-        return self.threads.create_thread(**kwargs)
-
-    def create_branch(self, *args, **kwargs):
-        return self.branches.create_branch(*args, **kwargs)
-
-    def attach_branch(self, *args, **kwargs):
-        return self.branches.attach_branch(*args, **kwargs)
-
-    def resume_thread(self, thread_id: str, *, actor: Actor, reason: str):
-        if thread_id in self.store.threads:
-            return self.threads.resume_thread(thread_id, actor=actor, reason=reason)
-        return self.branches.resume_thread(thread_id, actor=actor, reason=reason)
-
-    def return_to_branch(self, branch_id: str, *, actor: Actor, reason: str):
-        return self.branches.return_to_branch(branch_id, actor=actor, reason=reason)
-
-    def resolve_branch(self, branch_id: str, *, actor: Actor, reason: str):
-        return self.branches.resolve_branch(branch_id, actor=actor, reason=reason)
-
-    def close_branch(self, branch_id: str, *, actor: Actor, reason: str):
-        return self.branches.close_branch(branch_id, actor=actor, reason=reason)
-
-    def close_thread(self, thread_id: str, *, actor: Actor, reason: str):
-        return self.threads.close_thread(thread_id, actor=actor, reason=reason)
-
     def discover(self, **kwargs):
         return self.discovery.discover(**kwargs)
 
@@ -1019,101 +969,11 @@ class CCCSystem:
             },
         )
 
-    def record_dialogue_conclusion(self, outcome, *, question: str,
-                                    human_actor: Actor, context: str = ""):
-        """Turn a terminated dialogue into a durable, queryable fact.
-
-        The dialogue engine reaches conclusions; without this they stay as
-        a resolved_choice string on an UncertaintyRecord and nothing more --
-        not part of the knowledge model, not queryable as a fact.
-
-        A CONFIRMED answer becomes a USER_ESTABLISHED / INTERPRETATION
-        artifact: a human confirmed it through the CCC-HUMAN-001-gated
-        resolve(), so it's legitimately human-established -- an
-        interpretation of the evidence, not raw evidence. A 42 becomes a
-        USER_ESTABLISHED / UNKNOWN artifact, so "we looked and the record
-        doesn't establish this" is itself a durable fact, not a gap that
-        looks identical to never having investigated.
-
-        Either way the artifact's metadata links every UncertaintyRecord in
-        the dialogue, so the rounds that produced the conclusion stay
-        traceable from it.
-        """
-        if human_actor.kind is not ActorType.HUMAN:
-            raise ValueError(
-                "a dialogue conclusion is human-established by definition -- "
-                "pass a human actor, the same one who resolved the dialogue"
-            )
-        if outcome.terminal not in ("CONFIRMED", "UNKNOWN"):
-            raise ValueError(
-                f"dialogue outcome {outcome.terminal!r} is not a terminal state -- "
-                "nothing to record"
-            )
-        uncertainty_ids = list(outcome.uncertainty_ids)
-        if not uncertainty_ids:
-            raise ValueError(
-                "outcome has no uncertainty_ids -- it did not come from a real "
-                "dialogue round, refusing to record a conclusion with no rounds behind it"
-            )
-        for uid in uncertainty_ids:
-            if uid not in self.store.uncertainties:
-                raise ValueError(
-                    f"uncertainty_id {uid!r} is not in the store -- the outcome's "
-                    "rounds don't exist, refusing to record an untraceable conclusion"
-                )
-        signature = tuple(uncertainty_ids)
-        if signature in self._recorded_dialogue_signatures:
-            raise ValueError(
-                "this dialogue's conclusion is already recorded -- "
-                "refusing to record it twice"
-            )
-
-        if outcome.terminal == "CONFIRMED":
-            if not outcome.choice:
-                raise ValueError(
-                    "a CONFIRMED outcome with no choice is malformed -- "
-                    "refusing to record 'Confirmed: None'"
-                )
-            # Structured, not a bare f-string concat: a question containing
-            # "Confirmed:" or its own newlines can't make the recorded fact
-            # ambiguous about what was actually confirmed.
-            content = (
-                "DIALOGUE CONCLUSION (confirmed)\n"
-                f"question: {question!r}\n"
-                f"confirmed: {outcome.choice!r}"
-            )
-            epistemic = EpistemicStatus.INTERPRETATION
-            reason = "human confirmed a dialogue candidate"
-        elif outcome.terminal == "UNKNOWN":
-            content = (
-                "DIALOGUE CONCLUSION (42 -- the record does not establish this)\n"
-                f"question: {question!r}"
-            )
-            epistemic = EpistemicStatus.UNKNOWN
-            reason = "human resolved a dialogue as 42 -- the record does not establish this"
-        artifact = self.ingest(
-            content,
-            actor=human_actor,
-            provenance_status=ProvenanceStatus.USER_ESTABLISHED,
-            epistemic_status=epistemic,
-            reason=reason,
-            authorization_basis=f"dialogue conclusion, {outcome.rounds} round(s)",
-            metadata={
-                "dialogue_uncertainty_ids": uncertainty_ids,
-                "dialogue_context": context,
-            },
-        )
-        self._recorded_dialogue_signatures.add(signature)
-        return artifact
-
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
 
     def adopt_discovery(self, *args, **kwargs):
         return self.discovery.adopt(*args, **kwargs)
-
-    def simulate(self, **kwargs):
-        return self.simulation.simulate(**kwargs)
 
     def detect_conflict(self, **kwargs):
         return self.conflict.detect_conflict(**kwargs)
@@ -1135,18 +995,6 @@ class CCCSystem:
 
     def resolve_uncertainty(self, *args, **kwargs):
         return self.human_resolution.resolve(*args, **kwargs)
-
-    def propose_term(self, **kwargs):
-        return self.canonicalization.propose_term(**kwargs)
-
-    def canonicalize(self, *args, **kwargs):
-        return self.canonicalization.canonicalize(*args, **kwargs)
-
-    def deprecate_term(self, *args, **kwargs):
-        return self.canonicalization.deprecate(*args, **kwargs)
-
-    def supersede_term(self, *args, **kwargs):
-        return self.canonicalization.supersede(*args, **kwargs)
 
     def query(self, **kwargs):
         return self.query_engine.query(**kwargs)
@@ -1178,14 +1026,6 @@ class CCCSystem:
                 reason=reason,
                 authorization_basis=authorization_basis,
             )
-        if kind == "inflection":
-            return self.resolve_inflection(
-                object_id,
-                significance=kwargs["significance"],
-                actor=actor,
-                reason=reason,
-                authorization_basis=authorization_basis,
-            )
         raise ValueError(f"unknown resolution kind: {kind}")
 
     def validate_constitution(self) -> dict[str, Any]:
@@ -1211,10 +1051,6 @@ class CCCSystem:
             checks += 1
             if sign.is_conclusion:
                 violations.append(f"{sign.road_sign_id}: road sign is marked conclusion")
-        for simulation in self.store.simulations.values():
-            checks += 1
-            if simulation.epistemic_status is not EpistemicStatus.SIMULATION:
-                violations.append(f"{simulation.simulation_id}: simulation lost modeled status")
         for event in self.store.audit_events:
             checks += 1
             if event.actor.kind not in {ActorType.HUMAN, ActorType.SYSTEM, ActorType.MODEL, ActorType.EXTERNAL}:
