@@ -42,6 +42,14 @@ raise an anomaly to a pattern but never to a mandate. Without a matcher,
 imports nothing from CCCb (`ccc/text_matching.py`, `tests/test_text_matching.py`).
 Install for development and tests: `pip install -e '.[dev,match]'`.
 
+**Private sources are the caller's statement.** CCC names no repositories. The
+application that records machine findings states which sources are private:
+`CCCSystem(private_source_markers=(...))`, matched as substrings of each
+finding's `source_material`. A finding citing one is refused unless
+`allow_private_source=True`. Until the list is stated, every machine finding is
+refused (`ccc.errors.PrivateSourcesNotStated`); an empty list states there are
+none. That way the guard cannot be lost by forgetting to configure it.
+
 
 Adapter in observe-perceive. Extra pin: `cognitive-continuity-constitution @ git+…/CCC@2cf7aa19`. Ecology duck-types a FindingRecord toward CCC (`finding.py`) without importing this package.
 

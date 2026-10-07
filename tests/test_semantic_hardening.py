@@ -62,12 +62,12 @@ class _Broken:
 # ---------------------------------------------------------------- 1. event dates across a reopen
 
 def test_event_dates_survive_a_reopen(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(_finding("alpha beta gamma delta", start="2026-01-05", end="2026-01-06"),
                                             actor=Actor.model("m"))
     assert record.event_start_date == "2026-01-05"
     path = system.save(tmp_path / "ccc.json")
-    reopened = CCCSystem.load(path, text_matcher=TextMatcher())
+    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
     stored = reopened.store.discoveries[record.discovery_id]
     assert (stored.event_start_date, stored.event_end_date) == ("2026-01-05", "2026-01-06")
 
@@ -77,7 +77,7 @@ def test_event_dates_survive_a_reopen(tmp_path):
 def test_a_non_numeric_similarity_degrades_instead_of_raising():
     decision = evaluate_recurrence(text="x", lexical_match=False, semantic_index=_Index([SemanticMatch("f", "0.9")]))
     assert decision.semantic_match is False and "non-numeric" in decision.semantic_error
-    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=_Index([SemanticMatch("f", None)]))
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), semantic_index=_Index([SemanticMatch("f", None)]))
     assert system.record_external_finding(_finding("still recorded"), actor=Actor.model("m")) is not None
 
 
@@ -91,7 +91,7 @@ def test_nearest_is_the_strongest_match_whatever_order_the_provider_used():
     decision = evaluate_recurrence(text="x", lexical_match=False,
                                    semantic_index=_Index([SemanticMatch("weak", 0.31), SemanticMatch("strong", 0.99)]))
     assert [m.finding_id for m in decision.semantic_matches] == ["strong", "weak"]
-    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=_Index([SemanticMatch("weak", 0.31), SemanticMatch("strong", 0.99)]))
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), semantic_index=_Index([SemanticMatch("weak", 0.31), SemanticMatch("strong", 0.99)]))
     system.record_external_finding(_finding("an entirely novel observation sharing no words"), actor=Actor.model("m"))
     sign = list(system.store.road_signs.values())[0]
     assert sign.metadata["nearest_similarity"] == 0.99 and sign.linked_ids[0] == "strong"
@@ -100,18 +100,18 @@ def test_nearest_is_the_strongest_match_whatever_order_the_provider_used():
 # ---------------------------------------------------------------- 3. a dead signal leaves a trace
 
 def test_a_provider_that_fails_leaves_an_audit_event_that_persists(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=_Broken())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), semantic_index=_Broken())
     record = system.record_external_finding(_finding("some finding"), actor=Actor.model("m"))
     events = [e for e in system.audit_trail.for_object(record.discovery_id) if e.operation == "semantic_provider_failed"]
     assert len(events) == 1
     assert events[0].new_state["semantic_provider"] == "broken" and "RuntimeError" in events[0].new_state["semantic_error"]
     path = system.save(tmp_path / "ccc.json")
-    reopened = CCCSystem.load(path, text_matcher=TextMatcher())
+    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
     assert any(e.operation == "semantic_provider_failed" for e in reopened.audit_trail.for_object(record.discovery_id))
 
 
 def test_a_working_provider_leaves_no_failure_event():
-    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=_Index())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), semantic_index=_Index())
     record = system.record_external_finding(_finding("some finding"), actor=Actor.model("m"))
     assert not [e for e in system.audit_trail.for_object(record.discovery_id) if e.operation == "semantic_provider_failed"]
 
@@ -119,10 +119,10 @@ def test_a_working_provider_leaves_no_failure_event():
 # ---------------------------------------------------------------- 4. the index is rebuilt on load
 
 def test_the_semantic_index_is_rebuilt_from_the_store_on_load(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher(), semantic_index=_Index())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), semantic_index=_Index())
     a = system.record_external_finding(_finding("first finding about widgets"), actor=Actor.model("m"))
     b = system.record_external_finding(_finding("second finding about gadgets"), actor=Actor.model("m"))
     path = system.save(tmp_path / "ccc.json")
     fresh = _Index()
-    CCCSystem.load(path, text_matcher=TextMatcher(), semantic_index=fresh)
+    CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), semantic_index=fresh)
     assert {fid for fid, _ in fresh.added} == {a.discovery_id, b.discovery_id}

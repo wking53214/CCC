@@ -52,7 +52,7 @@ def test_everything_else_works_without_a_matcher():
 
 
 def test_with_cccb_attached_findings_record():
-    system = CCCSystem(text_matcher=TextMatcher())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
     record = system.record_external_finding(FINDING, actor=MODEL)
     assert record.stage is AnalysisStage.ANOMALY
 
@@ -92,7 +92,7 @@ class _Lying:
     _Lying(recurrence=("x", "high", (("x", 0.9),))),
 ])
 def test_a_malformed_or_invented_answer_is_refused_not_recorded(matcher):
-    system = CCCSystem(text_matcher=matcher)
+    system = CCCSystem(text_matcher=matcher, private_source_markers=())
     with pytest.raises(ValueError, match="text matcher"):
         system.record_external_finding(FINDING, actor=MODEL)
     assert not system.store.discoveries
@@ -100,10 +100,10 @@ def test_a_malformed_or_invented_answer_is_refused_not_recorded(matcher):
 
 def test_reopened_store_feeds_the_new_matcher(tmp_path):
     path = tmp_path / "state.json"
-    first = CCCSystem(text_matcher=TextMatcher(), persistence_path=path)
+    first = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
     original = first.record_external_finding(FINDING, actor=MODEL)
     first.save()
-    reopened = CCCSystem.load(path, text_matcher=TextMatcher())
+    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
     again = reopened.record_external_finding(FINDING, actor=MODEL)
     assert original.discovery_id in again.relationships
 

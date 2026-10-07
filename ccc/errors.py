@@ -30,3 +30,10 @@ class NotFound(CCCError):
 
 class InvalidTransition(CCCError):
     """A state transition is not valid for the object's current state."""
+
+
+class PrivateSourcesNotStated(CCCError):
+    """A machine finding was recorded before the caller stated which sources
+    are private. CCC names no repositories itself; the application that
+    wires it in states the list (an empty one included), so the private-source
+    guard cannot be lost by forgetting it."""
