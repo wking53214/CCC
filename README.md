@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and the human's right to erase. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
+Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
 
 ## 1. Pipeline Position & Role
 
@@ -25,6 +25,7 @@ Package `ccc/` + `tests/`. Stdlib only. Adapter after orchestrator decision; ski
 Commercial red team: **FEATURE** (recurrence detection; the measurement now lives in [CCCb](https://github.com/wking53214/CCCb), the guard stays here). Unfrozen 2026-09-11; findings not superseded. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given — not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
 
 Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DEC-0002](decisions/DEC-0002_v1.md) (v1.1 draft, decided provision by provision) leaves Articles I.G, III.F, XI.A, XII.E, XV.A and XVII.A-D UNRESOLVED; I.G and XVII.A-D are nonetheless enforced in this package's code.
+**Erasure is not constitutionally grounded.** `CCCSystem.erase` lets a human, with a stated basis, wipe a record's text and leave a tombstone; anything built on it is downgraded to `THEORY`. The ≡TACK Constitution v4.0 (Developed Candidate, wking53214/constitution) contains no human right of erasure, and every CCC rule, including `CCC-HISTORY-002`, is sourced to the build directive, not to an article. The only article that touches erasure is XVIII, which says a system shall not erase negative evidence merely because it conflicts with a preferred conclusion. CCC does not check for that: a human can erase a record already marked rejected. This is unratified mechanism, and whether to add an erasure article to the Constitution is the owner's decision.
 New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CCCSystem.decide` can store the same shape with a decision: the options considered, the one selected, each other option rejected with a reason or deferred (every option not selected must be one or the other), and the assumptions it rests on. A decision recorded without them is stored exactly as before.
 
 ## 5. Core Invariants & Guarantees
