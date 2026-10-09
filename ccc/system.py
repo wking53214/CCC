@@ -359,10 +359,12 @@ class CCCSystem:
                 actor.kind is ActorType.HUMAN,
                 reason="user-level provenance at ingestion requires a human actor",
             )
-        if actor.kind is ActorType.HUMAN and not authorization_basis and not machine_source_ids:
+        user_level = provenance_status in {ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.USER_ACCEPTED}
+        if actor.kind is ActorType.HUMAN and not authorization_basis and (user_level or not machine_source_ids):
             # The caller named no basis. The record says so, rather than
-            # inventing one. Human material with machine lineage is already
-            # flagged by its own provenance status.
+            # inventing one. Uncertain human material with machine lineage is
+            # not marked: its status already carries the doubt. A user-level
+            # status without a basis is always marked, whatever its lineage.
             authorization_basis = _BASIS_NOT_STATED
             metadata["authorization_basis_stated"] = False
         if actor.kind in {ActorType.MODEL, ActorType.SYSTEM}:

@@ -52,6 +52,18 @@ def test_human_over_machine_source_is_still_uncertain_and_not_flagged():
     assert "authorization_basis_stated" not in item.metadata
 
 
+def test_user_level_status_over_machine_source_without_basis_is_still_marked():
+    system = CCCSystem()
+    source = system.ingest("machine text", actor=Actor.model("m"))
+    item = system.ingest(
+        "human adopts it", actor=Actor.human("w"), source_material=(source.artifact_id,),
+        provenance_status=ProvenanceStatus.USER_ESTABLISHED,
+    )
+    assert item.provenance_status is ProvenanceStatus.USER_ESTABLISHED
+    assert item.metadata["authorization_basis_stated"] is False
+    assert _origin_basis(system, item.artifact_id) == NOT_STATED
+
+
 def test_the_audit_entry_agrees_with_the_provenance_record():
     system = CCCSystem()
     item = system.ingest("a claim", actor=Actor.human("w"))
