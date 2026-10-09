@@ -32,7 +32,12 @@ def _model() -> Actor:
 
 
 def _fact(system: CCCSystem, *, epistemic: EpistemicStatus = EpistemicStatus.HISTORICAL_RECORD):
-    return system.ingest("human-established source", actor=_human(), epistemic_status=epistemic)
+    return system.ingest(
+        "human-established source",
+        actor=_human(),
+        epistemic_status=epistemic,
+        authorization_basis="harness human record",
+    )
 
 
 def _blocked(call: Callable[[], object]) -> tuple[bool, tuple[str, ...]]:

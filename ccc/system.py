@@ -330,15 +330,19 @@ class CCCSystem:
             if self.store.require_artifact(source_id).machine_origin
         )
         if provenance_status is None:
-            provenance_status = (
-                ProvenanceStatus.PROVENANCE_UNCERTAIN
-                if actor.kind is ActorType.HUMAN and machine_source_ids
-                else ProvenanceStatus.USER_ESTABLISHED
-                if actor.kind is ActorType.HUMAN
-                else ProvenanceStatus.ASSISTANT_PROPOSED
-                if actor.kind is ActorType.MODEL
-                else ProvenanceStatus.PROVENANCE_UNCERTAIN
-            )
+            if actor.kind is ActorType.HUMAN:
+                # User-established only when a human states a basis and no
+                # machine material is in the lineage. A human who states no
+                # basis stays uncertain until one is given.
+                provenance_status = (
+                    ProvenanceStatus.USER_ESTABLISHED
+                    if authorization_basis and not machine_source_ids
+                    else ProvenanceStatus.PROVENANCE_UNCERTAIN
+                )
+            elif actor.kind is ActorType.MODEL:
+                provenance_status = ProvenanceStatus.ASSISTANT_PROPOSED
+            else:
+                provenance_status = ProvenanceStatus.PROVENANCE_UNCERTAIN
         if machine_source_ids:
             metadata["machine_source_ids"] = machine_source_ids
             metadata["human_independent_origin"] = human_independent_origin
@@ -355,11 +359,12 @@ class CCCSystem:
                 actor.kind is ActorType.HUMAN,
                 reason="user-level provenance at ingestion requires a human actor",
             )
-            if not authorization_basis:
-                # The caller named no basis. The status stands (the actor is
-                # human) but the record says so, rather than inventing one.
-                authorization_basis = _BASIS_NOT_STATED
-                metadata["authorization_basis_stated"] = False
+        if actor.kind is ActorType.HUMAN and not authorization_basis and not machine_source_ids:
+            # The caller named no basis. The record says so, rather than
+            # inventing one. Human material with machine lineage is already
+            # flagged by its own provenance status.
+            authorization_basis = _BASIS_NOT_STATED
+            metadata["authorization_basis_stated"] = False
         if actor.kind in {ActorType.MODEL, ActorType.SYSTEM}:
             metadata["machine_generated"] = True
             machine_processing = tuple(machine_processing) or (reason,)

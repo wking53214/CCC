@@ -11,10 +11,10 @@ def _origin_basis(system: CCCSystem, artifact_id: str):
     return system.provenance.history(artifact_id)[0].authorization_basis
 
 
-def test_human_without_basis_keeps_status_but_records_the_gap():
+def test_human_without_basis_is_uncertain_and_records_the_gap():
     system = CCCSystem()
     item = system.ingest("a claim", actor=Actor.human("w"))
-    assert item.provenance_status is ProvenanceStatus.USER_ESTABLISHED
+    assert item.provenance_status is ProvenanceStatus.PROVENANCE_UNCERTAIN
     assert item.metadata["authorization_basis_stated"] is False
     assert _origin_basis(system, item.artifact_id) == NOT_STATED
 
