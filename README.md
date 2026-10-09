@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and the human's right to erase. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
+Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and a human-only erasure operation (not yet grounded in the ≡TACK Constitution v4.0; see DEC-0004). Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
 
 ## 1. Pipeline Position & Role
 
