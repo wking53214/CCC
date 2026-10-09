@@ -98,6 +98,7 @@ def _world() -> SimpleNamespace:
         )
 
     w.fact, w.fact2 = fact("human fact"), fact("second human fact")
+    w.plain = fact("a plain human fact, in no conflict")
     w.proposal = system.derive(
         "machine inference", actor=model, evidence_ids=(w.fact.artifact_id,)
     )
@@ -165,13 +166,13 @@ def _with(att, **changes):
     return attempt(att.operation, *att.args, **{**att.kwargs, **changes})
 
 
-def _human_op(op: str, extra=None, basis: str = GOOD):
-    """``op`` on the human fact, by a human, with an explicit basis."""
+def _human_op(op: str, extra=None, basis: str = GOOD, target: str = "fact"):
+    """``op`` on a human fact, by a human, with an explicit basis."""
 
     def make(w):
         return attempt(
             op,
-            _id(w.fact),
+            _id(getattr(w, target)),
             actor=w.human,
             reason="explicit human operation",
             authorization_basis=basis,
@@ -199,6 +200,9 @@ def _model_op(op: str, extra=None):
 
 _REWRITE = ("correct", "amend", "supersede")
 _HISTORY = (*_REWRITE, "redact", "erase")
+# Erase and redact refuse a negative finding (CCC-HISTORY-003), and w.fact is
+# material to w.conflict, so a human erasing or redacting is judged on a plain fact.
+_TARGET = {"redact": "plain", "erase": "plain"}
 
 
 def _extra(op):
@@ -489,13 +493,21 @@ SCENARIOS = [
         for op in _HISTORY
     ],
     *[
-        (f"{op}: by a human", _human_op(op, _extra(op)), "pass", ADMITTED)
+        (f"{op}: by a human", _human_op(op, _extra(op), target=_TARGET.get(op, "fact")), "pass", ADMITTED)
         for op in _HISTORY
     ],
     *[
         (
+            f"{op}: a negative finding, by a human with a basis",
+            _human_op(op),
+            "blocked", "CCC-HISTORY-003",
+        )
+        for op in ("redact", "erase")
+    ],
+    *[
+        (
             f"{op}: by a human who gives no basis",
-            _human_op(op, _extra(op), basis=""),
+            _human_op(op, _extra(op), basis="", target=_TARGET.get(op, "fact")),
             "gated", "CCC-HUMAN-001",
         )
         for op in _HISTORY
@@ -942,7 +954,7 @@ def test_the_same_fault_gets_the_same_verdict_whichever_rule_fires():
         "decide": lambda a, b: attempt(
             "decide", "choice", actor=a, reason="r", authorization_basis=b),
         "erase": lambda a, b: attempt(
-            "erase", _id(w.fact), actor=a, reason="r", authorization_basis=b),
+            "erase", _id(w.plain), actor=a, reason="r", authorization_basis=b),
         "correct": lambda a, b: attempt(
             "correct", _id(w.fact), content="c", actor=a, reason="r",
             authorization_basis=b),
