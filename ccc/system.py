@@ -90,6 +90,7 @@ def _effective_event_time(record: "DiscoveryRecord") -> tuple:
 # transitive cluster resolution, but is excluded from the occurrence count
 # and from representative selection.
 _DUPLICATE_METHOD_MARKER = "duplicate detection"
+_BASIS_NOT_STATED = "not stated by caller"
 
 
 def _reconstructed_match_text(record) -> str | None:
@@ -351,9 +352,14 @@ class CCCSystem:
         if provenance_status in {ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.USER_ACCEPTED}:
             self.rules.evaluate(
                 "CCC-PROVENANCE-002",
-                actor.kind is ActorType.HUMAN and bool(authorization_basis or actor.kind is ActorType.HUMAN),
-                reason="human-originating ingestion requires an explicit human basis",
+                actor.kind is ActorType.HUMAN,
+                reason="user-level provenance at ingestion requires a human actor",
             )
+            if not authorization_basis:
+                # The caller named no basis. The status stands (the actor is
+                # human) but the record says so, rather than inventing one.
+                authorization_basis = _BASIS_NOT_STATED
+                metadata["authorization_basis_stated"] = False
         if actor.kind in {ActorType.MODEL, ActorType.SYSTEM}:
             metadata["machine_generated"] = True
             machine_processing = tuple(machine_processing) or (reason,)
@@ -378,7 +384,7 @@ class CCCSystem:
             actor=actor,
             status=provenance_status,
             reason=reason,
-            authorization_basis=authorization_basis or ("human-originating ingestion" if actor.kind is ActorType.HUMAN else None),
+            authorization_basis=authorization_basis,
         )
         self.store.add_artifact(artifact)
         self.audit_trail.record(
