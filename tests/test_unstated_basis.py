@@ -11,10 +11,10 @@ def _origin_basis(system: CCCSystem, artifact_id: str):
     return system.provenance.history(artifact_id)[0].authorization_basis
 
 
-def test_human_without_basis_keeps_status_but_records_the_gap():
+def test_human_without_basis_is_uncertain_and_records_the_gap():
     system = CCCSystem()
     item = system.ingest("a claim", actor=Actor.human("w"))
-    assert item.provenance_status is ProvenanceStatus.USER_ESTABLISHED
+    assert item.provenance_status is ProvenanceStatus.PROVENANCE_UNCERTAIN
     assert item.metadata["authorization_basis_stated"] is False
     assert _origin_basis(system, item.artifact_id) == NOT_STATED
 
@@ -50,6 +50,18 @@ def test_human_over_machine_source_is_still_uncertain_and_not_flagged():
     item = system.ingest("human on top", actor=Actor.human("w"), source_material=(source.artifact_id,))
     assert item.provenance_status is ProvenanceStatus.PROVENANCE_UNCERTAIN
     assert "authorization_basis_stated" not in item.metadata
+
+
+def test_user_level_status_over_machine_source_without_basis_is_still_marked():
+    system = CCCSystem()
+    source = system.ingest("machine text", actor=Actor.model("m"))
+    item = system.ingest(
+        "human adopts it", actor=Actor.human("w"), source_material=(source.artifact_id,),
+        provenance_status=ProvenanceStatus.USER_ESTABLISHED,
+    )
+    assert item.provenance_status is ProvenanceStatus.USER_ESTABLISHED
+    assert item.metadata["authorization_basis_stated"] is False
+    assert _origin_basis(system, item.artifact_id) == NOT_STATED
 
 
 def test_the_audit_entry_agrees_with_the_provenance_record():

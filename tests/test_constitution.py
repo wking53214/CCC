@@ -30,6 +30,7 @@ def fact():
         epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
         topics=("continuity",),
         instrument="note",
+        authorization_basis="human record",
     )
     return system, item
 
