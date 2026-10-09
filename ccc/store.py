@@ -126,6 +126,8 @@ class CCCStore:
         self.epistemic_events.append(event)
 
     def add_evidence_link(self, link: EvidenceLink) -> None:
+        if link.link_id in self.evidence_links:
+            raise DuplicateId(f"evidence link {link.link_id} already exists")
         self.evidence_links[link.link_id] = link
 
     def replace_evidence_link(self, link: EvidenceLink) -> None:
@@ -140,6 +142,8 @@ class CCCStore:
         self.audit_events.append(event)
 
     def add_road_sign(self, road_sign: RoadSign) -> None:
+        if road_sign.road_sign_id in self.road_signs:
+            raise DuplicateId(f"road sign {road_sign.road_sign_id} already exists")
         self.road_signs[road_sign.road_sign_id] = road_sign
 
     def replace_road_sign(self, road_sign: RoadSign) -> None:
@@ -148,6 +152,8 @@ class CCCStore:
         self.road_signs[road_sign.road_sign_id] = road_sign
 
     def add_discovery(self, discovery: DiscoveryRecord) -> None:
+        if discovery.discovery_id in self.discoveries:
+            raise DuplicateId(f"discovery {discovery.discovery_id} already exists")
         self.discoveries[discovery.discovery_id] = discovery
 
     def replace_discovery(self, discovery: DiscoveryRecord) -> None:
@@ -156,6 +162,8 @@ class CCCStore:
         self.discoveries[discovery.discovery_id] = discovery
 
     def add_uncertainty(self, uncertainty: UncertaintyRecord) -> None:
+        if uncertainty.uncertainty_id in self.uncertainties:
+            raise DuplicateId(f"uncertainty {uncertainty.uncertainty_id} already exists")
         self.uncertainties[uncertainty.uncertainty_id] = uncertainty
 
     def replace_uncertainty(self, uncertainty: UncertaintyRecord) -> None:
@@ -164,6 +172,8 @@ class CCCStore:
         self.uncertainties[uncertainty.uncertainty_id] = uncertainty
 
     def add_conflict(self, conflict: ConflictRecord) -> None:
+        if conflict.conflict_id in self.conflicts:
+            raise DuplicateId(f"conflict {conflict.conflict_id} already exists")
         self.conflicts[conflict.conflict_id] = conflict
 
     def replace_conflict(self, conflict: ConflictRecord) -> None:
