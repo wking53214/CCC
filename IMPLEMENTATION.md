@@ -106,6 +106,10 @@ the prior artifact remains queryable. Redaction and erasure change the prior
 artifact into an unavailable tombstone and append distinct relationship types.
 Erasure/redaction invalidates active evidence links transitively and downgrades
 unsupported dependents to `THEORY`.
+Erasure and redaction are refused for a negative finding (a rejected record, a
+record material to a conflict, or one with a `CONTRADICTS` edge; rule
+`CCC-HISTORY-003`, Constitution v4.0 Article XVIII): such a record can be
+superseded but never removed.
 
 ## Constitutional rule engine
 

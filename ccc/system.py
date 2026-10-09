@@ -663,12 +663,35 @@ class CCCSystem:
     def erase(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.ERASED, relationship=RelationshipType.ERASES, operation="ERASE")
 
+    def _negative_finding_grounds(self, artifact: Artifact) -> tuple[str, ...]:
+        """Why this record is a negative finding (Article XVIII), or () if it is not.
+
+        Covers what CCC can see: a human rejection, material to a conflict (open
+        or resolved), or a CONTRADICTS edge. It does not cover every kind of
+        non-confirmed claim.
+        """
+        grounds = []
+        if artifact.provenance_status is ProvenanceStatus.REJECTED:
+            grounds.append("rejected")
+        if any(artifact.artifact_id in c.material_ids for c in self.store.conflicts.values()):
+            grounds.append("material to a conflict")
+        if self.lineage.related(artifact.artifact_id, RelationshipType.CONTRADICTS):
+            grounds.append("contradiction edge")
+        return tuple(grounds)
+
     def _make_unavailable(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str, state: ArtifactState, relationship: RelationshipType, operation: str) -> Artifact:
         old = self.store.require_artifact(artifact_id)
         self.rules.evaluate(
             "CCC-HUMAN-001",
             actor.kind is ActorType.HUMAN and bool(authorization_basis),
             reason=f"{operation.lower()} is a human sovereign operation",
+        )
+        grounds = self._negative_finding_grounds(old)
+        self.rules.evaluate(
+            "CCC-HISTORY-003",
+            not grounds,
+            reason=f"{operation.lower()} refused: negative finding ({', '.join(grounds)}); supersede it instead",
+            evidence=(artifact_id,),
         )
         updated = replace(
             old,
