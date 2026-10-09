@@ -28,6 +28,10 @@ class NotFound(CCCError):
     """A requested immutable object identifier is not present."""
 
 
+class DuplicateId(CCCError):
+    """An object with this identifier already exists, so it was not replaced."""
+
+
 class InvalidTransition(CCCError):
     """A state transition is not valid for the object's current state."""
 

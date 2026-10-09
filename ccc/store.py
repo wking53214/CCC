@@ -13,7 +13,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, Mapping, TypeVar
 
-from .errors import NotFound
+from .errors import DuplicateId, NotFound
 from .models import (
     Actor,
     ActorType,
@@ -101,6 +101,8 @@ class CCCStore:
         self.retired_sections: dict[str, Any] = {}
 
     def add_artifact(self, artifact: Artifact) -> None:
+        if artifact.artifact_id in self.artifacts:
+            raise DuplicateId(f"artifact {artifact.artifact_id} already exists")
         self.artifacts[artifact.artifact_id] = artifact
 
     def replace_artifact(self, artifact: Artifact) -> None:
