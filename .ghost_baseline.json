@@ -1,5 +1,6 @@
 [
   {
+    "attributes": {},
     "category": "complexity",
     "confidence": null,
     "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
@@ -7,13 +8,14 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/epistemic_state.py",
+      "absolute_file": "/home/claude/ccc/ccc/epistemic_state.py",
+      "file": "ccc/epistemic_state.py",
       "line_end": 133,
       "line_start": 40,
       "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-03T03:41:21.020676+00:00",
+    "first_seen": "2026-10-12T13:38:11.234379+00:00",
     "id": "ghost-f280823d10db",
     "layer": "mechanical",
     "severity": "minor",
@@ -21,6 +23,7 @@
     "summary": "'transition' spans 93 lines (threshold 80)"
   },
   {
+    "attributes": {},
     "category": "complexity",
     "confidence": null,
     "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
@@ -28,1085 +31,22 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/provenance.py",
-      "line_end": 187,
-      "line_start": 86,
-      "related_files": [],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.041474+00:00",
-    "id": "ghost-339e3087cf3e",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'transition' spans 101 lines (threshold 80)"
-  },
-  {
-    "category": "complexity",
-    "confidence": null,
-    "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
-    "detector": "long_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py",
-      "line_end": 493,
-      "line_start": 239,
-      "related_files": [],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.048710+00:00",
-    "id": "ghost-a01f5eaf6eb6",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'load' spans 254 lines (threshold 80)"
-  },
-  {
-    "category": "complexity",
-    "confidence": null,
-    "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
-    "detector": "long_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 172,
-      "line_start": 79,
-      "related_files": [],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.056793+00:00",
-    "id": "ghost-85ea1b93cc4e",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'ingest' spans 93 lines (threshold 80)"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match, not textual diff -- this is the 'copy-pasted then renamed' shape specifically. Confirm these are actually solving the same problem before merging; some structural matches are coincidental (e.g. two unrelated simple validators).",
-    "detector": "near_duplicate_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/branches.py",
-      "line_end": 104,
+      "absolute_file": "/home/claude/ccc/ccc/provenance.py",
+      "file": "ccc/provenance.py",
+      "line_end": 197,
       "line_start": 91,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/threads.py"
-      ],
+      "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-03T03:41:21.146296+00:00",
-    "id": "ghost-0da6ba3a3bb0",
+    "first_seen": "2026-10-12T13:38:11.239116+00:00",
+    "id": "ghost-b2a96c640cdd",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "2 functions share identical AST structure (names/literals differ, control flow and shape don't): branches.py:91:_set_status, threads.py:54:_set_status"
+    "summary": "'transition' spans 106 lines (threshold 80)"
   },
   {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match, not textual diff -- this is the 'copy-pasted then renamed' shape specifically. Confirm these are actually solving the same problem before merging; some structural matches are coincidental (e.g. two unrelated simple validators).",
-    "detector": "near_duplicate_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/provenance.py",
-      "line_end": 198,
-      "line_start": 189,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/provenance.py"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.146331+00:00",
-    "id": "ghost-43151e62237c",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "2 functions share identical AST structure (names/literals differ, control flow and shape don't): provenance.py:189:establish_provenance, provenance.py:200:accept"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/canonicalization.py",
-      "line_end": 25,
-      "line_start": 25,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/canonicalization.py:26-26"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.152698+00:00",
-    "id": "ghost-ca7cd07b0c7e",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'propose_term' repeats the same single statement 2 times (lines 25-25, 26-26): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/demo.py",
-      "line_end": 51,
-      "line_start": 51,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/demo.py:33-33"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.160352+00:00",
-    "id": "ghost-c449c1113c4f",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'run_demo' repeats the same single statement 2 times (lines 51-51, 33-33): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/lineage.py",
-      "line_end": 36,
-      "line_start": 36,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/lineage.py:37-37"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.175067+00:00",
-    "id": "ghost-d2851a61dcdd",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'link' repeats the same single statement 2 times (lines 36-36, 37-37): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py",
-      "line_end": 199,
-      "line_start": 199,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:200-200",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:201-201",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:202-202",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:204-204"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.178785+00:00",
-    "id": "ghost-a235d382837d",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 5 times (lines 199-199, 200-200, 201-201, 202-202, 204-204): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py",
-      "line_end": 292,
-      "line_start": 292,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:294-294"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.179163+00:00",
-    "id": "ghost-6d789e249a2b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 2 times (lines 292-292, 294-294): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py",
-      "line_end": 296,
-      "line_start": 296,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:293-293",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:295-295"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.179182+00:00",
-    "id": "ghost-8fe9648165d2",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 3 times (lines 296-296, 293-293, 295-295): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py",
-      "line_end": 315,
-      "line_start": 315,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:316-316",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:317-317"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.179326+00:00",
-    "id": "ghost-0cfab094bc0c",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 3 times (lines 315-315, 316-316, 317-317): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py",
-      "line_end": 400,
-      "line_start": 400,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:401-401",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:402-402",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:403-403",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:404-404",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:405-405",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/models.py:406-406"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.179620+00:00",
-    "id": "ghost-f409bbf1d586",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 7 times (lines 400-400, 401-401, 402-402, 403-403, 404-404, 405-405, 406-406): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/provenance.py",
-      "line_end": 102,
-      "line_start": 102,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/provenance.py:104-104"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.184800+00:00",
-    "id": "ghost-eb9ab1b7033e",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'transition' repeats the same single statement 2 times (lines 102-102, 104-104): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 35,
-      "line_start": 35,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:47-47",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:53-53",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:63-63",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:65-65"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.188972+00:00",
-    "id": "ghost-9fdc9abb2962",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 5 times (lines 35-35, 47-47, 53-53, 63-63, 65-65): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 39,
-      "line_start": 39,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:55-55"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.188995+00:00",
-    "id": "ghost-bb30bf837154",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 39-39, 55-55): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 41,
-      "line_start": 41,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:57-57"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189006+00:00",
-    "id": "ghost-e37a045af29e",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 41-41, 57-57): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 59,
-      "line_start": 59,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:61-61"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189022+00:00",
-    "id": "ghost-d3d3b9305571",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 59-59, 61-61): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 36,
-      "line_start": 36,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:48-48",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:54-54",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:64-64",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:66-66"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189054+00:00",
-    "id": "ghost-a36ca9190553",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 5 times (lines 36-36, 48-48, 54-54, 64-64, 66-66): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 40,
-      "line_start": 40,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:56-56"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189062+00:00",
-    "id": "ghost-effe7dc3e615",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 40-40, 56-56): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 42,
-      "line_start": 42,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:58-58"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189070+00:00",
-    "id": "ghost-34fc44b8f5f1",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 42-42, 58-58): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 60,
-      "line_start": 60,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:62-62"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189091+00:00",
-    "id": "ghost-f1a430ab1657",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 60-60, 62-62): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py",
-      "line_end": 69,
-      "line_start": 69,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/query.py:77-77"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.189098+00:00",
-    "id": "ghost-c2861b033001",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query' repeats the same single statement 2 times (lines 69-69, 77-77): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/road_signs.py",
-      "line_end": 83,
-      "line_start": 83,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/road_signs.py:85-85"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.191573+00:00",
-    "id": "ghost-9b23aa646ef7",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query_road_signs' repeats the same single statement 2 times (lines 83-83, 85-85): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/road_signs.py",
-      "line_end": 84,
-      "line_start": 84,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/road_signs.py:86-86"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.191589+00:00",
-    "id": "ghost-1def938d188a",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'query_road_signs' repeats the same single statement 2 times (lines 84-84, 86-86): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py",
-      "line_end": 77,
-      "line_start": 77,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:80-80",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:83-83",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:84-84",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:85-85",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:86-86",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:87-87",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:88-88",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:89-89",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:90-90",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/store.py:91-91"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.197696+00:00",
-    "id": "ghost-203d76a59aaf",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 11 times (lines 77-77, 80-80, 83-83, 84-84, 85-85, 86-86, 87-87, 88-88, 89-89, 90-90, 91-91): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 60,
-      "line_start": 60,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:61-61",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:64-64",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:65-65",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:66-66",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:67-67",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:70-70",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:72-72"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.213418+00:00",
-    "id": "ghost-4eb94f1f0b5a",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 8 times (lines 60-60, 61-61, 64-64, 65-65, 66-66, 67-67, 70-70, 72-72): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 62,
-      "line_start": 62,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:68-68"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.213456+00:00",
-    "id": "ghost-f01ea76b168c",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 2 times (lines 62-62, 68-68): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 63,
-      "line_start": 63,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:69-69",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:71-71"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.213472+00:00",
-    "id": "ghost-913616ed9b60",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 3 times (lines 63-63, 69-69, 71-71): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 267,
-      "line_start": 267,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:266-266"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.215452+00:00",
-    "id": "ghost-65172ab1961f",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'ratify' repeats the same single statement 2 times (lines 267-267, 266-266): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 442,
-      "line_start": 442,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:441-441"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.217611+00:00",
-    "id": "ghost-3355d9a40f09",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'resume_thread' repeats the same single statement 2 times (lines 442-442, 441-441): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 515,
-      "line_start": 515,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:523-523",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:531-531"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.218540+00:00",
-    "id": "ghost-ec7f8203d1ec",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'resolve' repeats the same single statement 3 times (lines 515-515, 523-523, 531-531): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py",
-      "line_end": 516,
-      "line_start": 516,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:524-524",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/system.py:532-532"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.218560+00:00",
-    "id": "ghost-7c28d1fe06ce",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'resolve' repeats the same single statement 3 times (lines 516-516, 524-524, 532-532): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/testing/harness.py",
-      "line_end": 336,
-      "line_start": 336,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/ccc/testing/harness.py:337-337"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.232757+00:00",
-    "id": "ghost-2125e4afd989",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'_h36' repeats the same single statement 2 times (lines 336-336, 337-337): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 83,
-      "line_start": 83,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:85-85"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.243621+00:00",
-    "id": "ghost-507375ea7471",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_machine_cannot_ingest_historical_record_or_evidence' repeats the same single statement 2 times (lines 83-83, 85-85): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 84,
-      "line_start": 84,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:86-86"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.243646+00:00",
-    "id": "ghost-bfda515035bf",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_machine_cannot_ingest_historical_record_or_evidence' repeats the same single statement 2 times (lines 84-84, 86-86): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 97,
-      "line_start": 97,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:93-93"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.244098+00:00",
-    "id": "ghost-4d8ad736d6c5",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_epistemic_promotions_need_evidence_and_human_action' repeats the same single statement 2 times (lines 97-97, 93-93): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 117,
-      "line_start": 117,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:118-118"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.244646+00:00",
-    "id": "ghost-ed4afce0298b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_evidence_root_and_transitive_erasure_cascade' repeats the same single statement 2 times (lines 117-117, 118-118): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 124,
-      "line_start": 124,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:125-125"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.244658+00:00",
-    "id": "ghost-b961860793cb",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_evidence_root_and_transitive_erasure_cascade' repeats the same single statement 2 times (lines 124-124, 125-125): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 142,
-      "line_start": 142,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:143-143"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.245117+00:00",
-    "id": "ghost-53f92c081e7c",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_redaction_is_not_correction_or_supersession' repeats the same single statement 2 times (lines 142-142, 143-143): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 148,
-      "line_start": 148,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:149-149"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.245392+00:00",
-    "id": "ghost-015341c4a386",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_correction_and_supersession_preserve_old_identity' repeats the same single statement 2 times (lines 148-148, 149-149): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 150,
-      "line_start": 150,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:151-151"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.245403+00:00",
-    "id": "ghost-a71b1f9d4d1b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_correction_and_supersession_preserve_old_identity' repeats the same single statement 2 times (lines 150-150, 151-151): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 214,
-      "line_start": 214,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:215-215"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.246778+00:00",
-    "id": "ghost-85769efcf151",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_threads_and_branches_preserve_lineage' repeats the same single statement 2 times (lines 214-214, 215-215): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 264,
-      "line_start": 264,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:268-268"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.248415+00:00",
-    "id": "ghost-5285891f0931",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_unknown_origin_term_cannot_be_canonical' repeats the same single statement 2 times (lines 264-264, 268-268): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 265,
-      "line_start": 265,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:269-269"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.248447+00:00",
-    "id": "ghost-6404def32271",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_unknown_origin_term_cannot_be_canonical' repeats the same single statement 2 times (lines 265-265, 269-269): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py",
-      "line_end": 274,
-      "line_start": 274,
-      "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/CCC/tests/test_constitution.py:275-275"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-03T03:41:21.248712+00:00",
-    "id": "ghost-3d1fbe5a6ae9",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_query_presentation_does_not_delete_unsurfaced_records' repeats the same single statement 2 times (lines 274-274, 275-275): same shape, names/literals differ"
-  },
-  {
+    "attributes": {},
     "category": "complexity",
     "confidence": null,
     "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
@@ -1114,41 +54,22 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/dialogue.py",
-      "line_end": 164,
-      "line_start": 79,
+      "absolute_file": "/home/claude/ccc/ccc/store.py",
+      "file": "ccc/store.py",
+      "line_end": 411,
+      "line_start": 222,
       "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.475057+00:00",
-    "id": "ghost-44c34da018b2",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'run' spans 85 lines (threshold 80)"
-  },
-  {
-    "category": "complexity",
-    "confidence": null,
-    "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
-    "detector": "long_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/store.py",
-      "line_end": 509,
-      "line_start": 251,
-      "related_files": [],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.503286+00:00",
-    "id": "ghost-a585d1c018e7",
+    "first_seen": "2026-10-12T13:38:11.243947+00:00",
+    "id": "ghost-916f92f885a1",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
-    "summary": "'load' spans 258 lines (threshold 80)"
+    "summary": "'load' spans 189 lines (threshold 80)"
   },
   {
+    "attributes": {},
     "category": "complexity",
     "confidence": null,
     "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
@@ -1156,41 +77,22 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 910,
-      "line_start": 640,
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": 408,
+      "line_start": 303,
       "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.512943+00:00",
-    "id": "ghost-ddbe099e941e",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'record_external_finding' spans 270 lines (threshold 80)"
-  },
-  {
-    "category": "complexity",
-    "confidence": null,
-    "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
-    "detector": "long_function",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 1054,
-      "line_start": 969,
-      "related_files": [],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.513031+00:00",
-    "id": "ghost-3cc4a90895ad",
+    "first_seen": "2026-10-12T13:38:11.246675+00:00",
+    "id": "ghost-6d6734c26d18",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "'record_dialogue_conclusion' spans 85 lines (threshold 80)"
+    "summary": "'ingest' spans 105 lines (threshold 80)"
   },
   {
+    "attributes": {},
     "category": "complexity",
     "confidence": null,
     "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
@@ -1198,13 +100,37 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_external_finding.py",
-      "line_end": 537,
-      "line_start": 450,
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": 1051,
+      "line_start": 754,
       "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.535164+00:00",
+    "first_seen": "2026-10-12T13:38:11.246959+00:00",
+    "id": "ghost-a5722286617d",
+    "layer": "mechanical",
+    "severity": "major",
+    "status": "suppressed",
+    "summary": "'record_external_finding' spans 297 lines (threshold 80)"
+  },
+  {
+    "attributes": {},
+    "category": "complexity",
+    "confidence": null,
+    "detail": "Line-count proxy for the 'Long Method' smell, not true cyclomatic complexity -- a long function that's mostly a flat sequence of simple statements is a weaker signal than a short function with deep branching. Treat as a prompt to look, not a verdict.",
+    "detector": "long_function",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/tests/test_external_finding.py",
+      "file": "tests/test_external_finding.py",
+      "line_end": 577,
+      "line_start": 490,
+      "related_files": [],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.268947+00:00",
     "id": "ghost-9d9cccd0dae9",
     "layer": "mechanical",
     "severity": "minor",
@@ -1212,29 +138,37 @@
     "summary": "'test_event_date_invariant_rejects_invalid_ranges' spans 87 lines (threshold 80)"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
+    "detail": "Structural fingerprint match, not textual diff -- this is the 'copy-pasted then renamed' shape specifically. Confirm these are actually solving the same problem before merging; some structural matches are coincidental (e.g. two unrelated simple validators).",
+    "detector": "near_duplicate_function",
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/dialogue.py",
-      "line_end": 157,
-      "line_start": 157,
+      "absolute_file": "/home/claude/ccc/tests/test_cns_independence.py",
+      "file": "tests/test_cns_independence.py",
+      "line_end": 107,
+      "line_start": 79,
       "related_files": [
-        "/home/wking53214/CCC/ccc/dialogue.py:137-137"
+        "tests/test_cns_independence.py",
+        "tests/test_cns_independence.py",
+        "tests/test_cns_independence.py",
+        "tests/test_cns_independence.py",
+        "tests/test_cns_independence.py",
+        "tests/test_cns_independence.py"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.678023+00:00",
-    "id": "ghost-6fab76368885",
+    "first_seen": "2026-10-12T13:38:11.388049+00:00",
+    "id": "ghost-09e220d5872e",
     "layer": "mechanical",
-    "severity": "minor",
+    "severity": "informational",
     "status": "suppressed",
-    "summary": "'run' repeats the same single statement 2 times (lines 157-157, 137-137): same shape, names/literals differ"
+    "summary": "7 functions share identical AST structure (names/literals differ, control flow and shape don't): test_cns_independence.py:79:test_ccc_still_enforces_its_constitution_with_cns_blocked, test_cns_independence.py:110:test_the_harness_still_runs_with_cns_blocked, test_cns_independence.py:124:test_connector_says_what_is_missing_when_cns_is_blocked, test_cns_independence.py:161:test_constructing_a_cns_gate_fails_at_construction_not_first_use, test_cns_independence.py:176:test_the_parts_that_need_no_cns_work_with_cns_blocked, test_cns_independence.py:230:test_content_that_cannot_be_bound_is_refused_with_cns_blocked, test_cns_independence.py:381:test_the_preflight_error_is_not_mistaken_for_a_refusal"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1242,72 +176,27 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 204,
-      "line_start": 204,
+      "absolute_file": "/home/claude/ccc/ccc/query.py",
+      "file": "ccc/query.py",
+      "line_end": 36,
+      "line_start": 36,
       "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:205-205",
-        "/home/wking53214/CCC/ccc/models.py:206-206",
-        "/home/wking53214/CCC/ccc/models.py:207-207",
-        "/home/wking53214/CCC/ccc/models.py:209-209"
+        "ccc/query.py:48-48",
+        "ccc/query.py:54-54",
+        "ccc/query.py:64-64",
+        "ccc/query.py:66-66"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.705756+00:00",
-    "id": "ghost-bb013ca63600",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 5 times (lines 204-204, 205-205, 206-206, 207-207, 209-209): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 297,
-      "line_start": 297,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:299-299"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.706288+00:00",
-    "id": "ghost-ddb6fc3571f6",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 2 times (lines 297-297, 299-299): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 301,
-      "line_start": 301,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:298-298",
-        "/home/wking53214/CCC/ccc/models.py:300-300"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.706375+00:00",
-    "id": "ghost-6453d837b5ce",
+    "first_seen": "2026-10-12T13:38:11.433158+00:00",
+    "id": "ghost-a36ca9190553",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 3 times (lines 301-301, 298-298, 300-300): same shape, names/literals differ"
+    "summary": "'query' repeats the same single statement 5 times (lines 36-36, 48-48, 54-54, 64-64, 66-66): same shape, names/literals differ"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1315,46 +204,24 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 320,
-      "line_start": 320,
+      "absolute_file": "/home/claude/ccc/ccc/query.py",
+      "file": "ccc/query.py",
+      "line_end": 40,
+      "line_start": 40,
       "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:321-321",
-        "/home/wking53214/CCC/ccc/models.py:322-322"
+        "ccc/query.py:56-56"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.706620+00:00",
-    "id": "ghost-3d43d770613e",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 3 times (lines 320-320, 321-321, 322-322): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 389,
-      "line_start": 389,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:394-394"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.707064+00:00",
-    "id": "ghost-48931a07a2d1",
+    "first_seen": "2026-10-12T13:38:11.433630+00:00",
+    "id": "ghost-effe7dc3e615",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 2 times (lines 389-389, 394-394): same shape, names/literals differ"
+    "summary": "'query' repeats the same single statement 2 times (lines 40-40, 56-56): same shape, names/literals differ"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1362,50 +229,24 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/models.py",
-      "line_end": 425,
-      "line_start": 425,
+      "absolute_file": "/home/claude/ccc/ccc/query.py",
+      "file": "ccc/query.py",
+      "line_end": 42,
+      "line_start": 42,
       "related_files": [
-        "/home/wking53214/CCC/ccc/models.py:426-426",
-        "/home/wking53214/CCC/ccc/models.py:427-427",
-        "/home/wking53214/CCC/ccc/models.py:428-428",
-        "/home/wking53214/CCC/ccc/models.py:429-429",
-        "/home/wking53214/CCC/ccc/models.py:430-430",
-        "/home/wking53214/CCC/ccc/models.py:431-431"
+        "ccc/query.py:58-58"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.707403+00:00",
-    "id": "ghost-f5f652e13362",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__post_init__' repeats the same single statement 7 times (lines 425-425, 426-426, 427-427, 428-428, 429-429, 430-430, 431-431): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/road_signs.py",
-      "line_end": 85,
-      "line_start": 85,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/road_signs.py:87-87"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.722273+00:00",
-    "id": "ghost-3d6af4a23462",
+    "first_seen": "2026-10-12T13:38:11.433884+00:00",
+    "id": "ghost-34fc44b8f5f1",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "'query_road_signs' repeats the same single statement 2 times (lines 85-85, 87-87): same shape, names/literals differ"
+    "summary": "'query' repeats the same single statement 2 times (lines 42-42, 58-58): same shape, names/literals differ"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1413,15 +254,66 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/road_signs.py",
+      "absolute_file": "/home/claude/ccc/ccc/query.py",
+      "file": "ccc/query.py",
+      "line_end": 60,
+      "line_start": 60,
+      "related_files": [
+        "ccc/query.py:62-62"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.434085+00:00",
+    "id": "ghost-f1a430ab1657",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "'query' repeats the same single statement 2 times (lines 60-60, 62-62): same shape, names/literals differ"
+  },
+  {
+    "attributes": {},
+    "category": "duplication",
+    "confidence": null,
+    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
+    "detector": "intra_function_duplicate_block",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/query.py",
+      "file": "ccc/query.py",
+      "line_end": 69,
+      "line_start": 69,
+      "related_files": [
+        "ccc/query.py:77-77"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.434282+00:00",
+    "id": "ghost-c2861b033001",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "'query' repeats the same single statement 2 times (lines 69-69, 77-77): same shape, names/literals differ"
+  },
+  {
+    "attributes": {},
+    "category": "duplication",
+    "confidence": null,
+    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
+    "detector": "intra_function_duplicate_block",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/road_signs.py",
+      "file": "ccc/road_signs.py",
       "line_end": 86,
       "line_start": 86,
       "related_files": [
-        "/home/wking53214/CCC/ccc/road_signs.py:88-88"
+        "ccc/road_signs.py:88-88"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.722402+00:00",
+    "first_seen": "2026-10-12T13:38:11.447130+00:00",
     "id": "ghost-ff5d4f510f3e",
     "layer": "mechanical",
     "severity": "minor",
@@ -1429,6 +321,7 @@
     "summary": "'query_road_signs' repeats the same single statement 2 times (lines 86-86, 88-88): same shape, names/literals differ"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1436,22 +329,24 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/semantic.py",
-      "line_end": 192,
-      "line_start": 192,
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": 503,
+      "line_start": 503,
       "related_files": [
-        "/home/wking53214/CCC/ccc/semantic.py:198-198"
+        "ccc/system.py:502-502"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.726250+00:00",
-    "id": "ghost-5ed878cacf2e",
+    "first_seen": "2026-10-12T13:38:11.478690+00:00",
+    "id": "ghost-45c40d3075fe",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "'describe' repeats the same single statement 2 times (lines 192-192, 198-198): same shape, names/literals differ"
+    "summary": "'ratify' repeats the same single statement 2 times (lines 503-503, 502-502): same shape, names/literals differ"
   },
   {
+    "attributes": {},
     "category": "duplication",
     "confidence": null,
     "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
@@ -1459,776 +354,370 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/store.py",
-      "line_end": 77,
-      "line_start": 77,
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": 1152,
+      "line_start": 1152,
       "related_files": [
-        "/home/wking53214/CCC/ccc/store.py:80-80",
-        "/home/wking53214/CCC/ccc/store.py:83-83",
-        "/home/wking53214/CCC/ccc/store.py:84-84",
-        "/home/wking53214/CCC/ccc/store.py:85-85",
-        "/home/wking53214/CCC/ccc/store.py:86-86",
-        "/home/wking53214/CCC/ccc/store.py:87-87",
-        "/home/wking53214/CCC/ccc/store.py:93-93",
-        "/home/wking53214/CCC/ccc/store.py:99-99",
-        "/home/wking53214/CCC/ccc/store.py:100-100",
-        "/home/wking53214/CCC/ccc/store.py:101-101",
-        "/home/wking53214/CCC/ccc/store.py:102-102"
+        "ccc/system.py:1160-1160"
       ],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.732611+00:00",
-    "id": "ghost-715701d5395d",
+    "first_seen": "2026-10-12T13:38:11.491366+00:00",
+    "id": "ghost-1c85a038c881",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "'resolve' repeats the same single statement 2 times (lines 1152-1152, 1160-1160): same shape, names/literals differ"
+  },
+  {
+    "attributes": {},
+    "category": "duplication",
+    "confidence": null,
+    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
+    "detector": "intra_function_duplicate_block",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/text_matching.py",
+      "file": "ccc/text_matching.py",
+      "line_end": 119,
+      "line_start": 119,
+      "related_files": [
+        "ccc/text_matching.py:126-126"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.512331+00:00",
+    "id": "ghost-82cbdf1f750d",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "'checked_recurrence' repeats the same single statement 2 times (lines 119-119, 126-126): same shape, names/literals differ"
+  },
+  {
+    "attributes": {},
+    "category": "duplication",
+    "confidence": null,
+    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
+    "detector": "intra_function_duplicate_block",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/tests/test_constitution.py",
+      "file": "tests/test_constitution.py",
+      "line_end": 98,
+      "line_start": 98,
+      "related_files": [
+        "tests/test_constitution.py:94-94"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.548441+00:00",
+    "id": "ghost-126bdf546859",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "'test_epistemic_promotions_need_evidence_and_human_action' repeats the same single statement 2 times (lines 98-98, 94-94): same shape, names/literals differ"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "tmp.\nAn `_old` beside a `_new` is two implementations sharing a scope, and a `_v2` is a decision nobody came back to. Neither is wrong on its own, which is why this is MINOR: it names where the code remembers being written rather than what it does.",
+    "detector": "placeholder_name",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/cns_connector.py",
+      "file": "ccc/cns_connector.py",
+      "line_end": null,
+      "line_start": null,
+      "related_files": [],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.660435+00:00",
+    "id": "ghost-21d5a29858e7",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "cns_connector.py holds 1 placeholder or versioned name(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `decision` is only ever passed a variable named `recurrence_decision`, and `recurrence_decision` is only ever passed to `decision` -- 1 call site(s) in system.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 1074,
+      "related_files": [
+        "ccc/system.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.776487+00:00",
+    "id": "ghost-94c92232d304",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`decision` and `recurrence_decision` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `discovery_id` is only ever passed a variable named `did`, and `did` is only ever passed to `discovery_id` -- 2 call site(s) in system.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 241,
+      "related_files": [
+        "ccc/system.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.776898+00:00",
+    "id": "ghost-e7817fbe8ba9",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`discovery_id` and `did` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `index` is only ever passed a variable named `semantic_index`, and `semantic_index` is only ever passed to `index` -- 1 call site(s) in semantic.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/semantic.py",
+      "file": "ccc/semantic.py",
+      "line_end": null,
+      "line_start": 239,
+      "related_files": [
+        "ccc/semantic.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.777101+00:00",
+    "id": "ghost-e863d4e5a24e",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`index` and `semantic_index` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `matcher` is only ever passed a variable named `text_matcher`, and `text_matcher` is only ever passed to `matcher` -- 1 call site(s) in system.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/text_matching.py",
+      "file": "ccc/text_matching.py",
+      "line_end": null,
+      "line_start": 74,
+      "related_files": [
+        "ccc/system.py",
+        "ccc/text_matching.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.777276+00:00",
+    "id": "ghost-b0d64621f4c2",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`matcher` and `text_matcher` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `outcome` is only ever passed a variable named `exc`, and `exc` is only ever passed to `outcome` -- 2 call site(s) in cns_connector.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/cns_connector.py",
+      "file": "ccc/cns_connector.py",
+      "line_end": null,
+      "line_start": 486,
+      "related_files": [
+        "ccc/cns_connector.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.777496+00:00",
+    "id": "ghost-6e8f07380922",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`outcome` and `exc` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `path` is only ever passed a variable named `persistence_path`, and `persistence_path` is only ever passed to `path` -- 1 call site(s) in system.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 59,
+      "related_files": [
+        "ccc/system.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.777678+00:00",
+    "id": "ghost-b765299b9bef",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`path` and `persistence_path` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `pattern_id` is only ever passed a variable named `representative_id`, and `representative_id` is only ever passed to `pattern_id` -- 1 call site(s) in system.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 1053,
+      "related_files": [
+        "ccc/system.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.777914+00:00",
+    "id": "ghost-c2089fcacfe1",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`pattern_id` and `representative_id` are one value under two names, across 1 file(s)"
+  },
+  {
+    "attributes": {},
+    "category": "naming",
+    "confidence": null,
+    "detail": "The parameter `target` is only ever passed a variable named `status`, and `status` is only ever passed to `target` -- 2 call site(s) in epistemic_state.py, provenance.py.\nA one-to-one correspondence is the only case where two names provably denote the same thing: a parameter taking several variables is doing its job, and renaming it would collide with a name legitimately in use. Which of the two should win is yours to pick -- the parameter is the contract, the variable is the caller's local, and neither is automatically right.",
+    "detector": "name_disagreement",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/epistemic_state.py",
+      "file": "ccc/epistemic_state.py",
+      "line_end": null,
+      "line_start": 40,
+      "related_files": [
+        "ccc/epistemic_state.py",
+        "ccc/provenance.py"
+      ],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.778072+00:00",
+    "id": "ghost-1a2f2546f249",
+    "layer": "mechanical",
+    "severity": "minor",
+    "status": "suppressed",
+    "summary": "`target` and `status` are one value under two names, across 2 file(s)"
+  },
+  {
+    "attributes": {
+      "caught": "Exception"
+    },
+    "category": "vacuous_check",
+    "confidence": null,
+    "detail": "/home/claude/ccc/ccc/system.py:296\nThis catches everything -- the missing dependency it was probably written for, and also the typo, the None, the failed write and the bug introduced next year. Nothing that goes wrong in this block can be seen again, which is why it is MAJOR.\nThe operation reports success either way. That is the same failure `dead_end_call` reports one level up: the caller believes the work happened.\n`contextlib.suppress` is not flagged: it says in its own name what it does.",
+    "detector": "swallowed_exception",
+    "disposition": null,
+    "disposition_note": "",
+    "evidence": {
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 296,
+      "related_files": [],
+      "snippet": null
+    },
+    "first_seen": "2026-10-12T13:38:11.952177+00:00",
+    "id": "ghost-535d719ca52e",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 12 times (lines 77-77, 80-80, 83-83, 84-84, 85-85, 86-86, 87-87, 93-93, 99-99, 100-100, 101-101, 102-102): same shape, names/literals differ"
+    "summary": "`except Exception` at system.py:296 does nothing with what it catches"
   },
   {
-    "category": "duplication",
+    "attributes": {
+      "caught": "Exception"
+    },
+    "category": "vacuous_check",
     "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
+    "detail": "/home/claude/ccc/ccc/system.py:1047\nThis catches everything -- the missing dependency it was probably written for, and also the typo, the None, the failed write and the bug introduced next year. Nothing that goes wrong in this block can be seen again, which is why it is MAJOR.\nThe operation reports success either way. That is the same failure `dead_end_call` reports one level up: the caller believes the work happened.\n`contextlib.suppress` is not flagged: it says in its own name what it does.",
+    "detector": "swallowed_exception",
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 162,
-      "line_start": 162,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:163-163",
-        "/home/wking53214/CCC/ccc/system.py:166-166",
-        "/home/wking53214/CCC/ccc/system.py:167-167",
-        "/home/wking53214/CCC/ccc/system.py:168-168",
-        "/home/wking53214/CCC/ccc/system.py:169-169",
-        "/home/wking53214/CCC/ccc/system.py:178-178",
-        "/home/wking53214/CCC/ccc/system.py:180-180"
-      ],
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
+      "line_start": 1047,
+      "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.752148+00:00",
-    "id": "ghost-a876c3848226",
+    "first_seen": "2026-10-12T13:38:11.952823+00:00",
+    "id": "ghost-e0b01a7e8db5",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 8 times (lines 162-162, 163-163, 166-166, 167-167, 168-168, 169-169, 178-178, 180-180): same shape, names/literals differ"
+    "summary": "`except Exception` at system.py:1047 does nothing with what it catches"
   },
   {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 164,
-      "line_start": 164,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:170-170"
-      ],
-      "snippet": null
+    "attributes": {
+      "kind": "loop_invariant_call"
     },
-    "first_seen": "2026-09-08T03:43:39.752326+00:00",
-    "id": "ghost-44e8b7f8b3fb",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 2 times (lines 164-164, 170-170): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
+    "category": "complexity",
     "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
+    "detail": "/home/claude/ccc/ccc/system.py:137\nThe arguments never mention the loop variable, so the call computes the same thing every iteration -- unless it has a side effect or reads something that changes, which the tree cannot see. Reported, never hoisted for you.\nMeasured redundancy across a whole run is a different finding: see `ghost-buster --profile`.",
+    "detector": "loop_invariant_call",
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 165,
-      "line_start": 165,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:171-171",
-        "/home/wking53214/CCC/ccc/system.py:179-179"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.752390+00:00",
-    "id": "ghost-1bef0943f019",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'__init__' repeats the same single statement 3 times (lines 165-165, 171-171, 179-179): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 424,
-      "line_start": 424,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:423-423"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.755211+00:00",
-    "id": "ghost-de0dc94a4a6b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'ratify' repeats the same single statement 2 times (lines 424-424, 423-423): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 623,
-      "line_start": 623,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:622-622"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.757136+00:00",
-    "id": "ghost-60c5ef0febb4",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'resume_thread' repeats the same single statement 2 times (lines 623-623, 622-622): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 1112,
-      "line_start": 1112,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:1120-1120",
-        "/home/wking53214/CCC/ccc/system.py:1128-1128"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.762700+00:00",
-    "id": "ghost-36e84ce90c1b",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'resolve' repeats the same single statement 3 times (lines 1112-1112, 1120-1120, 1128-1128): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/ccc/system.py",
-      "line_end": 1113,
-      "line_start": 1113,
-      "related_files": [
-        "/home/wking53214/CCC/ccc/system.py:1121-1121",
-        "/home/wking53214/CCC/ccc/system.py:1129-1129"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.762844+00:00",
-    "id": "ghost-88a80fc3e104",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'resolve' repeats the same single statement 3 times (lines 1113-1113, 1121-1121, 1129-1129): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_constitution.py",
-      "line_end": 163,
-      "line_start": 163,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_constitution.py:165-165"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.795059+00:00",
-    "id": "ghost-15ad4383a184",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_instantiates_relationship_can_be_recorded_and_queried' repeats the same single statement 2 times (lines 163-163, 165-165): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_constitution.py",
-      "line_end": 240,
-      "line_start": 240,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_constitution.py:241-241"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.796669+00:00",
-    "id": "ghost-ddb73a3d2587",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_threads_and_branches_preserve_lineage' repeats the same single statement 2 times (lines 240-240, 241-241): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_constitution.py",
-      "line_end": 290,
-      "line_start": 290,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_constitution.py:294-294"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.798621+00:00",
-    "id": "ghost-502407f6638c",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_unknown_origin_term_cannot_be_canonical' repeats the same single statement 2 times (lines 290-290, 294-294): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_constitution.py",
-      "line_end": 291,
-      "line_start": 291,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_constitution.py:295-295"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.798739+00:00",
-    "id": "ghost-bae8fbbf7070",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_unknown_origin_term_cannot_be_canonical' repeats the same single statement 2 times (lines 291-291, 295-295): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_constitution.py",
-      "line_end": 300,
-      "line_start": 300,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_constitution.py:301-301"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.799045+00:00",
-    "id": "ghost-d9ee723f8b80",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_query_presentation_does_not_delete_unsurfaced_records' repeats the same single statement 2 times (lines 300-300, 301-301): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_dialogue.py",
-      "line_end": 137,
+      "absolute_file": "/home/claude/ccc/ccc/system.py",
+      "file": "ccc/system.py",
+      "line_end": null,
       "line_start": 137,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_dialogue.py:139-139"
-      ],
+      "related_files": [],
       "snippet": null
     },
-    "first_seen": "2026-09-08T03:43:39.804923+00:00",
-    "id": "ghost-4ed81acc205d",
+    "first_seen": "2026-10-12T13:38:12.071773+00:00",
+    "id": "ghost-adef093e88a3",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
-    "summary": "'test_vsa_citadel_replay' repeats the same single statement 2 times (lines 137-137, 139-139): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_external_finding.py",
-      "line_end": 336,
-      "line_start": 336,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_external_finding.py:353-353"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.816199+00:00",
-    "id": "ghost-619a650b3bc7",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_recurrence_representative_orders_by_event_date_not_ingest_time' repeats the same single statement 2 times (lines 336-336, 353-353): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_external_finding.py",
-      "line_end": 405,
-      "line_start": 405,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_external_finding.py:422-422"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.816785+00:00",
-    "id": "ghost-d8be0c010ef1",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_discovery_without_event_time_falls_back_to_created_at' repeats the same single statement 2 times (lines 405-405, 422-422): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_matching.py",
-      "line_end": 85,
-      "line_start": 85,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_matching.py:86-86"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.821605+00:00",
-    "id": "ghost-8dc02926effe",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_ranking_breaks_ties_by_match_length_not_insertion_order' repeats the same single statement 2 times (lines 85-85, 86-86): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 68,
-      "line_start": 68,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:74-74"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.826255+00:00",
-    "id": "ghost-29472a534e7c",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_second_independent_occurrence_advances_the_pattern' repeats the same single statement 2 times (lines 68-68, 74-74): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 72,
-      "line_start": 72,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:79-79"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.826401+00:00",
-    "id": "ghost-cc471e827bea",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_second_independent_occurrence_advances_the_pattern' repeats the same single statement 2 times (lines 72-72, 79-79): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 90,
-      "line_start": 90,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:91-91"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.826659+00:00",
-    "id": "ghost-0eb2077b6746",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_a_byte_level_duplicate_does_not_advance_a_pattern' repeats the same single statement 2 times (lines 90-90, 91-91): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 104,
-      "line_start": 104,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:106-106",
-        "/home/wking53214/CCC/tests/test_recurrence.py:108-108"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.827361+00:00",
-    "id": "ghost-ca55bcc2b9fd",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'test_third_occurrence_records_a_road_sign_not_a_mandate' repeats the same single statement 3 times (lines 104-104, 106-106, 108-108): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 116,
-      "line_start": 116,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:117-117"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.827434+00:00",
-    "id": "ghost-110f2f2565a0",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_third_occurrence_records_a_road_sign_not_a_mandate' repeats the same single statement 2 times (lines 116-116, 117-117): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 152,
-      "line_start": 152,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:154-154"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.827746+00:00",
-    "id": "ghost-7c516f9edc8b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_shared_templated_preamble_does_not_collapse_two_findings' repeats the same single statement 2 times (lines 152-152, 154-154): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 204,
-      "line_start": 204,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:206-206",
-        "/home/wking53214/CCC/tests/test_recurrence.py:208-208"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.828804+00:00",
-    "id": "ghost-f6a82e1d1cb6",
-    "layer": "mechanical",
-    "severity": "major",
-    "status": "suppressed",
-    "summary": "'test_a_drifted_third_occurrence_resolves_to_the_cluster_root_not_a_fragment' repeats the same single statement 3 times (lines 204-204, 206-206, 208-208): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 228,
-      "line_start": 228,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:230-230"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.829233+00:00",
-    "id": "ghost-a9b750e37fdf",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_a_duplicate_in_the_chain_is_not_counted_as_an_occurrence' repeats the same single statement 2 times (lines 228-228, 230-230): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 245,
-      "line_start": 245,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:246-246"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.829508+00:00",
-    "id": "ghost-0a4989739ec6",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_genuinely_novel_findings_stay_separate_anomalies' repeats the same single statement 2 times (lines 245-245, 246-246): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 248,
-      "line_start": 248,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:249-249"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.829609+00:00",
-    "id": "ghost-fe5932eda23b",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_genuinely_novel_findings_stay_separate_anomalies' repeats the same single statement 2 times (lines 248-248, 249-249): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 265,
-      "line_start": 265,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:271-271"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.829944+00:00",
-    "id": "ghost-1663604b89cd",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_recurrence_detection_survives_a_reopen' repeats the same single statement 2 times (lines 265-265, 271-271): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 267,
-      "line_start": 267,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:273-273"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.830010+00:00",
-    "id": "ghost-2e3eb2472e1d",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_recurrence_detection_survives_a_reopen' repeats the same single statement 2 times (lines 267-267, 273-273): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_recurrence.py",
-      "line_end": 313,
-      "line_start": 313,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_recurrence.py:317-317"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.830572+00:00",
-    "id": "ghost-8190354ee5fb",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_duplicate_detection_survives_a_reopen' repeats the same single statement 2 times (lines 313-313, 317-317): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_semantic.py",
-      "line_end": 115,
-      "line_start": 115,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_semantic.py:117-117"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.834547+00:00",
-    "id": "ghost-9c65ebec7b3f",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_the_threshold_is_ccc_policy_not_the_providers' repeats the same single statement 2 times (lines 115-115, 117-117): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_smash_findings.py",
-      "line_end": 32,
-      "line_start": 32,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_smash_findings.py:33-33"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.840700+00:00",
-    "id": "ghost-27302e501095",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_boilerplate_can_no_longer_camouflage_a_real_duplicate' repeats the same single statement 2 times (lines 32-32, 33-33): same shape, names/literals differ"
-  },
-  {
-    "category": "duplication",
-    "confidence": null,
-    "detail": "Structural fingerprint match within one function, not a whole-function match (near_duplicate_function's detection is blind to this shape). Typical real cause: several branches each hand-build the same kind of object or perform the same sequence of calls -- worth a single shared helper if the branches really are doing the same thing, not just a coincidental resemblance.",
-    "detector": "intra_function_duplicate_block",
-    "disposition": null,
-    "disposition_note": "",
-    "evidence": {
-      "file": "/home/wking53214/CCC/tests/test_smash_findings.py",
-      "line_end": 66,
-      "line_start": 66,
-      "related_files": [
-        "/home/wking53214/CCC/tests/test_smash_findings.py:67-67"
-      ],
-      "snippet": null
-    },
-    "first_seen": "2026-09-08T03:43:39.841243+00:00",
-    "id": "ghost-9078708c5857",
-    "layer": "mechanical",
-    "severity": "minor",
-    "status": "suppressed",
-    "summary": "'test_stacked_evasion_attempts_are_still_caught' repeats the same single statement 2 times (lines 66-66, 67-67): same shape, names/literals differ"
+    "summary": "system.py:137 `ValueError(...)` with arguments the loop never changes inside a loop"
   }
 ]
