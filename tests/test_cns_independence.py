@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 BLOCK = "import sys; sys.modules['cns'] = None; sys.modules['cns.gate'] = None\n"
 
-PINNED_SHA = "da9ab8c8c47097b38ad9792dec23fed45d31ae3f"
+PINNED_TAG = "v1.9.0"
 
 
 def _run(
@@ -421,6 +421,6 @@ def test_the_cns_extra_is_pinned_to_the_reviewed_commit():
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     extra = data["project"]["optional-dependencies"]["cns"]
     assert extra == [
-        f"cns @ git+https://github.com/wking53214/cns.git@{PINNED_SHA}"
+        f"cns @ git+https://github.com/wking53214/CNS.git@{PINNED_TAG}"
     ]
     assert data["project"]["optional-dependencies"]["dev"] == ["pytest>=8"]
