@@ -7,6 +7,8 @@ is refused rather than recorded, and CCC itself never imports CCCb.
 from __future__ import annotations
 
 import ast
+import re
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -18,6 +20,12 @@ from ccc import Actor, AnalysisStage, CCCSystem
 from ccc.text_matching import TextMatcher as MatcherShape
 from ccc.text_matching import TextMatcherMissing
 from cccb import TextMatcher
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+# The CCCb commit the match extra installs. Moving it is a reviewed change.
+EXPECTED_CCCB_PIN = "f14492f77aef0e1244fe8a184a3fbde3947c9d3d"
 
 
 @dataclass(frozen=True)
@@ -119,3 +127,14 @@ def test_ccc_never_imports_cccb():
                 names = [node.module or ""]
             for name in names:
                 assert name.split(".")[0] != "cccb", f"{path} imports {name}"
+
+
+def test_the_match_extra_is_pinned_to_the_reviewed_cccb_commit():
+    data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extra = data["project"]["optional-dependencies"]["match"]
+    assert len(extra) == 1
+    found = re.fullmatch(
+        r"cccb @ git\+https://github\.com/wking53214/CCCb\.git@([0-9a-f]{40})", extra[0]
+    )
+    assert found is not None, extra[0]
+    assert found.group(1) == EXPECTED_CCCB_PIN
