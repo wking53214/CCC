@@ -15,9 +15,9 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 # Optional: lets CCC's attempted transitions be judged as CNS gate results. CCC
-# imports nothing from CNS unless ccc.cns_connector is used. Pinned to tag v1.9.0.
+# imports nothing from CNS unless ccc.cns_connector is used. Pinned to tag v2.2.0.
 cns = [
-    "cns @ git+https://github.com/wking53214/CNS.git@v1.9.0",
+    "cns @ git+https://github.com/wking53214/CNS.git@v2.2.0",
 ]
 # The text matcher record_external_finding requires (see ccc/text_matching.py).
 # CCC imports nothing from it; the application plugs it in. Pinned by commit.
