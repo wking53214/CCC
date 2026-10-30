@@ -200,3 +200,14 @@ candidate_id, text_digest)` answers `held`, `absent`, `altered`, `erased` or
 is recomputed from the stored text, and a human erasure or redaction of any matching
 record wins over every other copy. It is a read: no record, audit event or rule
 decision is written. Tests: `tests/test_record_status.py`, which run in CI.
+
+**Who wrote the record.** Without a key, "created by the machine actor" means only that
+the record says so: anyone who can call `ingest`, add to the store or edit a saved state
+file can write a record that answers `held`. Pass `attestation_key` (bytes, at least 16,
+supplied by the caller; CCC holds no key) to `MachineRecords` and to the handoff, and only
+records carrying the handoff's HMAC stamp (`ccc.record_status.attest`, over the source, the
+candidate id and the fingerprint of the stored text) count. A record with no valid stamp
+is never `held`; if no matching record is stamped the answer is `unattested`. With no key
+the answer is exactly as unauthenticated as before, and records written before a key was
+in use carry no stamp, so they need to be handed off again to be counted.
+Tests: `tests/test_record_attestation.py`.
