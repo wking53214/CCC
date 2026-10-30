@@ -24,6 +24,18 @@ class ConstitutionViolation(CCCError):
         return f"{self.rule_id}: {self.reason}"
 
 
+class WritePermissionRefused(CCCError):
+    """The permission check the application gave CCC did not say yes, so the call did nothing.
+
+    Raised before CCC touches its store, its rules or its audit trail. Only the exact value ``True`` permits;
+    an error from the check is a refusal too, and the error is the ``__cause__``."""
+
+    def __init__(self, operation: str, reason: str) -> None:
+        super().__init__(f"{operation}: {reason}")
+        self.operation = operation
+        self.reason = reason
+
+
 class NotFound(CCCError):
     """A requested immutable object identifier is not present."""
 
