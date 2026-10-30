@@ -18,7 +18,9 @@ from ccc.record_status import (
     ERASED,
     HELD,
     REDACTED,
+    REJECTED,
     STATUSES,
+    SUPERSEDED,
     UNATTESTED,
     MachineRecords,
     record_status,
@@ -153,4 +155,4 @@ def test_bound_lookup_gives_the_same_answers():
 
 
 def test_every_answer_is_listed():
-    assert set(STATUSES) == {HELD, ABSENT, ALTERED, ERASED, REDACTED, UNATTESTED}
+    assert set(STATUSES) == {HELD, ABSENT, ALTERED, ERASED, REDACTED, UNATTESTED, REJECTED, SUPERSEDED}

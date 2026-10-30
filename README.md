@@ -214,10 +214,13 @@ A second, separate service for CNS, and it needs no CNS at all. Rule 2 of the
 Triad governance design is "no CCC record, no use": before CNS lets Triad output
 into a decision path, it asks CCC whether that exact output was recorded. CNS asks;
 only CCC reads its own store to answer. `MachineRecords(system).status(source,
-candidate_id, text_digest)` answers `held`, `absent`, `altered`, `erased` or
-`redacted`. Only records created by the named machine actor count, the fingerprint
-is recomputed from the stored text, and a human erasure or redaction of any matching
-record wins over every other copy. It is a read: no record, audit event or rule
+candidate_id, text_digest)` answers `held`, `absent`, `altered`, `erased`,
+`redacted`, `rejected`, `superseded` or (with a key, below) `unattested`. Only records
+created by the named machine actor count, and the fingerprint is recomputed from the
+stored text. A human erasure or redaction wins over every other copy, and follows the
+text as well as the id: the same text handed in again under a new candidate id is still
+`erased` or `redacted`. Text a human rejected answers `rejected`, and text with a
+successor answers `superseded`, under any id. It is a read: no record, audit event or rule
 decision is written. Tests: `tests/test_record_status.py`, which run in CI.
 
 **Who wrote the record.** Without a key, "created by the machine actor" means only that

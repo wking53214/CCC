@@ -25,9 +25,14 @@ A record matches when all of these hold:
 
 Then the answer is, in this order:
 
-* ``erased`` or ``redacted`` if a human removed any matching record. Removal
-  wins over everything else: an erased claim must not come back into use
-  through a second copy;
+* ``erased`` or ``redacted`` if a human removed any matching record, or any
+  record from this source with the same text under any candidate id (its
+  fingerprint outlives the text). Removal wins over everything else: an erased
+  claim must not come back into use through a second copy or a new id;
+* ``rejected`` if a human rejected any record from this source with exactly
+  this text, under any candidate id;
+* ``superseded`` if any record from this source with exactly this text has a
+  successor. The text is the old version; the successor is what counts now;
 * ``held`` if a matching record is active and its stored text has exactly the
   fingerprint the caller presented. The fingerprint is recomputed from the
   stored text, not read from metadata, so what is compared is what CCC holds;
@@ -59,7 +64,7 @@ import hmac
 import json
 from typing import Any
 
-from .models import ActorType, ArtifactState, content_digest
+from .models import ActorType, ArtifactState, ProvenanceStatus, RelationshipType, content_digest
 
 __all__ = [
     "ABSENT",
@@ -67,7 +72,9 @@ __all__ = [
     "ERASED",
     "HELD",
     "REDACTED",
+    "REJECTED",
     "STATUSES",
+    "SUPERSEDED",
     "UNATTESTED",
     "MachineRecords",
     "attest",
@@ -80,9 +87,11 @@ ALTERED = "altered"
 ERASED = "erased"
 REDACTED = "redacted"
 UNATTESTED = "unattested"
+REJECTED = "rejected"
+SUPERSEDED = "superseded"
 
 #: Every answer ``record_status`` can give.
-STATUSES = (HELD, ABSENT, ALTERED, ERASED, REDACTED, UNATTESTED)
+STATUSES = (HELD, ABSENT, ALTERED, ERASED, REDACTED, UNATTESTED, REJECTED, SUPERSEDED)
 
 #: Where the handoff's stamp lives in a record's metadata.
 ATTESTATION_FIELD = "attestation"
@@ -132,20 +141,27 @@ def record_status(system: Any, *, source: str, candidate_id: str, text_digest: s
     if attestation_key is not None:
         _require_key(attestation_key)
 
-    matches = [
+    from_source = [
         artifact
         for artifact in system.store.artifacts.values()
         if artifact.origin.kind is ActorType.MODEL
         and artifact.origin.actor_id == source
         and (artifact.metadata or {}).get("source") == source
-        and (artifact.metadata or {}).get("candidate_id") == candidate_id
     ]
+    matches = [a for a in from_source if (a.metadata or {}).get("candidate_id") == candidate_id]
+    # The same text under any candidate id. An erased record keeps its fingerprint, so this finds it too.
+    same_text = [a for a in from_source if a.content_digest == text_digest]
+    removed = matches + same_text
+    if any(a.state is ArtifactState.ERASED for a in removed):
+        return ERASED
+    if any(a.state is ArtifactState.REDACTED for a in removed):
+        return REDACTED
+    if any(a.provenance_status is ProvenanceStatus.REJECTED for a in same_text):
+        return REJECTED
+    if any(_superseded(system, a.artifact_id) for a in same_text):
+        return SUPERSEDED
     if not matches:
         return ABSENT
-    if any(a.state is ArtifactState.ERASED for a in matches):
-        return ERASED
-    if any(a.state is ArtifactState.REDACTED for a in matches):
-        return REDACTED
     if attestation_key is not None:
         # Only a record the handoff stamped counts. The stamp is checked against the text the record stores now,
         # so a record whose text was edited after the stamp, or one that never had a stamp, is not counted.
@@ -156,6 +172,11 @@ def record_status(system: Any, *, source: str, candidate_id: str, text_digest: s
     if any(a.available and content_digest(a.content) == text_digest for a in matches):
         return HELD
     return ALTERED
+
+
+def _superseded(system: Any, artifact_id: str) -> bool:
+    return any(event.target_id == artifact_id and event.source_id != artifact_id
+               for event in system.lineage.related(artifact_id, RelationshipType.SUPERSEDES))
 
 
 def _stamped(artifact: Any, key: bytes, source: str, candidate_id: str) -> bool:
