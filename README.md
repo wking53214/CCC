@@ -1,6 +1,6 @@
 # CCC — Cognitive Continuity Constitution
 
-Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. 686 tests as pytest counts them (parametrized cases included), measured 2026-10-06; CI runs every one of them (section 8 explains the two CI jobs).
+Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
 
 ## 1. Pipeline Position & Role
 
@@ -27,6 +27,19 @@ Commercial red team: **FEATURE** (recurrence detection; the measurement now live
 Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DEC-0002](decisions/DEC-0002_v1.md) (v1.1 draft, decided provision by provision) leaves Articles I.G, III.F, XI.A, XII.E, XV.A and XVII.A-D UNRESOLVED; I.G and XVII.A-D are nonetheless enforced in this package's code.
 **Erasure is only partly grounded.** `CCCSystem.erase` lets a human, with a stated basis, wipe a record's text and leave a tombstone; anything built on it is downgraded to `THEORY`. The ≡TACK Constitution v4.0 (Developed Candidate, wking53214/constitution) contains no human right of erasure, and most CCC rules are sourced to the build directive, not to an article. Article XVIII does bear on it: it requires negative findings to be preserved. Rule `CCC-HISTORY-003`, the one rule sourced to an article, makes `erase` and `redact` refuse a negative finding: a record the human rejected, a record material to a conflict (open or resolved), or a record with a `CONTRADICTS` edge. Change course by superseding it. That covers what CCC can see; it does not cover every kind of non-confirmed claim. Erasing an ordinary record is still unratified mechanism, and whether to add an erasure article to the Constitution is the owner's decision.
 New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CCCSystem.decide` can store the same shape with a decision: the options considered, the one selected, each other option rejected with a reason or deferred (every option not selected must be one or the other), and the assumptions it rests on. A decision recorded without them is stored exactly as before.
+
+### Release and test status
+
+Measured 2026-10-30 at main `0228a53`.
+
+| What | State |
+|---|---|
+| Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
+| Tag and GitHub Release | None yet. Tagging is the owner's decision. |
+| CI on main | Green |
+| Tests | 409 passed, 1 skipped and 1 xfailed without CNS; 924 passed and 1 xfailed with the `cns` extra installed (parametrized cases counted) |
+| Pins | The optional `cns` extra is pinned to the tag v2.2.0. The `cccb` library is pinned to commit `8e3c779`; `cccb` main is two commits ahead, and the only change is its own CNS pin, so the code is the same. |
+| Write permission | Nine record-creating doors ask the application's check first (the nine listed in section 8). `decide`, `correct`, `amend`, `supersede` and the other human actions never ask. |
 
 ## 5. Core Invariants & Guarantees
 
@@ -84,6 +97,12 @@ Adapter in observe-perceive. Extra pin: `cognitive-continuity-constitution @ git
 observe-perceive decision → orchestrator_ccc_adapter → CCC (opt)
 HERALD / TIE / Ecology may feed claim-like records; no hard imports
 ```
+
+### Place in the evidence spine
+
+The evidence spine is the five repositories a document passes through in order: HERALD reads it and extracts claims, TIE records the evidence, Conservation_Kernel decides whether a root may be admitted, Governance_Gateway judges the admission door, and CCC takes the document into its store. CNS holds the roster that makes the decision, the check that every seat judged the same document, and the one-use guard that lets an approved decision open only the door it judged. `chains/evidence_spine.py` in CNS runs all of it end to end. Measured 2026-10-30 with every repository at main: 30 results, all ok, and exactly one recorded GAP (a kernel built without its guard and called directly), which the script asserts as a stated fact and never skips.
+
+CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other seven gated doors carry a conclusion, a finding or an observation that no seat judges, so they stay refused after any decision. CNS's spine script reads the gated doors off CCC and goes red if CCC gates one the roster's reader does not name.
 
 Apache-2.0.
 
