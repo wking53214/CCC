@@ -189,6 +189,25 @@ the connected test module (`tests/test_cns_connector.py`) skips there by design.
 the connected module runs, and a missing CNS fails the build instead of
 skipping it. The independence tests run in both and never skip.
 
+### Letting an application stand a decision in front of new records (`write_permission`)
+
+CCC's own `ingest` used to ask nobody, so a decision made elsewhere (a CNS roster saying no) could be
+sidestepped by calling it directly. `CCCSystem(write_permission=check)` closes that, and needs no CNS: `check` is
+any callable the application supplies. `ingest`, `record`, `derive`, `infer` and `interpret` each call it once,
+first, with a `ccc.permission.WriteRequest` (the method name and the caller's arguments, deep-copied, with no
+defaults filled in), and go on only if it returns exactly `True`. Anything else, an error from the check
+included, raises `WritePermissionRefused` before CCC touches its store, its rules or its audit trail.
+
+Only those five ask, and each asks once: `interpret` calls `derive`, which writes the record, and the nested
+calls do not ask again, because a one-use permission would be spent by the first yes. `decide`, `correct`,
+`amend`, `supersede`, `accept`, `reject`, `redact`, `erase` and the rest never ask, so a human's action is not
+held up by a machine's roster. The permission is asked first, so a yes can be spent on a call that CCC's own
+rules then refuse; that fails closed, and the caller needs a new permission.
+
+Limits: a system built without a check is not stopped, and nothing here can see that. The check is not saved
+with the store, so a reloaded system or the connector's scratch copy has none unless given one. Tests:
+`tests/test_write_permission.py`.
+
 ### Answering CNS's record lookup (`ccc.record_status`)
 
 A second, separate service for CNS, and it needs no CNS at all. Rule 2 of the

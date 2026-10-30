@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import warnings
 from dataclasses import replace
 from pathlib import Path
@@ -18,7 +19,7 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
-from .errors import InvalidTransition, PrivateSourcesNotStated
+from .errors import InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
@@ -38,10 +39,30 @@ from .models import (
     new_id,
     utc_now,
 )
+from .permission import WritePermission, build_request
 from .provenance import ProvenanceManager
 from .query import QueryEngine
 from .road_signs import RoadSignManager
 from .store import CCCStore
+
+
+def _asks_permission(operation: str):
+    """Make a public method ask the system's write permission once, before it does anything.
+
+    The wrapped function keeps its own signature (``inspect.signature`` follows ``__wrapped__``), so binding a call
+    to it, as the CNS connector does, is unchanged. With no permission given the call goes straight through."""
+
+    def decorate(method):
+        @functools.wraps(method)
+        def asks(self, *args, **kwargs):
+            self._require_write_permission(operation, args, kwargs)
+            return method(self, *args, **kwargs)
+
+        asks.__name__ = operation
+        asks.__qualname__ = f"CCCSystem.{operation}"
+        return asks
+
+    return decorate
 
 
 def _stated_private_sources(value) -> tuple[str, ...] | None:
@@ -185,13 +206,25 @@ class CCCSystem:
 
     version = "0.1.0"
 
+    #: Read before __init__ has run (a half-built or unpickled system), where no permission was given.
+    _write_permission: WritePermission | None = None
+
     def __init__(self, *, store: CCCStore | None = None,
                  persistence_path: str | Path | None = None,
                  semantic_index=None,
                  semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
                  text_matcher=None,
-                 private_source_markers=None) -> None:
+                 private_source_markers=None,
+                 write_permission: WritePermission | None = None) -> None:
         """
+        write_permission: an optional callable the application supplies. When
+            given, ingest, record, derive, infer and interpret each call it once,
+            first, with a ccc.permission.WriteRequest, and go on only if it
+            returns exactly True; anything else raises WritePermissionRefused
+            before the store, the rules or the audit trail are touched. Other
+            methods (decide, correct, amend, supersede, accept, redact, erase and
+            the rest) never ask. None, the default, behaves as before. It is not
+            saved with the store. See ccc/permission.py.
         private_source_markers: the sources a machine finding must not cite
             unless allow_private_source=True, matched as substrings of each
             source_material entry. CCC names no repositories; the application
@@ -232,6 +265,9 @@ class CCCSystem:
         require_matcher(text_matcher)
         self.text_matcher = text_matcher
         self.private_source_markers = _stated_private_sources(private_source_markers)
+        if write_permission is not None and not callable(write_permission):
+            raise TypeError("write_permission must be a callable that takes a WriteRequest, or None")
+        self._write_permission = write_permission
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
@@ -300,7 +336,23 @@ class CCCSystem:
     def system_actor(self) -> Actor:
         return Actor.system()
 
-    def ingest(
+    def _require_write_permission(self, operation: str, args: tuple, kwargs: Mapping[str, Any]) -> None:
+        """Ask the write permission, if one was given. Only the value True permits; the store is not touched."""
+        check = self._write_permission
+        if check is None:
+            return
+        try:
+            verdict = check(build_request(operation, args, kwargs))
+        except Exception as exc:  # a check that cannot answer never permits
+            raise WritePermissionRefused(
+                operation, f"the write permission raised {type(exc).__name__}: {exc}; nothing was written"
+            ) from exc
+        if verdict is not True:
+            raise WritePermissionRefused(
+                operation, "the write permission did not say yes (only True permits); nothing was written"
+            )
+
+    def _ingest(
         self,
         content: str,
         *,
@@ -407,10 +459,15 @@ class CCCSystem:
         )
         return artifact
 
-    def record(self, content: str, **kwargs) -> Artifact:
-        return self.ingest(content, **kwargs)
+    # The front door: asks the write permission once, then does exactly what _ingest does. decide and _version
+    # call _ingest directly, so a human's decision and a corrected, amended or superseding version never ask.
+    ingest = _asks_permission("ingest")(_ingest)
 
-    def derive(
+    @_asks_permission("record")
+    def record(self, content: str, **kwargs) -> Artifact:
+        return self._ingest(content, **kwargs)
+
+    def _derive(
         self,
         conclusion: str,
         *,
@@ -423,7 +480,7 @@ class CCCSystem:
         topics: tuple[str, ...] = (),
     ) -> Artifact:
         actor = actor or Actor.model()
-        artifact = self.ingest(
+        artifact = self._ingest(
             conclusion,
             actor=actor,
             provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
@@ -444,12 +501,16 @@ class CCCSystem:
             )
         return self.store.require_artifact(artifact.artifact_id)
 
-    def infer(self, conclusion: str, **kwargs) -> Artifact:
-        return self.derive(conclusion, **kwargs)
+    derive = _asks_permission("derive")(_derive)
 
+    @_asks_permission("infer")
+    def infer(self, conclusion: str, **kwargs) -> Artifact:
+        return self._derive(conclusion, **kwargs)
+
+    @_asks_permission("interpret")
     def interpret(self, interpretation: str, **kwargs) -> Artifact:
         kwargs.setdefault("method", "machine interpretation")
-        artifact = self.derive(interpretation, **kwargs)
+        artifact = self._derive(interpretation, **kwargs)
         return self.epistemic.transition(
             artifact.artifact_id,
             EpistemicStatus.INTERPRETATION,
@@ -537,7 +598,7 @@ class CCCSystem:
         if recommendation_id is not None:
             self.store.require_artifact(recommendation_id)
         how = _decision_record(options, selected_option, rejected, deferred, assumptions)
-        decision = self.ingest(
+        decision = self._ingest(
             choice,
             actor=actor,
             provenance_status=ProvenanceStatus.USER_ESTABLISHED,
@@ -594,7 +655,7 @@ class CCCSystem:
                     f"{artifact_id} is already superseded by {successors[0]}; "
                     "supersede that record instead"
                 )
-        new_artifact = self.ingest(
+        new_artifact = self._ingest(
             content,
             actor=actor,
             provenance_status=ProvenanceStatus.USER_ESTABLISHED,
@@ -1208,9 +1269,11 @@ class CCCSystem:
     def load(cls, path: str | Path, *, semantic_index=None,
              semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
              text_matcher=None,
-             private_source_markers=None) -> "CCCSystem":
+             private_source_markers=None,
+             write_permission: WritePermission | None = None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
-                   private_source_markers=private_source_markers)
+                   private_source_markers=private_source_markers,
+                   write_permission=write_permission)
