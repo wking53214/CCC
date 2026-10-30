@@ -218,7 +218,8 @@ class CCCSystem:
                  write_permission: WritePermission | None = None) -> None:
         """
         write_permission: an optional callable the application supplies. When
-            given, ingest, record, derive, infer and interpret each call it once,
+            given, ingest, record, derive, infer, interpret, record_external_finding,
+            discover, detect_road_sign and record_road_sign each call it once,
             first, with a ccc.permission.WriteRequest, and go on only if it
             returns exactly True; anything else raises WritePermissionRefused
             before the store, the rules or the audit trail are touched. Other
@@ -786,9 +787,13 @@ class CCCSystem:
         )
         return updated
 
+    # record_road_sign is the same act as detect_road_sign under another name, so both ask. Neither calls the
+    # other here (each goes straight to the road sign manager), so a yes is asked for once, never twice.
+    @_asks_permission("detect_road_sign")
     def detect_road_sign(self, **kwargs):
         return self.road_signs.detect_road_sign(**kwargs)
 
+    @_asks_permission("record_road_sign")
     def record_road_sign(self, **kwargs):
         return self.road_signs.record_road_sign(**kwargs)
 
@@ -798,6 +803,9 @@ class CCCSystem:
     def query_road_signs(self, **kwargs):
         return self.road_signs.query_road_signs(**kwargs)
 
+    # discover is the bare way to create a finding, for any actor; record_external_finding is the strict way. Both
+    # create the same kind of record, so both ask.
+    @_asks_permission("discover")
     def discover(self, **kwargs):
         return self.discovery.discover(**kwargs)
 
@@ -812,6 +820,7 @@ class CCCSystem:
 
         return recurring_groups(self.store.discoveries, min_occurrences=min_occurrences)
 
+    @_asks_permission("record_external_finding")
     def record_external_finding(self, finding, *, actor: Actor,
                                  epistemic_status: EpistemicStatus = EpistemicStatus.INFERENCE,
                                  allow_private_source: bool = False):
