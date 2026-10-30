@@ -193,20 +193,29 @@ skipping it. The independence tests run in both and never skip.
 
 CCC's own `ingest` used to ask nobody, so a decision made elsewhere (a CNS roster saying no) could be
 sidestepped by calling it directly. `CCCSystem(write_permission=check)` closes that, and needs no CNS: `check` is
-any callable the application supplies. `ingest`, `record`, `derive`, `infer` and `interpret` each call it once,
+any callable the application supplies. `ingest`, `record`, `derive`, `infer`, `interpret`,
+`record_external_finding`, `discover`, `detect_road_sign` and `record_road_sign` each call it once,
 first, with a `ccc.permission.WriteRequest` (the method name and the caller's arguments, deep-copied, with no
 defaults filled in), and go on only if it returns exactly `True`. Anything else, an error from the check
 included, raises `WritePermissionRefused` before CCC touches its store, its rules or its audit trail.
 
-Only those five ask, and each asks once: `interpret` calls `derive`, which writes the record, and the nested
-calls do not ask again, because a one-use permission would be spent by the first yes. `decide`, `correct`,
-`amend`, `supersede`, `accept`, `reject`, `redact`, `erase` and the rest never ask, so a human's action is not
-held up by a machine's roster. The permission is asked first, so a yes can be spent on a call that CCC's own
-rules then refuse; that fails closed, and the caller needs a new permission.
+Only those nine ask, and each asks once: `interpret` calls `derive`, which writes the record, and the nested
+calls do not ask again, because a one-use permission would be spent by the first yes. `record_road_sign` is the
+same act as `detect_road_sign`, and `discover` is the bare way to create what `record_external_finding` creates
+under stricter rules, so each of those asks too, or the gate would be one call away from useless. The road
+signs and stage moves that `record_external_finding` makes as part of its own work happen under its one ask.
+`decide`, `correct`, `amend`, `supersede`, `accept`, `reject`, `redact`, `erase` and the rest never ask, so a
+human's action is not held up by a machine's roster. The permission is asked first, so a yes can be spent on a
+call that CCC's own rules then refuse; that fails closed, and the caller needs a new permission.
 
-Limits: a system built without a check is not stopped, and nothing here can see that. The check is not saved
+Left open on purpose: `adopt_discovery`, `advance_discovery`, `link_road_sign` and `record_resolution` change a
+record that already exists, and `detect_conflict`, `ask`, `attach_evidence` and `relate` create a flag, a
+question, a link or a relationship, not a finding or a record of material. Gating those is a separate decision.
+
+Limits: a system built without a check is not stopped, and nothing here can see that. Anyone holding the
+system's `store` can also write to it directly, which no check can see. The check is not saved
 with the store, so a reloaded system or the connector's scratch copy has none unless given one. Tests:
-`tests/test_write_permission.py`.
+`tests/test_write_permission.py` (the first five) and `tests/test_write_permission_doors.py` (the other four).
 
 ### Answering CNS's record lookup (`ccc.record_status`)
 
