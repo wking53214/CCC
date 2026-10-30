@@ -192,6 +192,7 @@ __all__ = [
     "cns_chain",
     "judge",
     "to_cns_result",
+    "write_request_digest",
 ]
 
 INSTALL_HINT = "pip install -e '.[cns]' (run from a checkout of ccc)"
@@ -481,6 +482,25 @@ def attempt_digest(att: Attempt) -> str:
     verdict was issued against exactly this attempted call.
     """
     return _cns_gate().subject_digest(att.content)
+
+
+def write_request_digest(request: Any) -> str:
+    """The digest of the call a :class:`ccc.permission.WriteRequest` describes.
+
+    It is the same digest :func:`attempt_digest` gives the same call, so a permission that was issued for a
+    verdict bound to an :class:`Attempt` can check that the write it is asked about is that exact call: the
+    operation, and every argument with its defaults applied. A request for another operation (``record`` where
+    ``ingest`` was judged), or with any argument changed, digests differently.
+
+    Unlike an :class:`Attempt`, a request may name any door CCC asks its permission at, not only the transitions
+    the connector judges. Raises ``ValueError`` for an operation CCC has no method for, and ``TypeError`` for
+    arguments that cannot be described as canonical content.
+    """
+    operation = getattr(request, "operation", None)
+    if not isinstance(operation, str) or not callable(getattr(CCCSystem, operation, None)):
+        raise ValueError(f"{operation!r} is not a method of CCCSystem, so its call has no digest")
+    content = _judged_content(operation, tuple(request.args), dict(request.kwargs))
+    return _cns_gate().subject_digest(content)
 
 
 def to_cns_result(
