@@ -191,9 +191,11 @@ def _stamped(artifact: Any, key: bytes, source: str, candidate_id: str) -> bool:
 class MachineRecords:
     """``record_status`` bound to one CCC system.
 
-    This is the object a consumer is handed. Its one method, ``status``, is the
-    record lookup CNS asks through (``cns_composition.ccc_admission``), so CNS
-    can be given CCC's answer without being given CCC's store.
+    This is the object a consumer is handed. ``status`` is the record lookup CNS
+    asks through (``cns_composition.ccc_admission``), so CNS can be given CCC's
+    answer without being given CCC's store. ``stamps`` shows the handoff's
+    stamps on the matching records, so a consumer holding the key can check
+    one itself instead of taking ``held`` on this object's word.
     """
 
     def __init__(self, system: Any, *, attestation_key: bytes | None = None) -> None:
@@ -210,4 +212,24 @@ class MachineRecords:
         return record_status(
             self._system, source=source, candidate_id=candidate_id, text_digest=text_digest,
             attestation_key=self._key,
+        )
+
+    def stamps(self, source: str, candidate_id: str, text_digest: str) -> tuple[str, ...]:
+        """The stamps the handoff wrote on the live records of exactly this item, for a consumer that checks
+        them itself with its own key (``cns_composition.ccc_admission``, CNS-013). A read: no key is used here,
+        and a record without a stamp contributes nothing."""
+        _require_text("source", source)
+        _require_text("candidate_id", candidate_id)
+        _require_text("text_digest", text_digest)
+        return tuple(
+            stamp
+            for artifact in self._system.store.artifacts.values()
+            if artifact.origin.kind is ActorType.MODEL
+            and artifact.origin.actor_id == source
+            and (artifact.metadata or {}).get("source") == source
+            and (artifact.metadata or {}).get("candidate_id") == candidate_id
+            and artifact.available
+            and content_digest(artifact.content) == text_digest
+            for stamp in [(artifact.metadata or {}).get(ATTESTATION_FIELD)]
+            if isinstance(stamp, str)
         )
