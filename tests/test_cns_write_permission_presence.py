@@ -26,7 +26,7 @@ TEXT = "Invoice INV-2207 came to $412.00."
 
 
 def ingest():
-    return attempt("ingest", TEXT, actor=Actor.model("herald"), epistemic_status=EpistemicStatus.INFERENCE)
+    return attempt("ingest", TEXT, actor=Actor.model("herald"), epistemic_status=EpistemicStatus.THEORY)
 
 
 class OurPermission:

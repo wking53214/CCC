@@ -157,7 +157,7 @@ OPEN_BY_DESIGN = {"ask", "detect_conflict", "request_human_resolution", "link_ro
 READ_ONLY = {
     "audit", "classify_conflict", "evidence_root", "present", "present_conflict", "query", "query_road_signs",
     "recurring_groups", "system_actor", "trace_evidence_chain", "validate_constitution", "validate_evidence_chain",
-    "save", "load", "version",
+    "save", "load", "version", "has_write_permission", "write_permission",
 }
 
 
