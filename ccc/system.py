@@ -58,7 +58,16 @@ def _asks_permission(operation: str):
         @functools.wraps(method)
         def asks(self, *args, **kwargs):
             self._require_write_permission(operation, args, kwargs)
-            return method(self, *args, **kwargs)
+            marks = self._store_marks() if self._permission_settles() else None
+            try:
+                result = method(self, *args, **kwargs)
+            except BaseException:
+                # A yes was given. If nothing was written the permission is given back; if anything was, it is used.
+                if marks is not None:
+                    self._tell_permission("abort" if self._store_marks() == marks else "commit")
+                raise
+            self._tell_permission("commit")
+            return result
 
         asks.__name__ = operation
         asks.__qualname__ = f"CCCSystem.{operation}"
@@ -473,6 +482,42 @@ class CCCSystem:
     @property
     def system_actor(self) -> Actor:
         return Actor.system()
+
+    @property
+    def write_permission(self) -> WritePermission | None:
+        """The permission this system was built with, or None. Read-only, for a caller deciding whether it is one they
+        trust. It is not saved with the store."""
+        return self._write_permission
+
+    @property
+    def has_write_permission(self) -> bool:
+        """Whether this system asks a permission before it writes. Says nothing about what the permission will answer."""
+        return self._write_permission is not None
+
+    def _permission_settles(self) -> bool:
+        """Whether the write permission offers `commit` and `abort`, to be told how a write it allowed ended."""
+        check = self._write_permission
+        return check is not None and callable(getattr(check, "commit", None)) and callable(getattr(check, "abort", None))
+
+    def _tell_permission(self, how: str) -> None:
+        """Tell a settling permission how the write it allowed ended. One that raises while being told does not hide
+        the write or its failure."""
+        if self._permission_settles():
+            try:
+                getattr(self._write_permission, how)()
+            except Exception:  # noqa: BLE001 - the write has happened or failed; the permission's trouble stays its own
+                pass
+
+    def _store_marks(self) -> tuple[int, ...]:
+        """The number of records in every section the store keeps, to tell whether a failed write changed anything.
+
+        A change that replaces a record in place without adding any would not show; the gated methods that write also
+        append to the audit trail or add a record, so a write that got far enough to matter does show."""
+        store = self.store
+        return tuple(len(section) for section in (
+            store.artifacts, store.provenance_events, store.epistemic_events, store.evidence_links, store.lineage_events,
+            store.audit_events, store.road_signs, store.discoveries, store.uncertainties, store.conflicts,
+            store.rule_decisions))
 
     def _require_write_permission(self, operation: str, args: tuple, kwargs: Mapping[str, Any]) -> None:
         """Ask the write permission, if one was given. Only the value True permits; the store is not touched."""
