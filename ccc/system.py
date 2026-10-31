@@ -228,6 +228,18 @@ class _AsksPermission:
         return asks
 
 
+#: The epistemic statuses a human holds a record at. Moving to one is a promotion, off one a demotion.
+_HUMAN_HELD = frozenset({EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE})
+
+
+def _is_human_held_change(system, arguments) -> bool:
+    """Whether a classify call moves a record to or off a status a human holds it at."""
+    if arguments["status"] in _HUMAN_HELD:
+        return True
+    artifact = system.store.get_artifact(arguments["artifact_id"])
+    return artifact is not None and artifact.epistemic_status in _HUMAN_HELD
+
+
 def _human_only(operation: str, *, targets: Sequence[str] = (), content: str | None = None, forwards_to=None,
                 when=None):
     """Make a human-only public method ask the system's human verifier once, before it does anything.
@@ -351,8 +363,10 @@ class CCCSystem:
         self.rules = ConstitutionalRuleEngine(self.store)
         self.lineage = LineageManager(self.store, self.audit_trail, self.rules)
         self.evidence = EvidenceManager(self.store, self.audit_trail, self.rules)
-        self.provenance = ProvenanceManager(self.store, self.audit_trail, self.lineage, self.rules, self.evidence)
-        self.epistemic = EpistemicManager(self.store, self.audit_trail, self.rules, self.evidence)
+        self.provenance = ProvenanceManager(self.store, self.audit_trail, self.lineage, self.rules, self.evidence,
+                                            human_gate=self._gate_human)
+        self.epistemic = EpistemicManager(self.store, self.audit_trail, self.rules, self.evidence,
+                                          human_gate=self._gate_human)
         self.human_resolution = HumanResolutionManager(self.store, self.audit_trail, self.rules)
         # The managers that create findings and road signs are kept raw for CCC's own calls, which are already under
         # an ask, and shown to callers through a face that asks the write permission at the same doors.
@@ -470,6 +484,13 @@ class CCCSystem:
             raise HumanVerificationRefused(
                 operation, "the human verifier did not say yes (only True permits); nothing was written"
             )
+
+    def _gate_human(self, operation: str, actor, target_ids: tuple[str, ...], content: str | None,
+                    authorization_basis: str | None) -> None:
+        """The managers' way to ask the human verifier, for a demotion they are about to make. A call beneath a
+        facade method that has already asked does not ask again."""
+        if self._human_verifier is not None and not self._human_depth:
+            self._verify_human(operation, actor, target_ids, content, authorization_basis, None)
 
     def _store_artifact(
         self,
@@ -673,7 +694,7 @@ class CCCSystem:
         return self.provenance.reject(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis)
 
     @_human_only("classify", targets=("artifact_id", "evidence_ids"),
-                 when=lambda system, a: a["status"] in {EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE})
+                 when=lambda system, a: _is_human_held_change(system, a))
     def classify(self, artifact_id: str, status: EpistemicStatus, *, actor: Actor, reason: str, evidence_ids: tuple[str, ...] = ()):
         return self.epistemic.classify(artifact_id, status, actor=actor, reason=reason, evidence_ids=evidence_ids)
 
