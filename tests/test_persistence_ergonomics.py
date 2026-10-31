@@ -20,7 +20,7 @@ def test_save_then_reopen_the_same_path_resumes_the_state(tmp_path):
     art = first.ingest(
         "a fact worth remembering across sessions",
         actor=Actor.human("william"),
-        epistemic_status=EpistemicStatus.INTERPRETATION,
+        epistemic_status=EpistemicStatus.THEORY,
     )
     first.save()
 
@@ -60,7 +60,7 @@ def test_empty_file_is_treated_as_fresh_not_a_corrupt_json_error(tmp_path):
 def test_explicit_store_still_wins_over_persistence_path(tmp_path):
     path = tmp_path / "state.json"
     seeded = CCCSystem(persistence_path=path)
-    seeded.ingest("seeded", actor=Actor.human("w"), epistemic_status=EpistemicStatus.INTERPRETATION)
+    seeded.ingest("seeded", actor=Actor.human("w"), epistemic_status=EpistemicStatus.THEORY)
     seeded.save()
 
     from ccc.store import CCCStore

@@ -228,6 +228,29 @@ class _AsksPermission:
         return asks
 
 
+#: What derive, infer and interpret make. Ingest takes material in and does not.
+_CONCLUSIONS = frozenset({EpistemicStatus.INFERENCE, EpistemicStatus.INTERPRETATION})
+
+
+def _not_a_conclusion(method):
+    """Make an ingest door refuse a record it is asked to make as a conclusion. A conclusion is made by derive, infer
+    or interpret, which keep the evidence it rests on, so a permission that allows only ingest does not allow
+    inferences. The signature is the wrapped method's own."""
+
+    @functools.wraps(method)
+    def takes_material(self, *args, **kwargs):
+        if kwargs.get("epistemic_status") in _CONCLUSIONS:
+            self.rules.evaluate(
+                "CCC-EPISTEMIC-001",
+                False,
+                reason=f"ingest takes material in and cannot make {kwargs['epistemic_status'].value}; "
+                       "a conclusion is made by derive, infer or interpret, which keep the evidence it rests on",
+            )
+        return method(self, *args, **kwargs)
+
+    return takes_material
+
+
 #: The epistemic statuses a human holds a record at. Moving to one is a promotion, off one a demotion.
 _HUMAN_HELD = frozenset({EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE})
 
@@ -602,10 +625,11 @@ class CCCSystem:
     # The front door: asks the write permission once, then does exactly what _store_artifact does. decide and _version
     # call _store_artifact directly, so a human's decision and a corrected, amended or superseding version never ask.
     # _ingest is the same door under the name callers already reach for, so it asks too.
-    ingest = _asks_permission("ingest")(_store_artifact)
-    _ingest = _asks_permission("ingest")(_store_artifact)
+    ingest = _asks_permission("ingest")(_not_a_conclusion(_store_artifact))
+    _ingest = _asks_permission("ingest")(_not_a_conclusion(_store_artifact))
 
     @_asks_permission("record")
+    @_not_a_conclusion
     def record(self, content: str, **kwargs) -> Artifact:
         return self._store_artifact(content, **kwargs)
 

@@ -26,7 +26,7 @@ def _record(system, text=TEXT, *, candidate_id="c1", stamp=True, source=SOURCE):
     metadata = {"source": source, "candidate_id": candidate_id}
     if stamp:
         metadata["attestation"] = attest(KEY, source=source, candidate_id=candidate_id, text_digest=_digest(text))
-    return system.ingest(text, actor=Actor.model(source), epistemic_status=EpistemicStatus.INFERENCE,
+    return system.ingest(text, actor=Actor.model(source), epistemic_status=EpistemicStatus.THEORY,
                          metadata=metadata)
 
 
