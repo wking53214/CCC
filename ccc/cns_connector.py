@@ -645,11 +645,27 @@ class CccGate:
 
     ``check`` takes an :class:`Attempt` and returns :func:`judge`'s verdict at
     the ALPHA end: nothing has happened yet, and ``check`` makes nothing happen.
+
+    A system built without a ``write_permission`` is not stopped, and a verdict
+    on an attempt cannot tell. ``require_permission=True`` refuses
+    (``TERMINAL_BREACH``) a system that has none. ``accept_permission`` hands the
+    system's permission to a predicate the roster supplies (``isinstance`` of the
+    roster's own guard, for example), so a function that answers ``True`` to
+    everything satisfies the first and not the second; a permission it does not
+    accept, a predicate that raises and an answer other than exactly ``True`` are
+    each a ``TERMINAL_BREACH``. Giving a predicate also requires a permission. The
+    predicate sees which permission this is, not what it will answer, and code that
+    writes a private name can still replace it. Both default to off.
     """
 
-    def __init__(self, system: CCCSystem) -> None:
+    def __init__(self, system: CCCSystem, *, require_permission: bool = False,
+                 accept_permission: Callable[[Any], bool] | None = None) -> None:
         _cns_gate()  # fail here, at construction, not on first use
+        if accept_permission is not None and not callable(accept_permission):
+            raise ValueError("accept_permission must be a function that says whether a permission is one the roster accepts")
         self._system = system
+        self._require_permission = require_permission
+        self._accept_permission = accept_permission
 
     @property
     def name(self) -> str:
@@ -665,7 +681,25 @@ class CccGate:
                 "CCC gates judge an Attempt (see ccc.cns_connector.attempt); "
                 f"got {type(candidate).__name__}"
             )
+        problem = self._permission_problem()
+        if problem:
+            return to_cns_result(candidate, ValueError(problem))
         return judge(self._system, candidate)
+
+    def _permission_problem(self) -> str:
+        """Why the roster does not accept this system's write permission, or an empty string if it does or did not ask."""
+        permission = self._system.write_permission
+        if permission is None:
+            if self._require_permission or self._accept_permission is not None:
+                return "this system has no write permission, so nothing stops a direct write"
+            return ""
+        if self._accept_permission is None:
+            return ""
+        try:
+            accepted = self._accept_permission(permission) is True
+        except Exception:  # a predicate that cannot answer never accepts
+            accepted = False
+        return "" if accepted else "this system's write permission is not one the roster accepts"
 
 
 def cns_chain(system: CCCSystem) -> Any:

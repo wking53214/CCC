@@ -337,6 +337,17 @@ class CCCSystem:
     def system_actor(self) -> Actor:
         return Actor.system()
 
+    @property
+    def write_permission(self) -> WritePermission | None:
+        """The permission this system was built with, or None. Read-only, for a caller deciding whether it is one they
+        trust. It is not saved with the store."""
+        return self._write_permission
+
+    @property
+    def has_write_permission(self) -> bool:
+        """Whether this system asks a permission before it writes. Says nothing about what the permission will answer."""
+        return self._write_permission is not None
+
     def _require_write_permission(self, operation: str, args: tuple, kwargs: Mapping[str, Any]) -> None:
         """Ask the write permission, if one was given. Only the value True permits; the store is not touched."""
         check = self._write_permission
