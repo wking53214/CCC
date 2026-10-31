@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import warnings
 from dataclasses import replace
 from pathlib import Path
@@ -19,10 +20,11 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
-from .errors import InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
+from .errors import HumanVerificationRefused, InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
+from .human_auth import HumanVerifier, build_human_request
 from .human_resolution import HumanResolutionManager
 from .lineage import LineageManager
 from .models import (
@@ -201,6 +203,53 @@ def _state(artifact: Artifact) -> dict[str, Any]:
     }
 
 
+def _human_only(operation: str, *, targets: Sequence[str] = (), content: str | None = None, forwards_to=None,
+                when=None):
+    """Make a human-only public method ask the system's human verifier once, before it does anything.
+
+    ``targets`` names the parameters that hold the ids the act is about, ``content`` the one that holds new text,
+    and ``forwards_to`` the function whose signature names the arguments of a method that only forwards
+    ``*args, **kwargs``. ``when(system, arguments)`` limits the ask to the calls that are a human act (a MANDATE
+    advance, not a PATTERN one). The caller's ``attestation`` keyword is taken off here and carried to the verifier;
+    the method never sees it, so its signature and the digest of its call are what they were. With no verifier the
+    call goes straight through."""
+
+    def decorate(method):
+        signature = inspect.signature(forwards_to if forwards_to is not None else method)
+
+        @functools.wraps(method)
+        def verified(self, *args, **kwargs):
+            attestation = kwargs.pop("attestation", None)
+            if self._human_verifier is None or self._human_depth:
+                return method(self, *args, **kwargs)
+            try:
+                bound = signature.bind(None if forwards_to is not None else self, *args, **kwargs)
+            except TypeError:
+                return method(self, *args, **kwargs)  # a call that cannot bind fails in the method, writing nothing
+            bound.apply_defaults()
+            arguments = dict(bound.arguments)
+            if when is not None and not when(self, arguments):
+                return method(self, *args, **kwargs)
+            ids: list[str] = []
+            for name in targets:
+                value = arguments.get(name)
+                if isinstance(value, str):
+                    ids.append(value)
+                elif value is not None:
+                    ids.extend(value)
+            self._verify_human(operation, arguments.get("actor"), tuple(ids), arguments.get(content) if content else None,
+                               arguments.get("authorization_basis"), attestation)
+            self._human_depth += 1
+            try:
+                return method(self, *args, **kwargs)
+            finally:
+                self._human_depth -= 1
+
+        return verified
+
+    return decorate
+
+
 class CCCSystem:
     """A dependency-free, auditable CCC enforcement layer."""
 
@@ -208,6 +257,9 @@ class CCCSystem:
 
     #: Read before __init__ has run (a half-built or unpickled system), where no permission was given.
     _write_permission: WritePermission | None = None
+    _human_verifier: HumanVerifier | None = None
+    #: How many human-only calls are open on this system, so a call beneath one (ratify calls accept) does not ask again.
+    _human_depth: int = 0
 
     def __init__(self, *, store: CCCStore | None = None,
                  persistence_path: str | Path | None = None,
@@ -215,8 +267,20 @@ class CCCSystem:
                  semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
                  text_matcher=None,
                  private_source_markers=None,
-                 write_permission: WritePermission | None = None) -> None:
+                 write_permission: WritePermission | None = None,
+                 human_verifier: HumanVerifier | None = None) -> None:
         """
+        human_verifier: an optional callable the application supplies. When given,
+            every human-only operation (decide, correct, amend, supersede,
+            redact, erase, accept, establish_provenance, reject, ratify,
+            record_resolution, resolve_uncertainty, adopt_discovery, a MANDATE
+            advance and an epistemic promotion) calls it once, first, with a
+            ccc.human_auth.HumanRequest, and goes on only if it returns exactly
+            True; anything else raises HumanVerificationRefused before anything
+            is written. The caller may pass an `attestation` keyword to those
+            operations, carried to the verifier untouched. None, the default,
+            behaves as before. A human operation never asks write_permission.
+            It is not saved with the store. See ccc/human_auth.py.
         write_permission: an optional callable the application supplies. When
             given, ingest, record, derive, infer, interpret, record_external_finding,
             discover, detect_road_sign and record_road_sign each call it once,
@@ -269,6 +333,9 @@ class CCCSystem:
         if write_permission is not None and not callable(write_permission):
             raise TypeError("write_permission must be a callable that takes a WriteRequest, or None")
         self._write_permission = write_permission
+        if human_verifier is not None and not callable(human_verifier):
+            raise TypeError("human_verifier must be a callable that takes a HumanRequest, or None")
+        self._human_verifier = human_verifier
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
@@ -351,6 +418,24 @@ class CCCSystem:
         if verdict is not True:
             raise WritePermissionRefused(
                 operation, "the write permission did not say yes (only True permits); nothing was written"
+            )
+
+    def _verify_human(self, operation: str, actor, target_ids: tuple[str, ...], content: str | None,
+                      authorization_basis: str | None, attestation) -> None:
+        """Ask the human verifier. Only the value True permits; the store is not touched."""
+        check = self._human_verifier
+        if check is None:
+            return
+        try:
+            verdict = check(build_human_request(operation, actor, target_ids, content, authorization_basis,
+                                                attestation))
+        except Exception as exc:  # a verifier that cannot answer never permits
+            raise HumanVerificationRefused(
+                operation, f"the human verifier raised {type(exc).__name__}: {exc}; nothing was written"
+            ) from exc
+        if verdict is not True:
+            raise HumanVerificationRefused(
+                operation, "the human verifier did not say yes (only True permits); nothing was written"
             )
 
     def _ingest(
@@ -538,18 +623,24 @@ class CCCSystem:
     def validate_evidence_chain(self, artifact_id: str):
         return self.evidence.validate_evidence_chain(artifact_id)
 
+    @_human_only("establish_provenance", targets=("artifact_id", "evidence_ids"))
     def establish_provenance(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str, evidence_ids: tuple[str, ...] = ()):
         return self.provenance.establish_provenance(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("accept", targets=("artifact_id", "evidence_ids"))
     def accept(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str, evidence_ids: tuple[str, ...] = ()):
         return self.provenance.accept(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("reject", targets=("artifact_id",))
     def reject(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str):
         return self.provenance.reject(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis)
 
+    @_human_only("classify", targets=("artifact_id", "evidence_ids"),
+                 when=lambda system, a: a["status"] in {EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE})
     def classify(self, artifact_id: str, status: EpistemicStatus, *, actor: Actor, reason: str, evidence_ids: tuple[str, ...] = ()):
         return self.epistemic.classify(artifact_id, status, actor=actor, reason=reason, evidence_ids=evidence_ids)
 
+    @_human_only("ratify", targets=("artifact_id", "evidence_ids"))
     def ratify(
         self,
         artifact_id: str,
@@ -564,6 +655,7 @@ class CCCSystem:
             return self.establish_provenance(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
         return self.accept(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("decide", targets=("recommendation_id",), content="choice")
     def decide(
         self,
         choice: str,
@@ -623,12 +715,15 @@ class CCCSystem:
         )
         return decision
 
+    @_human_only("correct", targets=("artifact_id",), content="content")
     def correct(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.CORRECTS, operation="CORRECT")
 
+    @_human_only("amend", targets=("artifact_id",), content="content")
     def amend(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.AMENDS, operation="AMEND")
 
+    @_human_only("supersede", targets=("artifact_id",), content="content")
     def supersede(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.SUPERSEDES, operation="SUPERSEDE")
 
@@ -719,9 +814,11 @@ class CCCSystem:
             source_id, target_id, relationship, actor=actor, reason=reason, evidence=evidence,
         )
 
+    @_human_only("redact", targets=("artifact_id",))
     def redact(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.REDACTED, relationship=RelationshipType.REDACTS, operation="REDACT")
 
+    @_human_only("erase", targets=("artifact_id",))
     def erase(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.ERASED, relationship=RelationshipType.ERASES, operation="ERASE")
 
@@ -1177,9 +1274,12 @@ class CCCSystem:
             },
         )
 
+    @_human_only("advance_discovery", targets=("discovery_id", "evidence_ids"), forwards_to=DiscoveryManager.advance,
+                 when=lambda system, a: a["stage"] is AnalysisStage.MANDATE)
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
 
+    @_human_only("adopt_discovery", targets=("discovery_id",), forwards_to=DiscoveryManager.adopt)
     def adopt_discovery(self, *args, **kwargs):
         return self.discovery.adopt(*args, **kwargs)
 
@@ -1195,12 +1295,16 @@ class CCCSystem:
     def request_human_resolution(self, *args, **kwargs):
         return self.conflict.request_human_resolution(*args, **kwargs)
 
+    @_human_only("record_resolution", targets=("conflict_id",), content="choice",
+                 forwards_to=ConflictManager.record_resolution)
     def record_resolution(self, *args, **kwargs):
         return self.conflict.record_resolution(*args, **kwargs)
 
     def ask(self, **kwargs):
         return self.human_resolution.ask(**kwargs)
 
+    @_human_only("resolve_uncertainty", targets=("uncertainty_id",), content="choice",
+                 forwards_to=HumanResolutionManager.resolve)
     def resolve_uncertainty(self, *args, **kwargs):
         return self.human_resolution.resolve(*args, **kwargs)
 
