@@ -1421,10 +1421,13 @@ class CCCSystem:
              semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
              text_matcher=None,
              private_source_markers=None,
-             write_permission: WritePermission | None = None) -> "CCCSystem":
+             write_permission: WritePermission | None = None,
+             human_verifier: HumanVerifier | None = None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
-        # rebuilt from the store along with the lexical ones.
+        # rebuilt from the store along with the lexical ones. Neither guard is
+        # saved with the store, so a reloaded system has them only if they are
+        # given here again.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
                    private_source_markers=private_source_markers,
-                   write_permission=write_permission)
+                   write_permission=write_permission, human_verifier=human_verifier)
