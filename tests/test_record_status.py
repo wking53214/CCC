@@ -39,7 +39,7 @@ def _record(system: CCCSystem, text: str = TEXT, *, candidate_id: str = "c1",
     return system.ingest(
         text,
         actor=actor or Actor.model(SOURCE),
-        epistemic_status=EpistemicStatus.INFERENCE,
+        epistemic_status=EpistemicStatus.THEORY,
         metadata={"source": source, "candidate_id": candidate_id},
     )
 

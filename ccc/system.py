@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import warnings
 from dataclasses import replace
 from pathlib import Path
@@ -19,10 +20,11 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
-from .errors import InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
+from .errors import HumanVerificationRefused, InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
+from .human_auth import HumanVerifier, build_human_request
 from .human_resolution import HumanResolutionManager
 from .lineage import LineageManager
 from .models import (
@@ -56,7 +58,16 @@ def _asks_permission(operation: str):
         @functools.wraps(method)
         def asks(self, *args, **kwargs):
             self._require_write_permission(operation, args, kwargs)
-            return method(self, *args, **kwargs)
+            marks = self._store_marks() if self._permission_settles() else None
+            try:
+                result = method(self, *args, **kwargs)
+            except BaseException:
+                # A yes was given. If nothing was written the permission is given back; if anything was, it is used.
+                if marks is not None:
+                    self._tell_permission("abort" if self._store_marks() == marks else "commit")
+                raise
+            self._tell_permission("commit")
+            return result
 
         asks.__name__ = operation
         asks.__qualname__ = f"CCCSystem.{operation}"
@@ -201,6 +212,113 @@ def _state(artifact: Artifact) -> dict[str, Any]:
     }
 
 
+class _AsksPermission:
+    """The face a manager shows callers: the methods named in ``doors`` ask the system's write permission first, under
+    their own names, and everything else is the manager's own. CCC's calls beneath a door that has already asked use the
+    manager itself, so a yes is asked for once."""
+
+    def __init__(self, manager, system, doors: Sequence[str]) -> None:
+        self._manager = manager
+        self._system = system
+        self._doors = frozenset(doors)
+
+    def __getattr__(self, name: str):
+        if name in ("_manager", "_system", "_doors"):  # not built yet (a copy being made): no manager to ask
+            raise AttributeError(name)
+        attribute = getattr(self._manager, name)
+        if name not in self._doors:
+            return attribute
+
+        @functools.wraps(attribute)
+        def asks(*args, **kwargs):
+            self._system._require_write_permission(name, args, kwargs)
+            return attribute(*args, **kwargs)
+
+        return asks
+
+
+#: What derive, infer and interpret make. Ingest takes material in and does not.
+_CONCLUSIONS = frozenset({EpistemicStatus.INFERENCE, EpistemicStatus.INTERPRETATION})
+
+
+def _not_a_conclusion(method):
+    """Make an ingest door refuse a record it is asked to make as a conclusion. A conclusion is made by derive, infer
+    or interpret, which keep the evidence it rests on, so a permission that allows only ingest does not allow
+    inferences. The signature is the wrapped method's own."""
+
+    @functools.wraps(method)
+    def takes_material(self, *args, **kwargs):
+        if kwargs.get("epistemic_status") in _CONCLUSIONS:
+            self.rules.evaluate(
+                "CCC-EPISTEMIC-001",
+                False,
+                reason=f"ingest takes material in and cannot make {kwargs['epistemic_status'].value}; "
+                       "a conclusion is made by derive, infer or interpret, which keep the evidence it rests on",
+            )
+        return method(self, *args, **kwargs)
+
+    return takes_material
+
+
+#: The epistemic statuses a human holds a record at. Moving to one is a promotion, off one a demotion.
+_HUMAN_HELD = frozenset({EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE})
+
+
+def _is_human_held_change(system, arguments) -> bool:
+    """Whether a classify call moves a record to or off a status a human holds it at."""
+    if arguments["status"] in _HUMAN_HELD:
+        return True
+    artifact = system.store.get_artifact(arguments["artifact_id"])
+    return artifact is not None and artifact.epistemic_status in _HUMAN_HELD
+
+
+def _human_only(operation: str, *, targets: Sequence[str] = (), content: str | None = None, forwards_to=None,
+                when=None):
+    """Make a human-only public method ask the system's human verifier once, before it does anything.
+
+    ``targets`` names the parameters that hold the ids the act is about, ``content`` the one that holds new text,
+    and ``forwards_to`` the function whose signature names the arguments of a method that only forwards
+    ``*args, **kwargs``. ``when(system, arguments)`` limits the ask to the calls that are a human act (a MANDATE
+    advance, not a PATTERN one). The caller's ``attestation`` keyword is taken off here and carried to the verifier;
+    the method never sees it, so its signature and the digest of its call are what they were. With no verifier the
+    call goes straight through."""
+
+    def decorate(method):
+        signature = inspect.signature(forwards_to if forwards_to is not None else method)
+
+        @functools.wraps(method)
+        def verified(self, *args, **kwargs):
+            attestation = kwargs.pop("attestation", None)
+            if self._human_verifier is None or self._human_depth:
+                return method(self, *args, **kwargs)
+            try:
+                bound = signature.bind(None if forwards_to is not None else self, *args, **kwargs)
+            except TypeError:
+                return method(self, *args, **kwargs)  # a call that cannot bind fails in the method, writing nothing
+            bound.apply_defaults()
+            arguments = dict(bound.arguments)
+            if when is not None and not when(self, arguments):
+                return method(self, *args, **kwargs)
+            ids: list[str] = []
+            for name in targets:
+                value = arguments.get(name)
+                if isinstance(value, str):
+                    ids.append(value)
+                elif value is not None:
+                    ids.extend(value)
+            self._verify_human(operation, arguments.get("actor"), tuple(ids), arguments.get(content) if content else None,
+                               arguments.get("authorization_basis"), attestation)
+            self._human_depth += 1
+            try:
+                return method(self, *args, **kwargs)
+            finally:
+                self._human_depth -= 1
+
+        return verified
+
+    return decorate
+
+
 class CCCSystem:
     """A dependency-free, auditable CCC enforcement layer."""
 
@@ -208,6 +326,9 @@ class CCCSystem:
 
     #: Read before __init__ has run (a half-built or unpickled system), where no permission was given.
     _write_permission: WritePermission | None = None
+    _human_verifier: HumanVerifier | None = None
+    #: How many human-only calls are open on this system, so a call beneath one (ratify calls accept) does not ask again.
+    _human_depth: int = 0
 
     def __init__(self, *, store: CCCStore | None = None,
                  persistence_path: str | Path | None = None,
@@ -215,17 +336,33 @@ class CCCSystem:
                  semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
                  text_matcher=None,
                  private_source_markers=None,
-                 write_permission: WritePermission | None = None) -> None:
+                 write_permission: WritePermission | None = None,
+                 human_verifier: HumanVerifier | None = None) -> None:
         """
+        human_verifier: an optional callable the application supplies. When given,
+            every human-only operation (decide, correct, amend, supersede,
+            redact, erase, accept, establish_provenance, reject, ratify,
+            record_resolution, resolve_uncertainty, adopt_discovery, a MANDATE
+            advance and an epistemic promotion) calls it once, first, with a
+            ccc.human_auth.HumanRequest, and goes on only if it returns exactly
+            True; anything else raises HumanVerificationRefused before anything
+            is written. The caller may pass an `attestation` keyword to those
+            operations, carried to the verifier untouched. None, the default,
+            behaves as before. A human operation never asks write_permission.
+            It is not saved with the store. See ccc/human_auth.py.
         write_permission: an optional callable the application supplies. When
             given, ingest, record, derive, infer, interpret, record_external_finding,
-            discover, detect_road_sign and record_road_sign each call it once,
-            first, with a ccc.permission.WriteRequest, and go on only if it
-            returns exactly True; anything else raises WritePermissionRefused
-            before the store, the rules or the audit trail are touched. Other
-            methods (decide, correct, amend, supersede, accept, redact, erase and
-            the rest) never ask. None, the default, behaves as before. It is not
-            saved with the store. See ccc/permission.py.
+            discover, detect_road_sign, record_road_sign, attach_evidence and
+            relate each call it once, first, with a ccc.permission.WriteRequest,
+            and go on only if it returns exactly True; anything else raises
+            WritePermissionRefused before the store, the rules or the audit
+            trail are touched. The private _ingest and _derive, and the
+            discover and road sign methods of system.discovery and
+            system.road_signs, ask at the same doors. Human-only methods
+            (decide, correct, amend, supersede, accept, redact, erase and the
+            rest) never ask; they ask human_verifier. None, the default,
+            behaves as before. It is not saved with the store. See
+            ccc/permission.py.
         private_source_markers: the sources a machine finding must not cite
             unless allow_private_source=True, matched as substrings of each
             source_material entry. CCC names no repositories; the application
@@ -258,17 +395,26 @@ class CCCSystem:
         self.rules = ConstitutionalRuleEngine(self.store)
         self.lineage = LineageManager(self.store, self.audit_trail, self.rules)
         self.evidence = EvidenceManager(self.store, self.audit_trail, self.rules)
-        self.provenance = ProvenanceManager(self.store, self.audit_trail, self.lineage, self.rules, self.evidence)
-        self.epistemic = EpistemicManager(self.store, self.audit_trail, self.rules, self.evidence)
+        self.provenance = ProvenanceManager(self.store, self.audit_trail, self.lineage, self.rules, self.evidence,
+                                            human_gate=self._gate_human)
+        self.epistemic = EpistemicManager(self.store, self.audit_trail, self.rules, self.evidence,
+                                          human_gate=self._gate_human)
         self.human_resolution = HumanResolutionManager(self.store, self.audit_trail, self.rules)
-        self.road_signs = RoadSignManager(self.store, self.audit_trail, self.rules)
-        self.discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
+        # The managers that create findings and road signs are kept raw for CCC's own calls, which are already under
+        # an ask, and shown to callers through a face that asks the write permission at the same doors.
+        self._road_signs = RoadSignManager(self.store, self.audit_trail, self.rules)
+        self._discovery = DiscoveryManager(self.store, self.audit_trail, self.rules, self.evidence)
+        self.road_signs = _AsksPermission(self._road_signs, self, ("detect_road_sign", "record_road_sign"))
+        self.discovery = _AsksPermission(self._discovery, self, ("discover",))
         require_matcher(text_matcher)
         self.text_matcher = text_matcher
         self.private_source_markers = _stated_private_sources(private_source_markers)
         if write_permission is not None and not callable(write_permission):
             raise TypeError("write_permission must be a callable that takes a WriteRequest, or None")
         self._write_permission = write_permission
+        if human_verifier is not None and not callable(human_verifier):
+            raise TypeError("human_verifier must be a callable that takes a HumanRequest, or None")
+        self._human_verifier = human_verifier
         self.semantic_index = semantic_index
         self.semantic_threshold = semantic_threshold
         self.conflict = ConflictManager(self.store, self.audit_trail, self.rules, self.human_resolution)
@@ -337,6 +483,42 @@ class CCCSystem:
     def system_actor(self) -> Actor:
         return Actor.system()
 
+    @property
+    def write_permission(self) -> WritePermission | None:
+        """The permission this system was built with, or None. Read-only, for a caller deciding whether it is one they
+        trust. It is not saved with the store."""
+        return self._write_permission
+
+    @property
+    def has_write_permission(self) -> bool:
+        """Whether this system asks a permission before it writes. Says nothing about what the permission will answer."""
+        return self._write_permission is not None
+
+    def _permission_settles(self) -> bool:
+        """Whether the write permission offers `commit` and `abort`, to be told how a write it allowed ended."""
+        check = self._write_permission
+        return check is not None and callable(getattr(check, "commit", None)) and callable(getattr(check, "abort", None))
+
+    def _tell_permission(self, how: str) -> None:
+        """Tell a settling permission how the write it allowed ended. One that raises while being told does not hide
+        the write or its failure."""
+        if self._permission_settles():
+            try:
+                getattr(self._write_permission, how)()
+            except Exception:  # noqa: BLE001 - the write has happened or failed; the permission's trouble stays its own
+                pass
+
+    def _store_marks(self) -> tuple[int, ...]:
+        """The number of records in every section the store keeps, to tell whether a failed write changed anything.
+
+        A change that replaces a record in place without adding any would not show; the gated methods that write also
+        append to the audit trail or add a record, so a write that got far enough to matter does show."""
+        store = self.store
+        return tuple(len(section) for section in (
+            store.artifacts, store.provenance_events, store.epistemic_events, store.evidence_links, store.lineage_events,
+            store.audit_events, store.road_signs, store.discoveries, store.uncertainties, store.conflicts,
+            store.rule_decisions))
+
     def _require_write_permission(self, operation: str, args: tuple, kwargs: Mapping[str, Any]) -> None:
         """Ask the write permission, if one was given. Only the value True permits; the store is not touched."""
         check = self._write_permission
@@ -353,7 +535,32 @@ class CCCSystem:
                 operation, "the write permission did not say yes (only True permits); nothing was written"
             )
 
-    def _ingest(
+    def _verify_human(self, operation: str, actor, target_ids: tuple[str, ...], content: str | None,
+                      authorization_basis: str | None, attestation) -> None:
+        """Ask the human verifier. Only the value True permits; the store is not touched."""
+        check = self._human_verifier
+        if check is None:
+            return
+        try:
+            verdict = check(build_human_request(operation, actor, target_ids, content, authorization_basis,
+                                                attestation))
+        except Exception as exc:  # a verifier that cannot answer never permits
+            raise HumanVerificationRefused(
+                operation, f"the human verifier raised {type(exc).__name__}: {exc}; nothing was written"
+            ) from exc
+        if verdict is not True:
+            raise HumanVerificationRefused(
+                operation, "the human verifier did not say yes (only True permits); nothing was written"
+            )
+
+    def _gate_human(self, operation: str, actor, target_ids: tuple[str, ...], content: str | None,
+                    authorization_basis: str | None) -> None:
+        """The managers' way to ask the human verifier, for a demotion they are about to make. A call beneath a
+        facade method that has already asked does not ask again."""
+        if self._human_verifier is not None and not self._human_depth:
+            self._verify_human(operation, actor, target_ids, content, authorization_basis, None)
+
+    def _store_artifact(
         self,
         content: str,
         *,
@@ -460,15 +667,18 @@ class CCCSystem:
         )
         return artifact
 
-    # The front door: asks the write permission once, then does exactly what _ingest does. decide and _version
-    # call _ingest directly, so a human's decision and a corrected, amended or superseding version never ask.
-    ingest = _asks_permission("ingest")(_ingest)
+    # The front door: asks the write permission once, then does exactly what _store_artifact does. decide and _version
+    # call _store_artifact directly, so a human's decision and a corrected, amended or superseding version never ask.
+    # _ingest is the same door under the name callers already reach for, so it asks too.
+    ingest = _asks_permission("ingest")(_not_a_conclusion(_store_artifact))
+    _ingest = _asks_permission("ingest")(_not_a_conclusion(_store_artifact))
 
     @_asks_permission("record")
+    @_not_a_conclusion
     def record(self, content: str, **kwargs) -> Artifact:
-        return self._ingest(content, **kwargs)
+        return self._store_artifact(content, **kwargs)
 
-    def _derive(
+    def _make_conclusion(
         self,
         conclusion: str,
         *,
@@ -481,7 +691,7 @@ class CCCSystem:
         topics: tuple[str, ...] = (),
     ) -> Artifact:
         actor = actor or Actor.model()
-        artifact = self._ingest(
+        artifact = self._store_artifact(
             conclusion,
             actor=actor,
             provenance_status=ProvenanceStatus.ASSISTANT_PROPOSED,
@@ -502,16 +712,17 @@ class CCCSystem:
             )
         return self.store.require_artifact(artifact.artifact_id)
 
-    derive = _asks_permission("derive")(_derive)
+    derive = _asks_permission("derive")(_make_conclusion)
+    _derive = _asks_permission("derive")(_make_conclusion)
 
     @_asks_permission("infer")
     def infer(self, conclusion: str, **kwargs) -> Artifact:
-        return self._derive(conclusion, **kwargs)
+        return self._make_conclusion(conclusion, **kwargs)
 
     @_asks_permission("interpret")
     def interpret(self, interpretation: str, **kwargs) -> Artifact:
         kwargs.setdefault("method", "machine interpretation")
-        artifact = self._derive(interpretation, **kwargs)
+        artifact = self._make_conclusion(interpretation, **kwargs)
         return self.epistemic.transition(
             artifact.artifact_id,
             EpistemicStatus.INTERPRETATION,
@@ -520,6 +731,7 @@ class CCCSystem:
             evidence_ids=tuple(kwargs.get("evidence_ids", ())),
         )
 
+    @_asks_permission("attach_evidence")
     def attach_evidence(self, claim_id: str, evidence_id: str, *, actor: Actor | None = None, rationale: str, support_strength: float | None = None):
         return self.evidence.attach_evidence(
             claim_id,
@@ -538,18 +750,24 @@ class CCCSystem:
     def validate_evidence_chain(self, artifact_id: str):
         return self.evidence.validate_evidence_chain(artifact_id)
 
+    @_human_only("establish_provenance", targets=("artifact_id", "evidence_ids"))
     def establish_provenance(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str, evidence_ids: tuple[str, ...] = ()):
         return self.provenance.establish_provenance(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("accept", targets=("artifact_id", "evidence_ids"))
     def accept(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str, evidence_ids: tuple[str, ...] = ()):
         return self.provenance.accept(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("reject", targets=("artifact_id",))
     def reject(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str):
         return self.provenance.reject(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis)
 
+    @_human_only("classify", targets=("artifact_id", "evidence_ids"),
+                 when=lambda system, a: _is_human_held_change(system, a))
     def classify(self, artifact_id: str, status: EpistemicStatus, *, actor: Actor, reason: str, evidence_ids: tuple[str, ...] = ()):
         return self.epistemic.classify(artifact_id, status, actor=actor, reason=reason, evidence_ids=evidence_ids)
 
+    @_human_only("ratify", targets=("artifact_id", "evidence_ids"))
     def ratify(
         self,
         artifact_id: str,
@@ -564,6 +782,7 @@ class CCCSystem:
             return self.establish_provenance(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
         return self.accept(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, evidence_ids=evidence_ids)
 
+    @_human_only("decide", targets=("recommendation_id",), content="choice")
     def decide(
         self,
         choice: str,
@@ -599,7 +818,7 @@ class CCCSystem:
         if recommendation_id is not None:
             self.store.require_artifact(recommendation_id)
         how = _decision_record(options, selected_option, rejected, deferred, assumptions)
-        decision = self._ingest(
+        decision = self._store_artifact(
             choice,
             actor=actor,
             provenance_status=ProvenanceStatus.USER_ESTABLISHED,
@@ -623,12 +842,15 @@ class CCCSystem:
         )
         return decision
 
+    @_human_only("correct", targets=("artifact_id",), content="content")
     def correct(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.CORRECTS, operation="CORRECT")
 
+    @_human_only("amend", targets=("artifact_id",), content="content")
     def amend(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.AMENDS, operation="AMEND")
 
+    @_human_only("supersede", targets=("artifact_id",), content="content")
     def supersede(self, artifact_id: str, *, content: str, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._version(artifact_id, content=content, actor=actor, reason=reason, authorization_basis=authorization_basis, relationship=RelationshipType.SUPERSEDES, operation="SUPERSEDE")
 
@@ -656,7 +878,7 @@ class CCCSystem:
                     f"{artifact_id} is already superseded by {successors[0]}; "
                     "supersede that record instead"
                 )
-        new_artifact = self._ingest(
+        new_artifact = self._store_artifact(
             content,
             actor=actor,
             provenance_status=ProvenanceStatus.USER_ESTABLISHED,
@@ -703,6 +925,7 @@ class CCCSystem:
         RelationshipType.REDACTS, RelationshipType.ERASES,
     })
 
+    @_asks_permission("relate")
     def relate(self, source_id: str, target_id: str, relationship: RelationshipType, *,
                actor: Actor, reason: str, evidence: tuple[str, ...] = ()):
         """Record a typed, immutable relationship edge between two objects
@@ -719,9 +942,11 @@ class CCCSystem:
             source_id, target_id, relationship, actor=actor, reason=reason, evidence=evidence,
         )
 
+    @_human_only("redact", targets=("artifact_id",))
     def redact(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.REDACTED, relationship=RelationshipType.REDACTS, operation="REDACT")
 
+    @_human_only("erase", targets=("artifact_id",))
     def erase(self, artifact_id: str, *, actor: Actor, reason: str, authorization_basis: str) -> Artifact:
         return self._make_unavailable(artifact_id, actor=actor, reason=reason, authorization_basis=authorization_basis, state=ArtifactState.ERASED, relationship=RelationshipType.ERASES, operation="ERASE")
 
@@ -791,11 +1016,11 @@ class CCCSystem:
     # other here (each goes straight to the road sign manager), so a yes is asked for once, never twice.
     @_asks_permission("detect_road_sign")
     def detect_road_sign(self, **kwargs):
-        return self.road_signs.detect_road_sign(**kwargs)
+        return self._road_signs.detect_road_sign(**kwargs)
 
     @_asks_permission("record_road_sign")
     def record_road_sign(self, **kwargs):
-        return self.road_signs.record_road_sign(**kwargs)
+        return self._road_signs.record_road_sign(**kwargs)
 
     def link_road_sign(self, *args, **kwargs):
         return self.road_signs.link_road_sign(*args, **kwargs)
@@ -807,7 +1032,7 @@ class CCCSystem:
     # create the same kind of record, so both ask.
     @_asks_permission("discover")
     def discover(self, **kwargs):
-        return self.discovery.discover(**kwargs)
+        return self._discovery.discover(**kwargs)
 
     def recurring_groups(self, *, min_occurrences: int = 1):
         """Read-only: the groups of linked machine findings CCC has recorded,
@@ -1050,7 +1275,7 @@ class CCCSystem:
         event_start_date = getattr(finding, "event_start_date", None)
         event_end_date = getattr(finding, "event_end_date", None)
 
-        record = self.discovery.discover(
+        record = self._discovery.discover(
             source_material=finding.source_material,
             method=method,
             conclusion=finding.conclusion,
@@ -1070,7 +1295,7 @@ class CCCSystem:
                 # 2nd independent occurrence -> the pattern is real enough
                 # to investigate. A machine may make this transition;
                 # discovery.py only gates MANDATE behind a human.
-                self.discovery.advance(
+                self._discovery.advance(
                     representative_id, stage=AnalysisStage.PATTERN, actor=actor,
                     reason=f"2nd independent occurrence detected: {record.discovery_id}",
                 )
@@ -1130,7 +1355,7 @@ class CCCSystem:
         independent (non-duplicate) occurrences on record including this
         one; `pattern_id` groups the signs for a reviewer who wants them
         collapsed."""
-        self.road_signs.detect_road_sign(
+        self._road_signs.detect_road_sign(
             category=RoadSignCategory.REPEATED_RETURN,
             observation=(
                 f"occurrence {occurrence_count} of pattern {pattern_id}: {occurrence_id} "
@@ -1155,7 +1380,7 @@ class CCCSystem:
         claim rather than take it.
         """
         nearest = decision.semantic_matches[0] if decision.semantic_matches else None
-        self.road_signs.detect_road_sign(
+        self._road_signs.detect_road_sign(
             category=RoadSignCategory.UNEXPECTED_CONNECTION,
             observation=(
                 "semantic-only recurrence candidate: lexical matching found no "
@@ -1177,9 +1402,12 @@ class CCCSystem:
             },
         )
 
+    @_human_only("advance_discovery", targets=("discovery_id", "evidence_ids"), forwards_to=DiscoveryManager.advance,
+                 when=lambda system, a: a["stage"] is AnalysisStage.MANDATE)
     def advance_discovery(self, *args, **kwargs):
         return self.discovery.advance(*args, **kwargs)
 
+    @_human_only("adopt_discovery", targets=("discovery_id",), forwards_to=DiscoveryManager.adopt)
     def adopt_discovery(self, *args, **kwargs):
         return self.discovery.adopt(*args, **kwargs)
 
@@ -1195,12 +1423,16 @@ class CCCSystem:
     def request_human_resolution(self, *args, **kwargs):
         return self.conflict.request_human_resolution(*args, **kwargs)
 
+    @_human_only("record_resolution", targets=("conflict_id",), content="choice",
+                 forwards_to=ConflictManager.record_resolution)
     def record_resolution(self, *args, **kwargs):
         return self.conflict.record_resolution(*args, **kwargs)
 
     def ask(self, **kwargs):
         return self.human_resolution.ask(**kwargs)
 
+    @_human_only("resolve_uncertainty", targets=("uncertainty_id",), content="choice",
+                 forwards_to=HumanResolutionManager.resolve)
     def resolve_uncertainty(self, *args, **kwargs):
         return self.human_resolution.resolve(*args, **kwargs)
 
@@ -1279,10 +1511,13 @@ class CCCSystem:
              semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
              text_matcher=None,
              private_source_markers=None,
-             write_permission: WritePermission | None = None) -> "CCCSystem":
+             write_permission: WritePermission | None = None,
+             human_verifier: HumanVerifier | None = None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
-        # rebuilt from the store along with the lexical ones.
+        # rebuilt from the store along with the lexical ones. Neither guard is
+        # saved with the store, so a reloaded system has them only if they are
+        # given here again.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
                    private_source_markers=private_source_markers,
-                   write_permission=write_permission)
+                   write_permission=write_permission, human_verifier=human_verifier)
