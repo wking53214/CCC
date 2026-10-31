@@ -32,6 +32,12 @@ happens beneath its one ask, not through the public methods, so it does not ask 
 
 WHAT THIS DOES NOT DO
 
+A check that has `commit` and `abort` methods is told how the call it allowed ended: `commit()` once the call returned,
+and on an exception `abort()` if the store is exactly as it was (the number of records in every section), `commit()` if
+anything was written. So a one-use check can give its yes back when the call failed before changing anything, and keeps
+it used when the call failed halfway, because a retry on top of a partial write is not the call that was approved. A
+check with neither method behaves as before.
+
 A system built without a check is not stopped, and nothing here can see that. The check is given to the
 constructor and is not saved with the store, so a system reloaded or copied from a snapshot has none unless it is
 given one again.
