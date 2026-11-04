@@ -58,6 +58,14 @@ class DiscoveryManager:
                 False,
                 reason="machine discovery cannot be created as human evidence",
             )
+        # A mandate is established by a human advancing a pattern with evidence
+        # (advance, CCC-123-001). Creating a record already at MANDATE would
+        # skip all of that and stamp it with the human-established attribution.
+        self.rules.evaluate(
+            "CCC-123-001",
+            stage is not AnalysisStage.MANDATE,
+            reason="a discovery cannot be created as a mandate; advance a pattern with a human event",
+        )
         machine_origin = actor.kind in {ActorType.MODEL, ActorType.SYSTEM}
         record = DiscoveryRecord(
             discovery_id=new_id("discovery"),
