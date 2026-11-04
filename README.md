@@ -67,11 +67,10 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 
 The connector has no outcome end by design: `cns_chain(system).complete()` is `False`. CCC is judged at the ALPHA gate only.
 
-**Maturity and limits (measured 2026-10-31 on `origin/main` at `f6e33da`).**
-- With the local sibling checkouts on the path (CNS at v2.3.0 plus 59 later commits, CCCb at `e2b1af0`): 1196 passed, 1 xfailed.
-- With CNS hidden and CCCb present: 658 passed, 3 skipped, 1 xfailed. The 3 skips are the connected modules (`test_cns_connector.py`, `test_cns_write_permission_presence.py`, `test_write_request_digest.py`), which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there.
-- Without CCCb, 7 test modules fail at import (`test_external_finding`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`): they need the `match` extra.
-- Not re-measured on 2026-10-31: the CI runs on Python 3.11 and 3.12 (these runs used 3.13), and the end-to-end spine result recorded in CNS.
+**Maturity and limits (first measured 2026-10-31 on `origin/main` at `f6e33da`; re-measured 2026-11-04 on main `7d64471` plus the RACE hardening changes, uncommitted).**
+- Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `8e3c779`), CI's matrix reproduced on Python 3.11, 3.12 and 3.13: with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
+- With neither CCCb nor CNS installed, 10 test modules fail at import because they need the `match` extra (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 500 tests pass with 4 skipped.
+- Not measured: GitHub Actions itself (only its commands, run locally), and the end-to-end spine result recorded in CNS.
 - Version 0.1.0, no tag or release. A system built without `write_permission` or `human_verifier` is not stopped, and nothing can see that from outside. Anyone holding `system.store` can write around both. Continuity across processes depends on the persistence the caller supplies.
 
 ## 2. Full System Scope & Architectural Depth
@@ -96,15 +95,15 @@ New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CC
 
 ### Release and test status
 
-Measured 2026-10-31 at main `f6e33da` (section 1 has the commands and conditions).
+Measured 2026-11-04 (section 1 has the commands and conditions).
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
 | CI on main | Green |
-| Tests | 1196 passed and 1 xfailed with CNS and CCCb available; 658 passed, 3 skipped and 1 xfailed with CNS hidden (parametrized cases counted) |
-| Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`; the comment above it there still says v2.2.0). The `match` extra pins `cccb` to commit `8e3c779`. |
+| Tests | 1341 passed and 7 xfailed with CNS and CCCb available; 776 passed, 4 skipped and 7 xfailed with CNS hidden (parametrized cases counted; section 1 has the conditions) |
+| Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `8e3c779`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
 
 ## 5. Core Invariants & Guarantees
@@ -166,6 +165,25 @@ CNS spine: HERALD -> TIE -> Conservation_Kernel -> Governance_Gateway -> CCC (wr
 ```
 
 The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if CCC gates one it does not name. The 30-result, one-recorded-GAP figure that script reported on 2026-10-30 is CNS's measurement; it was not re-run for this README.
+
+
+### Authority, the matcher and the known limits
+
+Three packages, three jobs. **CCC decides**: what is accepted, what a duplicate or a recurrence means, what counts as an occurrence, what may escalate. **CCCb measures** how alike two texts are, and decides nothing. **CNS binds** a verdict to the content it was about, and decides nothing. Neither of the others replaces CCC's authority: a measurement is not corroboration, a binding is correspondence and not truth, and a bound PASS does not admit what CCC's rules refuse.
+
+Install: `pip install -e .` has no dependencies. `.[match]` adds CCCb pinned to one full commit (`8e3c779`, the one that resolves tied candidates in id order). `.[cns]` adds CNS pinned to the tag v2.3.0. A test checks that the `match` pin is exactly one 40-hex commit of CCCb, and a second test runs the installed matcher under several hash seeds to catch a stale install. Installing CCCb from an archive of a commit rather than from git can pick up the stale copy in CCCb's tracked `build/lib/` (it did, in one run of this campaign), so install from the git URL the extra names. Without a matcher, `record_external_finding` raises `TextMatcherMissing` and nothing else changes. Without CNS, only the `ccc.cns_connector` functions that need it raise `CnsNotInstalled`.
+
+What CCC checks on a matcher's answer before it can become a record (`ccc/text_matching.py`): the shape; that every id is one CCC gave it; that every score is a finite number in [0, 1]; that a match length is a positive integer; that a recurrence's best id is in its own cluster. A bad answer raises `ValueError` and nothing is written. CCC does not compare a score with the matcher's threshold; "this is a match" is the matcher's call. A finding whose conclusion or evidence excerpt is blank is refused. `discover` cannot create a record at MANDATE; a human advances a pattern with evidence (`CCC-123-001`). `save` writes a temporary file, syncs it and renames it over the target, so a failed save leaves the previous complete file.
+
+Known limits, each stated as a strict expected failure in the tests so that closing one makes its test say so:
+
+- **A resubmission can count as an independent occurrence.** CCCb needs a 40-character shared span to call two texts duplicates, and its duplicate measure is case- and whitespace-sensitive and sees only the first 50,000 characters. An identical 31-character finding resubmitted three times, an upper-cased copy, a copy with doubled whitespace, or a copy behind 80,000 characters of padding is measured as a recurrence, which CCC counts as an occurrence, so the original can be lifted from ANOMALY to PATTERN by a machine. MANDATE stays human-only. Fixing the measurement is a change in CCCb.
+- **A matcher whose `add` fails after a record is written** raises to the caller, but the record stays, and in that process a retry is not seen as a duplicate. A reload re-indexes it.
+- **The state file has no digest or version.** An edited file loads as valid, and a repeated event id in the audit, provenance, epistemic or lineage lists is not refused. CCC makes no tamper-evidence claim for the file. An empty file is a fresh store by design.
+- **Callers that hold the managers can bypass the facade.** `system.provenance`, `system.discovery.advance` and the other managers are attributes; `human_verifier` guards the facade methods, and `write_permission` guards the doors listed in section 8. Counting occurrences trusts the `relationships` a caller passes to the bare `discover`, and a duplicate is recognised by the words "duplicate detection" in a record's `method`.
+- **The CNS connector is ALPHA only** and judges on a scratch copy that carries neither the live `write_permission` nor `human_verifier`: a PASS says CCC's rules admit the call, not that the application's own checks do. The digest binds the call, not the store, so a PASS stays bindable after the state it was judged on has changed, and a hand-built PASS with the right subject and digest binds too. A binding says which content a verdict was about, nothing more. CCC has no outcome (OMEGA) end and does not claim one.
+
+Evidence for all of the above is in `tests/test_matcher_boundary.py`, `tests/test_determinism.py`, `tests/test_evidence_integrity_persistence.py` and `tests/test_integration_ccc_cccb_cns.py` (the last runs the real CCCb and CNS and is skipped only where CNS is absent).
 
 Apache-2.0.
 
