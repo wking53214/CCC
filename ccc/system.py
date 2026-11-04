@@ -1150,10 +1150,11 @@ class CCCSystem:
                 "source (one of the stated private_source_markers) -- refusing to "
                 "record it into the audit trail without allow_private_source=True"
             )
-        if not finding.conclusion:
+        if not finding.conclusion or (
+                isinstance(finding.conclusion, str) and not finding.conclusion.strip()):
             raise ValueError(
-                "a verified finding with an empty conclusion is "
-                "self-inconsistent -- refusing to record it"
+                "a verified finding with an empty conclusion (or one that is only "
+                "whitespace) is self-inconsistent -- refusing to record it"
             )
         if finding.confidence is not None and not 0.0 <= finding.confidence <= 1.0:
             raise ValueError(
@@ -1164,7 +1165,7 @@ class CCCSystem:
         evidence = getattr(finding, "evidence", ())
         for pair in evidence:
             if (not isinstance(pair, tuple) or len(pair) != 2
-                    or not all(isinstance(x, str) and x for x in pair)):
+                    or not all(isinstance(x, str) and x.strip() for x in pair)):
                 raise ValueError(
                     f"evidence entry {pair!r} is not a (source, excerpt) pair "
                     "of non-empty strings -- refusing a malformed finding "

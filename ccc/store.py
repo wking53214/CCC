@@ -8,6 +8,7 @@ tombstone rather than removing its identifier.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -214,8 +215,26 @@ class CCCStore:
         target = Path(path) if path else self.persistence_path
         if target is None:
             raise ValueError("a persistence path is required")
+        if target.is_symlink():
+            target = target.resolve()
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(self.snapshot(), indent=2, sort_keys=True), encoding="utf-8")
+        text = json.dumps(self.snapshot(), indent=2, sort_keys=True)
+        # Write beside the target, flush it to disk, then rename over it: a crash
+        # or a full disk leaves the previous complete file in place, never a
+        # half-written one that loads as corrupt (or, truncated to nothing, as
+        # a fresh store). The rename is atomic on POSIX; fsync makes the bytes
+        # durable before it. Nothing is claimed beyond that: the directory
+        # entry itself is not fsynced, and two writers still race.
+        temp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+        try:
+            with open(temp, "w", encoding="utf-8") as handle:
+                handle.write(text)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp, target)
+        except BaseException:
+            temp.unlink(missing_ok=True)
+            raise
         return target
 
     @classmethod
