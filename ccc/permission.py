@@ -20,13 +20,17 @@ its rules or its audit trail, so a refused call leaves every one of them as it w
 
 WHAT IS NOT GATED
 
-Only the nine methods above ask. Recording a human decision (``decide``), making a corrected, amended or
-superseding version, accepting, rejecting, classifying, redacting and erasing do not, so a human's action is never
-held up by a machine's roster. Neither do the methods that change a record that already exists (``adopt_discovery``,
-``advance_discovery``, ``link_road_sign``, ``record_resolution``) or the ones that create a conflict, a question, an
-evidence link or a relationship (``detect_conflict``, ``ask``, ``attach_evidence``, ``relate``): they were left open
-on purpose, not overlooked. The methods that do ask call each other (``interpret`` calls ``derive``, which
-creates the record); the permission is asked once, at the public call, never again beneath it.
+Recording a human decision (``decide``), making a corrected, amended or superseding version, accepting, rejecting,
+classifying, redacting and erasing do not ask, so a human's action is never held up by a machine's roster; those ask
+the human verifier instead (see ccc/human_auth.py). Neither do the methods that change a record that already exists
+(``adopt_discovery``, ``advance_discovery``, ``link_road_sign``, ``record_resolution``) or the ones that create a
+conflict or a question (``detect_conflict``, ``ask``): they were left open on purpose, not overlooked.
+
+The doors beyond the nine above ask too: ``attach_evidence`` and ``relate`` (the two ways to add an evidence link or
+a lineage edge), the private ``_ingest`` and ``_derive``, and the discovery and road sign managers a caller can reach
+as ``system.discovery`` and ``system.road_signs`` (``discover``, ``detect_road_sign``, ``record_road_sign``), each
+under the name of the method it matches. The methods that do ask call each other (``interpret`` calls ``derive``,
+which creates the record); the permission is asked once, at the public call, never again beneath it.
 ``record_external_finding`` also raises road signs and moves earlier findings up a stage as part of its own work; that
 happens beneath its one ask, not through the public methods, so it does not ask again.
 

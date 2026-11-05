@@ -32,7 +32,7 @@ def _handoff(system: CCCSystem, text: str = TEXT, *, candidate_id: str = "c1", k
     return system.ingest(
         text,
         actor=Actor.model(SOURCE),
-        epistemic_status=EpistemicStatus.INFERENCE,
+        epistemic_status=EpistemicStatus.THEORY,
         metadata={"source": SOURCE, "candidate_id": candidate_id,
                   "attestation": attest(key, source=SOURCE, candidate_id=candidate_id, text_digest=_digest(text))},
     )
@@ -53,7 +53,7 @@ def test_a_stamped_handoff_is_held():
 
 def test_forgery_by_ingest_is_unattested_not_held():
     system = CCCSystem()
-    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.INFERENCE,
+    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
     assert _ask(system, FORGED) == UNATTESTED
 
@@ -102,7 +102,7 @@ def test_a_stamp_made_with_another_key_does_not_count():
 def test_a_forged_decoy_beside_a_real_handoff_changes_nothing():
     system = CCCSystem()
     _handoff(system)
-    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.INFERENCE,
+    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
     assert _ask(system) == HELD
     assert _ask(system, FORGED) == ALTERED  # the stamped record exists, and it is not this text
@@ -132,7 +132,7 @@ def test_the_bound_lookup_uses_its_key():
 def test_without_a_key_the_answer_is_as_unauthenticated_as_before():
     """A recorded gap, stated as an assertion: with no key a forged record is still held."""
     system = CCCSystem()
-    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.INFERENCE,
+    system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
     assert _ask(system, FORGED, key=None) == HELD
 

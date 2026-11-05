@@ -32,12 +32,18 @@ Answers are checked
 -------------------
 A matcher's answers decide links and pattern advancement in a governed store,
 so CCC checks their shape and refuses (``ValueError``) an answer naming an id
-CCC never gave the matcher. A wrong answer is a defect in the matcher, and it
-fails loudly rather than becoming a record.
+CCC never gave the matcher. Numbers are checked too: a score is a finite number
+in [0, 1] (an anti-probability and a Jaccard overlap both are), a match length
+is a positive integer, and a recurrence's best id is one of its own cluster.
+CCC does not check a score against the matcher's threshold: the threshold is
+the matcher's, and CCC acts on the matcher saying "this is a match". A wrong
+answer is a defect in the matcher, and it fails loudly rather than becoming a
+record.
 """
 
 from __future__ import annotations
 
+import math
 from typing import Any, Collection, Optional, Protocol, runtime_checkable
 
 __all__ = [
@@ -87,9 +93,17 @@ def _known_id(value: Any, known: Collection[str], what: str) -> str:
 
 
 def _number(value: Any, what: str) -> float:
+    """A finite number in [0, 1]. NaN, infinity and out-of-range values would
+    be written into the record's method text as if they were measurements."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"text matcher returned a non-numeric {what}: {value!r}")
-    return float(value)
+    try:
+        number = float(value)
+    except OverflowError:
+        number = math.inf
+    if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+        raise ValueError(f"text matcher returned an out-of-range {what} (need a finite number in [0, 1]): {value!r}")
+    return number
 
 
 def checked_duplicate(
@@ -103,6 +117,8 @@ def checked_duplicate(
     item_id, anti_probability, match_length = answer
     if isinstance(match_length, bool) or not isinstance(match_length, int):
         raise ValueError(f"text matcher returned a non-integer match length: {match_length!r}")
+    if match_length < 1:
+        raise ValueError(f"text matcher returned a non-positive match length: {match_length!r}")
     return (
         _known_id(item_id, known, "duplicate"),
         _number(anti_probability, "anti-probability"),
@@ -126,4 +142,7 @@ def checked_recurrence(
         if not isinstance(pair, tuple) or len(pair) != 2:
             raise ValueError(f"text matcher returned a malformed cluster entry: {pair!r}")
         cluster.append((_known_id(pair[0], known, "recurrence"), _number(pair[1], "score")))
-    return (_known_id(best_id, known, "recurrence"), _number(best_score, "score"), tuple(cluster))
+    best = _known_id(best_id, known, "recurrence")
+    if best not in {member for member, _score in cluster}:
+        raise ValueError(f"text matcher named a best recurrence {best!r} outside its own cluster")
+    return (best, _number(best_score, "score"), tuple(cluster))

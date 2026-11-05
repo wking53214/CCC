@@ -33,7 +33,7 @@ class Settling:
 
 
 def ingest(system, **more):
-    return system.ingest(TEXT, actor=Actor.model("herald"), epistemic_status=EpistemicStatus.INFERENCE, **more)
+    return system.ingest(TEXT, actor=Actor.model("herald"), epistemic_status=EpistemicStatus.THEORY, **more)
 
 
 def test_a_call_that_returns_tells_the_permission_to_commit():

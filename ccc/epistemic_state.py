@@ -17,11 +17,13 @@ from .models import (
 
 
 class EpistemicManager:
-    def __init__(self, store, audit, rules, evidence) -> None:
+    def __init__(self, store, audit, rules, evidence, human_gate=None) -> None:
         self.store = store
         self.audit = audit
         self.rules = rules
         self.evidence = evidence
+        #: Asked, when the application gave CCC a human verifier, before a human moves a record off a held status.
+        self.human_gate = human_gate
 
     def validate_initial(self, *, actor: Actor, status: EpistemicStatus) -> None:
         if status in {EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE} and actor.kind in {ActorType.MODEL, ActorType.SYSTEM}:
@@ -52,6 +54,18 @@ class EpistemicManager:
             raise ConstitutionViolation("CCC-HISTORY-002", "erased material cannot be reclassified")
         if current is target:
             raise InvalidTransition(f"{current.value} -> {target.value} is not a transition")
+        if current in {EpistemicStatus.HISTORICAL_RECORD, EpistemicStatus.EVIDENCE}:
+            # A record a human holds as history or evidence is moved off it by a human. A machine that doubts it
+            # flags it, through a conflict or a road sign, which change nothing about it.
+            if self.human_gate is not None:
+                self.human_gate("classify", actor, (artifact_id, *evidence_ids), None, None)
+            self.rules.evaluate(
+                "CCC-HUMAN-001",
+                actor.kind is ActorType.HUMAN,
+                reason=f"a record held as {current.value} can only be moved off it by a human; "
+                       "a machine flags it through a conflict or a road sign",
+                evidence=evidence_ids,
+            )
         if current is EpistemicStatus.SIMULATION and target in {
             EpistemicStatus.HISTORICAL_RECORD,
             EpistemicStatus.EVIDENCE,

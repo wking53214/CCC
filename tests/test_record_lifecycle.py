@@ -30,7 +30,7 @@ def _record(system: CCCSystem, text: str = TEXT, *, candidate_id: str = "c1", so
     metadata = {"source": source, "candidate_id": candidate_id}
     if key is not None:
         metadata["attestation"] = attest(key, source=source, candidate_id=candidate_id, text_digest=_digest(text))
-    return system.ingest(text, actor=Actor.model(source), epistemic_status=EpistemicStatus.INFERENCE,
+    return system.ingest(text, actor=Actor.model(source), epistemic_status=EpistemicStatus.THEORY,
                          metadata=metadata)
 
 

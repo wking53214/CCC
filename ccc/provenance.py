@@ -34,12 +34,14 @@ _ALLOWED_TRANSITIONS: dict[ProvenanceStatus, frozenset[ProvenanceStatus]] = {
 class ProvenanceManager:
     """Owns every provenance mutation; callers cannot set the field directly."""
 
-    def __init__(self, store, audit, lineage, rules, evidence=None) -> None:
+    def __init__(self, store, audit, lineage, rules, evidence=None, human_gate=None) -> None:
         self.store = store
         self.audit = audit
         self.lineage = lineage
         self.rules = rules
         self.evidence = evidence
+        #: Asked, when the application gave CCC a human verifier, before a human moves a record off a held status.
+        self.human_gate = human_gate
 
     def register(
         self,
@@ -112,6 +114,19 @@ class ProvenanceManager:
             )
         if target not in _ALLOWED_TRANSITIONS[current]:
             raise InvalidTransition(f"{current.value} -> {target.value} is not permitted")
+
+        if current in {ProvenanceStatus.USER_ESTABLISHED, ProvenanceStatus.USER_ACCEPTED}:
+            # A record a human holds is moved off that status by a human. The event flag a caller passes says what
+            # the caller claims; the actor is what CCC can check.
+            if self.human_gate is not None:
+                self.human_gate("transition_provenance", actor, (artifact_id, *evidence_ids), None, authorization_basis)
+            self.rules.evaluate(
+                "CCC-HUMAN-001",
+                actor.kind is ActorType.HUMAN,
+                reason=f"a record held as {current.value} can only be moved off it by a human; "
+                       "a machine flags it through a conflict or a road sign",
+                evidence=evidence_ids,
+            )
 
         is_user_status = target in {ProvenanceStatus.USER_ACCEPTED, ProvenanceStatus.USER_ESTABLISHED}
         if is_user_status:

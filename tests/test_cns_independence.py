@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 BLOCK = "import sys; sys.modules['cns'] = None; sys.modules['cns.gate'] = None\n"
 
-PINNED_TAG = "v2.2.0"
+PINNED_TAG = "v2.3.0"
 
 
 def _run(
