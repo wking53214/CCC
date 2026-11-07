@@ -42,7 +42,7 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 - [CCCb](https://github.com/wking53214/CCCb): CCC's text-matching library, split out of this repository. CCC imports nothing from it; the application passes `cccb.TextMatcher()` in as `text_matcher`. CCC keeps the rules, CCCb keeps the measurement.
 - [Link](https://github.com/wking53214/Link): imports `ccc` (`link/admission.py:16-17`) to hand Triad-42 session output to a real `CCCSystem` and read it back through `MachineRecords`. CCC does not know Link exists.
 - [HERALD](https://github.com/wking53214/HERALD), [TIE](https://github.com/wking53214/TIE), [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel), [Governance_Gateway](https://github.com/wking53214/Governance_Gateway): no import in either direction. They reach CCC only through the spine script or an application that wires them.
-- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it.
+- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it. The same repo also imports `ccc` from two tests and one example file.
 
 **Owns.** Its store, its rulebook, its audit trail, the human-only operations, the guard on private sources, the record lookup that answers CNS, and the two hooks an application attaches (`write_permission`, `human_verifier`).
 
@@ -118,7 +118,7 @@ Fail-closed on unconstitutional promotions (AI→human authority conversion is i
 finding is a re-submission or a recurrence of an earlier one needs a
 measurement of how alike two texts are. That measurement lives in
 [CCCb](https://github.com/wking53214/CCCb) (split out of this repo at
-`d039efd`) and plugs in the way Ecology's semantic provider does:
+`9b111e5`) and plugs in the way Ecology's semantic provider does:
 `CCCSystem(text_matcher=cccb.TextMatcher())`. CCC keeps the rules: a
 re-observation is linked and never counted as an occurrence, and a machine may
 raise an anomaly to a pattern but never to a mandate. Without a matcher,
@@ -164,7 +164,7 @@ Link: Triad-42 session -> admit_session -> CCC + MachineRecords
 CNS spine: HERALD -> TIE -> Conservation_Kernel -> Governance_Gateway -> CCC (write_permission, CccGate)
 ```
 
-The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if CCC gates one it does not name. The 30-result, one-recorded-GAP figure that script reported on 2026-10-30 is CNS's measurement; it was not re-run for this README.
+The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if the two sets differ in either direction: a door CCC gates that the spine does not name, or a door the spine names that CCC does not gate. The 30-result, one-recorded-GAP figure that script reported on 2026-10-30 is CNS's measurement; it was not re-run for this README. CNS's own README says that run predates CNS PR #64, which added a second recorded GAP (a kernel built without its evidence guard takes any evidence), and that the spine has not been re-run since.
 
 
 ### Authority, the matcher and the known limits
