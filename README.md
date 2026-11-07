@@ -7,7 +7,7 @@ Dependency-free **memory of claims over time** that keeps a machine from rewriti
 **Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only a named human can promote, erase or resolve.
 
 **Responsibilities (what CCC itself decides).**
-- Whether an attempted transition on its own store is constitutional (`ccc/constitutional_rules.py`, 20 identified rules, each decision audited).
+- Whether an attempted transition on its own store is constitutional (`ccc/constitutional_rules.py`, 21 identified rules, each decision audited).
 - Provenance and epistemic status of each record, and the evidence links under it (`provenance.py`, `evidence.py`, `epistemic_state.py`).
 - History that is never silently overwritten: correction, amendment, supersession, redaction and erasure leave edges and tombstones (`lineage.py`). Negative findings are preserved (rule `CCC-HISTORY-003`).
 - Recurrence of machine findings over time (anomaly, pattern, mandate), where only a human can set a mandate (`discovery.py`, `recurring.py`).
@@ -67,8 +67,8 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 
 The connector has no outcome end by design: `cns_chain(system).complete()` is `False`. CCC is judged at the ALPHA gate only.
 
-**Maturity and limits (first measured 2026-10-31 on `origin/main` at `f6e33da`; re-measured 2026-11-04 on main `7d64471` plus the RACE hardening changes, uncommitted).**
-- Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `8e3c779`), CI's matrix reproduced on Python 3.11, 3.12 and 3.13: with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
+**Maturity and limits (first measured 2026-10-31 on `origin/main` at `f6e33da`; re-measured 2026-11-04 on main `7d64471` plus the RACE hardening changes; re-measured 2026-11-07 on main `6f80792`).**
+- Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `8e3c779`), with `pip install -e .` run first. The 2026-11-07 run used Python 3.13 (CI itself runs 3.11 and 3.12): with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The `pip install -e .` step matters: some tests start a subprocess in isolated mode, which cannot import `ccc` unless the package is installed. Without it, three tests fail for that reason alone. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
 - With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 500 tests pass with 4 skipped.
 - Not measured: GitHub Actions itself (only its commands, run locally), and the end-to-end spine result recorded in CNS.
 - Version 0.1.0, no tag or release. A system built without `write_permission` or `human_verifier` is not stopped, and nothing can see that from outside. Anyone holding `system.store` can write around both. Continuity across processes depends on the persistence the caller supplies.
@@ -91,17 +91,17 @@ Commercial red team: **FEATURE** (recurrence detection; the measurement now live
 
 Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DEC-0002](decisions/DEC-0002_v1.md) (v1.1 draft, decided provision by provision) leaves Articles I.G, III.F, XI.A, XII.E, XV.A and XVII.A-D UNRESOLVED; I.G and XVII.A-D are nonetheless enforced in this package's code.
 **Erasure is only partly grounded.** `CCCSystem.erase` lets a human, with a stated basis, wipe a record's text and leave a tombstone; anything built on it is downgraded to `THEORY`. The ≡TACK Constitution v4.0 (Developed Candidate, wking53214/constitution) contains no human right of erasure, and most CCC rules are sourced to the build directive, not to an article. Article XVIII does bear on it: it requires negative findings to be preserved. Rule `CCC-HISTORY-003`, the one rule sourced to an article, makes `erase` and `redact` refuse a negative finding: a record the human rejected, a record material to a conflict (open or resolved), or a record with a `CONTRADICTS` edge. Change course by superseding it. That covers what CCC can see; it does not cover every kind of non-confirmed claim. Erasing an ordinary record is still unratified mechanism, and whether to add an erasure article to the Constitution is the owner's decision.
-New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CCCSystem.decide` can store the same shape with a decision: the options considered, the one selected, each other option rejected with a reason or deferred (every option not selected must be one or the other), and the assumptions it rests on. A decision recorded without them is stored exactly as before.
+[DEC-0003](decisions/DEC-0003_v1.md) (2026-10-09) makes a human ingest with no stated authorization basis `PROVENANCE_UNCERTAIN` until a basis is given, rather than `USER_ESTABLISHED`. New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CCCSystem.decide` can store the same shape with a decision: the options considered, the one selected, each other option rejected with a reason or deferred (every option not selected must be one or the other), and the assumptions it rests on. A decision recorded without them is stored exactly as before.
 
 ### Release and test status
 
-Measured 2026-11-04 (section 1 has the commands and conditions).
+Measured 2026-11-07 on main `6f80792` (section 1 has the commands and conditions).
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Green |
+| CI on main | Reported green on 2026-11-04. Not re-checked in the 2026-11-07 audit, which had no access to the Actions API. Check the Actions tab. |
 | Tests | 1341 passed and 7 xfailed with CNS and CCCb available; 776 passed, 4 skipped and 7 xfailed with CNS hidden (parametrized cases counted; section 1 has the conditions) |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `8e3c779`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
