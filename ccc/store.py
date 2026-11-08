@@ -48,7 +48,7 @@ def _primitive(value: Any) -> Any:
         return {field.name: _primitive(getattr(value, field.name)) for field in fields(value)}
     if isinstance(value, Mapping):
         return {str(key): _primitive(item) for key, item in value.items()}
-    if isinstance(value, (tuple, list, set)):
+    if isinstance(value, (tuple, list, set, frozenset)):
         return [_primitive(item) for item in value]
     return value
 
