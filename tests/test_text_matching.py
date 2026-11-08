@@ -25,7 +25,7 @@ from cccb import TextMatcher
 ROOT = Path(__file__).resolve().parents[1]
 
 # The CCCb commit the match extra installs. Moving it is a reviewed change.
-EXPECTED_CCCB_PIN = "8e3c779ea8f932dd34a637bf2fcb0835cc7bc068"
+EXPECTED_CCCB_PIN = "737cf0e989dc4d609510bb865eef8301955a1f65"
 
 
 @dataclass(frozen=True)
