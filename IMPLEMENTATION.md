@@ -66,9 +66,10 @@ Modules are separated by responsibility:
 Every `Artifact` has an immutable `artifact_id`, an independent `origin`
 actor, `provenance_status`, `epistemic_status`, availability state, source
 identifiers, machine processing history, and content digest. Its metadata is
-frozen all the way down (nested mappings become read-only views, lists become
-tuples); metadata nested more than 64 containers deep, or cyclic, is refused
-at intake with a `ValueError`. The digest is a
+frozen through its containers (nested mappings become read-only views, lists become
+tuples). Only text, numbers, booleans, enums, lists, sets and mappings are
+accepted; other types are refused at intake with a `TypeError`, and metadata
+nested more than 64 containers deep, or cyclic, with a `ValueError`. The digest is a
 SHA-256 fingerprint of the stored UTF-8 content; it is not an identity,
 signature, or tamper-proof audit guarantee.
 

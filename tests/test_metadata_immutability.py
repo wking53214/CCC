@@ -1,5 +1,7 @@
 """An Artifact's metadata is read-only all the way down, not just at its top level."""
 
+import datetime
+
 import pytest
 
 from ccc.models import (
@@ -71,3 +73,20 @@ def test_set_metadata_saves_and_loads_back(tmp_path):
     loaded = CCCSystem.load(path)
     stored = next(a for a in loaded.store.artifacts.values() if a.content == "tagged")
     assert sorted(stored.metadata["tags"]) == ["x", "y"]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [bytearray(b"ab"), object(), datetime.datetime(2026, 1, 1)],
+    ids=["bytearray", "custom object", "datetime"],
+)
+def test_metadata_of_an_unsupported_type_is_refused_at_intake(value):
+    with pytest.raises(TypeError, match="not supported"):
+        _artifact({"value": value})
+
+
+def test_supported_scalars_and_enums_are_kept():
+    a = _artifact({"text": "t", "count": 2, "ratio": 0.5, "flag": True, "none": None,
+                   "status": ProvenanceStatus.USER_ESTABLISHED})
+    assert a.metadata["status"] is ProvenanceStatus.USER_ESTABLISHED
+    assert a.metadata["none"] is None

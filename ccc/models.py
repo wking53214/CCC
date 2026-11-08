@@ -139,7 +139,9 @@ def _freeze_value(value: Any, depth: int = 0) -> Any:
     """Freeze a value all the way down: mappings become read-only views, lists and tuples become tuples, sets
     become frozensets. Anything else (strings, numbers, enums, records) is already immutable or is kept as is.
 
-    Nesting deeper than MAX_METADATA_DEPTH (including a cycle) raises ValueError, so the freeze always ends."""
+    Nesting deeper than MAX_METADATA_DEPTH (including a cycle) raises ValueError, so the freeze always ends.
+    A value of any other type (a bytearray, a custom object, a date) raises TypeError: it could not be saved or
+    kept unchanged, so it is refused at intake rather than stored mutable."""
 
     if isinstance(value, (Mapping, list, tuple, set, frozenset)) and depth >= MAX_METADATA_DEPTH:
         raise ValueError(f"metadata nested more than {MAX_METADATA_DEPTH} containers deep")
@@ -149,7 +151,9 @@ def _freeze_value(value: Any, depth: int = 0) -> Any:
         return tuple(_freeze_value(item, depth + 1) for item in value)
     if isinstance(value, (set, frozenset)):
         return frozenset(_freeze_value(item, depth + 1) for item in value)
-    return value
+    if value is None or isinstance(value, (str, int, float, bool, Enum)):
+        return value
+    raise TypeError(f"metadata value of type {type(value).__name__} is not supported; use text, numbers, booleans, enums, lists, sets or mappings")
 
 
 def _freeze_mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
