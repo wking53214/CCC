@@ -69,6 +69,8 @@ Full list, with status of each: section 4.
 
 CCC appears in that chain only through two optional seams (sections 7 and 8). Nothing in the spine requires CCC for the other four seats to work.
 
+**Gate positions.** A CNS gate sits at one of two ends of a decision. `ALPHA` runs before the work: if it fails, the work never starts. `OMEGA` runs on the produced result: if it fails, the result does not leave. CCC's connector is an `ALPHA` gate only. It judges an attempted change to the store before any record changes, so a refusal means the change never starts. CCC has no `OMEGA` gate, so the spine does not treat CCC as having an outcome check (`cns_chain(system).complete()` is `False`, as section 8 explains).
+
 **Companions.**
 - [CNS](https://github.com/wking53214/CNS): holds the shapes of a decision (gate result, `PASS` / `RETRY` / `TERMINAL_BREACH`) and the spine script. CCC optionally expresses its own refusals in those shapes (`ccc/cns_connector.py`). CNS supplies the `write_permission` that stands a roster decision in front of CCC's doors, and asks CCC for `MachineRecords.status`. CNS does not decide for CCC.
 - [CCCb](https://github.com/wking53214/CCCb): CCC's text-matching library, split out of this repository. CCC imports nothing from it; the application passes `cccb.TextMatcher()` in as `text_matcher`. CCC keeps the rules, CCCb keeps the measurement.
