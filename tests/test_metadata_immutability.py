@@ -1,0 +1,60 @@
+"""An Artifact's metadata is read-only all the way down, not just at its top level."""
+
+import pytest
+
+from ccc.models import (
+    MAX_METADATA_DEPTH,
+    Actor,
+    Artifact,
+    EpistemicStatus,
+    ProvenanceStatus,
+)
+
+
+def _artifact(metadata):
+    return Artifact(
+        artifact_id="a1", content="text", origin=Actor.human("h"),
+        provenance_status=ProvenanceStatus.USER_ESTABLISHED,
+        epistemic_status=EpistemicStatus.HISTORICAL_RECORD, metadata=metadata,
+    )
+
+
+def test_nested_mappings_cannot_be_changed():
+    a = _artifact({"outer": {"inner": {"value": 1}}})
+    with pytest.raises(TypeError):
+        a.metadata["outer"]["inner"]["value"] = 2
+    with pytest.raises(TypeError):
+        a.metadata["outer"]["new"] = 3
+    assert a.metadata["outer"]["inner"]["value"] == 1
+
+
+def test_nested_lists_become_tuples_that_cannot_be_changed():
+    a = _artifact({"stamp": {"ids": ["x", "y"]}})
+    ids = a.metadata["stamp"]["ids"]
+    assert ids == ("x", "y")
+    with pytest.raises(AttributeError):
+        ids.append("z")
+
+
+def test_the_caller_keeps_no_handle_on_the_frozen_copy():
+    source = {"outer": {"inner": ["x"]}}
+    a = _artifact(source)
+    source["outer"]["inner"].append("y")
+    source["outer"]["added"] = 1
+    assert a.metadata["outer"]["inner"] == ("x",)
+    assert "added" not in a.metadata["outer"]
+
+
+def test_metadata_nested_past_the_limit_is_refused():
+    value: object = "leaf"
+    for _ in range(MAX_METADATA_DEPTH + 1):
+        value = {"k": value}
+    with pytest.raises(ValueError, match="nested more than"):
+        _artifact({"deep": value})
+
+
+def test_a_cycle_in_metadata_is_refused_not_looped_on():
+    cycle: dict = {}
+    cycle["self"] = cycle
+    with pytest.raises(ValueError, match="nested more than"):
+        _artifact({"cycle": cycle})

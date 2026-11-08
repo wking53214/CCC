@@ -131,8 +131,29 @@ def content_digest(content: str | None) -> str | None:
     return sha256(content.encode("utf-8")).hexdigest()
 
 
+#: The most containers a metadata value may nest. Deeper (or cyclic) metadata is refused when it is stored.
+MAX_METADATA_DEPTH = 64
+
+
+def _freeze_value(value: Any, depth: int = 0) -> Any:
+    """Freeze a value all the way down: mappings become read-only views, lists and tuples become tuples, sets
+    become frozensets. Anything else (strings, numbers, enums, records) is already immutable or is kept as is.
+
+    Nesting deeper than MAX_METADATA_DEPTH (including a cycle) raises ValueError, so the freeze always ends."""
+
+    if isinstance(value, (Mapping, list, tuple, set, frozenset)) and depth >= MAX_METADATA_DEPTH:
+        raise ValueError(f"metadata nested more than {MAX_METADATA_DEPTH} containers deep")
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_value(item, depth + 1) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_value(item, depth + 1) for item in value)
+    if isinstance(value, (set, frozenset)):
+        return frozenset(_freeze_value(item, depth + 1) for item in value)
+    return value
+
+
 def _freeze_mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
-    return MappingProxyType(dict(value or {}))
+    return _freeze_value(dict(value or {}))
 
 
 @dataclass(frozen=True)
