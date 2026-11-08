@@ -1598,14 +1598,11 @@ def test_a_snapshot_that_cannot_be_reloaded_is_preflight_error_even_for_the_repa
         assert not issubclass(PreflightError, (TypeError, ValueError, CCCError, KeyError))
 
 
-def test_a_store_too_deep_to_snapshot_is_preflight_error_not_a_recursion_error():
+def test_metadata_too_deep_is_refused_at_intake_not_a_recursion_error():
     w = _world()
-    w.system.ingest("deeply nested", actor=w.human, metadata={"deep": _nested(2000)})
-    att = attempt(
-        "accept", _id(w.proposal), actor=w.human, reason="r", authorization_basis="b",
-    )
-    with pytest.raises(PreflightError):
-        judge(w.system, att)
+    with pytest.raises(ValueError, match="nested more than"):
+        w.system.ingest("deeply nested", actor=w.human, metadata={"deep": _nested(2000)})
+    assert not any(a.content == "deeply nested" for a in w.system.store.artifacts.values())
 
 
 def test_a_malformed_attempt_is_a_caller_error_not_a_verdict():

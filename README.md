@@ -4,7 +4,7 @@ Dependency-free **memory of claims over time** that keeps a machine from rewriti
 
 ## 1. Role in the STACK spine
 
-**Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only a named human can promote, erase or resolve.
+**Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only an actor labeled human can promote, erase or resolve. "Labeled human" is a classification, not an identity check: the caller supplies an authorization basis, and CCC verifies identity only if the application supplies a `human_verifier`.
 
 **Responsibilities (what CCC itself decides).**
 - Whether an attempted transition on its own store is constitutional (`ccc/constitutional_rules.py`, 21 identified rules, each decision audited).
@@ -17,10 +17,10 @@ Dependency-free **memory of claims over time** that keeps a machine from rewriti
 
 | In | Out |
 |---|---|
-| Calls on `CCCSystem` carrying an `Actor`, content, evidence ids and (for human acts) an `authorization_basis` | An immutable `Artifact` or event, a `RuleDecision` in the audit trail, or a `ConstitutionViolation` raised before any record changes |
+| Calls on `CCCSystem` carrying an `Actor`, content, evidence ids and (for human acts) an `authorization_basis` | An immutable `Artifact` or event, a `RuleDecision` in the rule history (`store.rule_decisions`), an `AuditEvent` in the audit trail (`store.audit_events`) for a consequential operation, or a `ConstitutionViolation` raised before any record changes. The rule history and the audit trail are separate records. |
 | An optional `write_permission` callable the application supplies | `WritePermissionRefused` if it answers anything but `True` |
 | An optional `human_verifier` callable the application supplies | `HumanVerificationRefused` if it answers anything but `True` |
-| A JSON snapshot (`CCCStore.save` / `load`) | The same store back, including the audit trail |
+| A JSON snapshot (`CCCStore.save` / `load`) | The same store back, including the rule history and the audit trail |
 | A `(source, candidate_id, text_digest)` triple | One word from `MachineRecords.status`: `held`, `absent`, `altered`, `erased`, `redacted`, `rejected`, `superseded` or `unattested` |
 
 **Where it sits.** In the evidence spine CCC is the last hop. A document is read and its claims extracted by [HERALD](https://github.com/wking53214/HERALD), recorded as evidence by [TIE](https://github.com/wking53214/TIE), judged as a root artifact by [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel), judged again at its admission door by [Governance_Gateway](https://github.com/wking53214/Governance_Gateway), and then CCC judges the attempt to take it into its store. The orchestration lives in [CNS](https://github.com/wking53214/CNS) (`chains/evidence_spine.py`), not here.
@@ -90,18 +90,20 @@ Package `ccc/` + `tests/`. Stdlib only. Adapter after orchestrator decision; ski
 Commercial red team: **FEATURE** (recurrence detection; the measurement now lives in [CCCb](https://github.com/wking53214/CCCb), the guard stays here). Unfrozen 2026-09-11; findings not superseded. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given, not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
 
 Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DEC-0002](decisions/DEC-0002_v1.md) (v1.1 draft, decided provision by provision) leaves Articles I.G, III.F, XI.A, XII.E, XV.A and XVII.A-D UNRESOLVED; I.G and XVII.A-D are nonetheless enforced in this package's code.
+**Metadata limits.** Metadata is frozen all the way down, so a stored record's nested values cannot be changed. Metadata nested more than 64 containers deep, or cyclic, is refused when it is stored (`ValueError`), so a value that could not be snapshotted never gets into the store.
+
 **Erasure is only partly grounded.** `CCCSystem.erase` lets a human, with a stated basis, wipe a record's text and leave a tombstone; anything built on it is downgraded to `THEORY`. The ≡TACK Constitution v4.0 (Developed Candidate, wking53214/constitution) contains no human right of erasure, and most CCC rules are sourced to the build directive, not to an article. Article XVIII does bear on it: it requires negative findings to be preserved. Rule `CCC-HISTORY-003`, the one rule sourced to an article, makes `erase` and `redact` refuse a negative finding: a record the human rejected, a record material to a conflict (open or resolved), or a record with a `CONTRADICTS` edge. Change course by superseding it. That covers what CCC can see; it does not cover every kind of non-confirmed claim. Erasing an ordinary record is still unratified mechanism, and whether to add an erasure article to the Constitution is the owner's decision.
 [DEC-0003](decisions/DEC-0003_v1.md) (2026-10-09) makes a human ingest with no stated authorization basis `PROVENANCE_UNCERTAIN` until a basis is given, rather than `USER_ESTABLISHED`. New records start from [`DEC-TEMPLATE_v1.md`](decisions/DEC-TEMPLATE_v1.md). `CCCSystem.decide` can store the same shape with a decision: the options considered, the one selected, each other option rejected with a reason or deferred (every option not selected must be one or the other), and the assumptions it rests on. A decision recorded without them is stored exactly as before.
 
 ### Release and test status
 
-Measured 2026-11-07 on main `6f80792` (section 1 has the commands and conditions).
+Measured 2026-11-07 on main `6f80792` (section 1 has the commands and conditions). This branch adds five metadata-immutability tests, so with CNS it runs 1346 passed and 7 xfailed; the without-CNS count was not re-measured here.
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Reported green on 2026-11-04. Not re-checked in the 2026-11-07 audit, which had no access to the Actions API. Check the Actions tab. |
+| CI on main | The latest GitHub Actions run on main (`6cb7e68`, run #112, 2026-11-07) succeeded: the test and Ruff steps passed in all four jobs (Python 3.11 and 3.12, with and without CNS). |
 | Tests | 1341 passed and 7 xfailed with CNS and CCCb available; 776 passed, 4 skipped and 7 xfailed with CNS hidden (parametrized cases counted; section 1 has the conditions) |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `8e3c779`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
