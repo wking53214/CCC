@@ -1503,14 +1503,12 @@ def test_the_largest_content_the_connector_accepts_is_judged_without_error():
         assert _native(att, w.system) is None
 
 
-def test_a_store_ccc_cannot_snapshot_is_not_judged_on_a_guess():
-    import datetime
+def test_a_store_ccc_cannot_snapshot_is_not_judged_on_a_guess(monkeypatch):
+    def cannot_render(self, path=None):
+        raise TypeError("cannot render the store as JSON")
 
     w = _world()
-    w.system.ingest(
-        "a record whose metadata JSON cannot render", actor=w.human,
-        metadata={"when": datetime.datetime(2026, 1, 1)},
-    )
+    monkeypatch.setattr(CCCStore, "save", cannot_render)
     att = attempt(
         "accept", _id(w.proposal), actor=w.human, reason="r", authorization_basis="b",
     )
@@ -1529,7 +1527,6 @@ def test_the_snapshot_is_private_while_it_exists_and_gone_when_the_check_ends(
     """The snapshot holds the live store's content. It sits in a directory only the
     user can enter, and is removed whatever the check ends in: each verdict, a
     crash of the attempt itself, and a store that cannot be snapshotted."""
-    import datetime
 
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     modes = []
@@ -1562,7 +1559,11 @@ def test_the_snapshot_is_private_while_it_exists_and_gone_when_the_check_ends(
         else:
             assert judge(w.system, att).outcome is expected
         assert list(tmp_path.iterdir()) == []
-    w.system.ingest("unrenderable", actor=w.human, metadata={"when": datetime.datetime(2026, 1, 1)})
+    def cannot_render(self, path=None):
+        modes.append(stat.S_IMODE(Path(path).parent.stat().st_mode))
+        raise TypeError("cannot render the store as JSON")
+
+    monkeypatch.setattr(CCCStore, "save", cannot_render)
     with pytest.raises(PreflightError):
         judge(w.system, checks[0][0])
     assert list(tmp_path.iterdir()) == []
