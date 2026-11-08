@@ -104,7 +104,7 @@ Measured 2026-11-07 on main `6f80792` (section 1 has the commands and conditions
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
 | CI on main | The latest GitHub Actions run on main (`6cb7e68`, run #112, 2026-11-07) succeeded: the test and Ruff steps passed in all four jobs (Python 3.11 and 3.12, with and without CNS). |
-| Tests | 1341 passed and 7 xfailed with CNS and CCCb available; 776 passed, 4 skipped and 7 xfailed with CNS hidden (parametrized cases counted; section 1 has the conditions) |
+| Tests | 1346 passed and 7 xfailed with CNS and CCCb on this branch (1341 on `6f80792`, plus five metadata immutability tests). The CNS suite passes 3019 against this code. Without CNS: 776 passed, 4 skipped and 7 xfailed on `6f80792` (parametrized cases counted; section 1 has the conditions) |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `8e3c779`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
 

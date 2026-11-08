@@ -65,7 +65,10 @@ Modules are separated by responsibility:
 
 Every `Artifact` has an immutable `artifact_id`, an independent `origin`
 actor, `provenance_status`, `epistemic_status`, availability state, source
-identifiers, machine processing history, and content digest. The digest is a
+identifiers, machine processing history, and content digest. Its metadata is
+frozen all the way down (nested mappings become read-only views, lists become
+tuples); metadata nested more than 64 containers deep, or cyclic, is refused
+at intake with a `ValueError`. The digest is a
 SHA-256 fingerprint of the stored UTF-8 content; it is not an identity,
 signature, or tamper-proof audit guarantee.
 
@@ -285,7 +288,11 @@ python3 -m ccc.testing
 Measured 2026-11-07 on main `6f80792`, Python 3.13:
 
 - pytest, without CNS (CCCb installed): 776 passed, 4 skipped, 7 xfailed;
-- pytest, with the pinned CNS (`CCC_REQUIRE_CNS=1`): 1341 passed, 7 xfailed;
+- pytest, with the pinned CNS (`CCC_REQUIRE_CNS=1`): 1341 passed, 7 xfailed on
+  `6f80792`; 1346 passed, 7 xfailed on this branch, which adds five metadata
+  immutability tests (`tests/test_metadata_immutability.py`);
+- the CNS suite run against this branch's CCC code (on CNS PR #121's branch):
+  3019 passed, 0 skipped;
 - constitutional harness: 62 total, 36 PASS, 8 RETIRED (the features buried on
   2026-10-06), 18 UNSPECIFIED, 0 FAIL, 0 ERROR, 0 SKIPPED;
 - demonstration: starts successfully, blocks machine self-promotion,
