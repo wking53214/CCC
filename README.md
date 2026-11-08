@@ -1,6 +1,38 @@
 # CCC: Cognitive Continuity Constitution
 
-Dependency-free **memory of claims over time** that keeps a machine from rewriting what a human actually thought: who originated each claim, human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
+**A zero-dependency core for recording claims over time.** CCC has no third-party core runtime dependencies. It records who originated each claim, its provenance and epistemic status, and the lineage that links it to earlier versions. At its public interfaces it enforces explicit human-authority rules: human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Applications can supply identity verification and write-permission controls. Both are optional, and direct access to the underlying store is outside their protection. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
+
+## Quick start
+
+Install from a checkout (no third-party core runtime dependencies):
+
+```bash
+pip install -e .
+```
+
+Record a human statement and a machine inference, then look at what CCC kept:
+
+```python
+from ccc import Actor, CCCSystem
+
+system = CCCSystem()
+note = system.ingest("the meeting is on Tuesday", actor=Actor.human("william"))
+guess = system.derive("probably moved to Wednesday", actor=Actor.model("assistant"))
+print(note.provenance_status, guess.epistemic_status)
+# PROVENANCE_UNCERTAIN INFERENCE
+```
+
+The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was given (DEC-0003). The guess stays `INFERENCE`; a model cannot promote it. Human operations and the optional controls are covered in section 8.
+
+## Limitations at a glance
+
+- `Actor.human(...)` is a label. CCC holds no identity provider; identity is checked only if the application supplies a `human_verifier`.
+- Write permission and `human_verifier` are optional. Without them, the facade does not ask.
+- Direct access to `system.store` and the managers bypasses facade-level controls.
+- The CNS connector evaluates a scratch copy. A PASS shows the rules admitted the call on that copy, not that the application authorized it.
+- Persistence has no digest or version, and the store is not a tamper-evident ledger.
+
+Full list, with status of each: section 4.
 
 ## 1. Role in the STACK spine
 
@@ -97,14 +129,16 @@ Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DE
 
 ### Release and test status
 
-Measured 2026-11-07 on main `6f80792` (section 1 has the commands and conditions). This branch adds five metadata-immutability tests, so with CNS it runs 1346 passed and 7 xfailed; the without-CNS count was not re-measured here.
+Each measurement below is tied to the commit it was run on. Commands and conditions are in section 1.
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | The latest GitHub Actions run on main (`6cb7e68`, run #112, 2026-11-07) succeeded: the test and Ruff steps passed in all four jobs (Python 3.11 and 3.12, with and without CNS). |
-| Tests | 1346 passed and 7 xfailed with CNS and CCCb on this branch (1341 on `6f80792`, plus five metadata immutability tests). The CNS suite passes 3019 against this code. Without CNS: 776 passed, 4 skipped and 7 xfailed on `6f80792` (parametrized cases counted; section 1 has the conditions) |
+| CI on main | GitHub Actions run [42518485590](https://github.com/wking53214/CCC/actions/runs/42518485590) on `2fd993a` (main after PR #66) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
+| Tests, with CNS | 1351 passed, 7 xfailed on `d84dfa1` (same code as `2fd993a`; local run, Python 3.13, CCCb `737cf0e`). Earlier: 1341 passed, 7 xfailed on `6f80792`. |
+| Tests, without CNS | 776 passed, 4 skipped, 7 xfailed on `6f80792` only. Not re-measured on later commits. |
+| CNS suite against CCC | 3019 passed, 0 skipped, run on 2026-11-07 against the CCC code that became `2fd993a` (CNS PR #121 branch). |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `737cf0e`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
 
