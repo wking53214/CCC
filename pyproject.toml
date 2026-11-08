@@ -22,7 +22,7 @@ cns = [
 # The text matcher record_external_finding requires (see ccc/text_matching.py).
 # CCC imports nothing from it; the application plugs it in. Pinned by commit.
 match = [
-    "cccb @ git+https://github.com/wking53214/CCCb.git@8e3c779ea8f932dd34a637bf2fcb0835cc7bc068",
+    "cccb @ git+https://github.com/wking53214/CCCb.git@737cf0e989dc4d609510bb865eef8301955a1f65",
 ]
 
 [tool.pytest.ini_options]

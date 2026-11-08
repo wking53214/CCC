@@ -30,7 +30,7 @@ MODEL = Actor.model("ecology")
 
 # The CCCb commit CCC is reviewed against (PR #43). test_text_matching.py holds
 # the same constant for the pin test; this file checks the pin a second way.
-REVIEWED_CCCB = "8e3c779ea8f932dd34a637bf2fcb0835cc7bc068"
+REVIEWED_CCCB = "737cf0e989dc4d609510bb865eef8301955a1f65"
 MATCH_PIN = re.compile(r"cccb @ git\+https://github\.com/wking53214/CCCb\.git@([0-9a-f]{40})")
 
 
@@ -115,10 +115,10 @@ def test_the_match_extra_installs_exactly_the_reviewed_commit():
     "cccb @ git+https://github.com/wking53214/CCCb.git@main",
     "cccb @ git+https://github.com/wking53214/CCCb.git@v0.1.0",
     "cccb @ git+https://github.com/wking53214/CCCb.git",
-    "cccb @ git+https://github.com/wking53214/CCCb.git@8e3c779",
+    "cccb @ git+https://github.com/wking53214/CCCb.git@737cf0e",
     "cccb @ git+https://github.com/wking53214/CCCb.git@8E3C779EA8F932DD34A637BF2FCB0835CC7BC068",
-    "cccb @ git+https://github.com/wking53214/CCCb.git@8e3c779ea8f932dd34a637bf2fcb0835cc7bc068#egg=x",
-    "cccb @ git+https://github.com/elsewhere/CCCb.git@8e3c779ea8f932dd34a637bf2fcb0835cc7bc068",
+    "cccb @ git+https://github.com/wking53214/CCCb.git@737cf0e989dc4d609510bb865eef8301955a1f65#egg=x",
+    "cccb @ git+https://github.com/elsewhere/CCCb.git@737cf0e989dc4d609510bb865eef8301955a1f65",
     "cccb>=0.1",
     "cccb",
 ])
@@ -163,7 +163,7 @@ def test_ccc_runs_without_loading_cccb_or_cns():
 # --- the installed CCCb behaves like the pinned one ---------------------------------
 
 def test_the_installed_matcher_has_the_pinned_tie_order_fix():
-    """CCCb 8e3c779 resolves tied candidates in id order, not hash order. Run
+    """CCCb 737cf0e resolves tied candidates in id order, not hash order. Run
     the real matcher under several hash seeds: one answer, and it is the
     lexically smallest id of the tied set."""
     code = (
