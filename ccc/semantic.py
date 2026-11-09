@@ -75,7 +75,12 @@ from typing import Optional, Protocol, Sequence, runtime_checkable
 # this embedder will be noisy wherever the line is drawn. That is a property
 # of all-MiniLM-L6-v2 on this domain and not something a better threshold
 # fixes. It is another reason semantic-only may not establish a recurrence.
-DEFAULT_SEMANTIC_THRESHOLD = 0.30
+# Provisional, revised 2026-11-08 from a labelled test of 45 findings (20 repeats
+# of an idea, 25 unrelated, several sharing vocabulary) with this embedder. At
+# 0.30 about half of the flags pointed at the wrong idea (precision 46%). At
+# 0.50 precision was about 75% and 18 of 20 repeats were still caught. Set
+# provisionally; re-measure on real findings before treating it as settled.
+DEFAULT_SEMANTIC_THRESHOLD = 0.50
 
 # How many neighbours to ask for. Bounded so a provider cannot flood a
 # decision record with hundreds of near-misses.
