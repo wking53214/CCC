@@ -78,9 +78,10 @@ from typing import Optional, Protocol, Sequence, runtime_checkable
 # Provisional, revised 2026-11-08 from a labelled test of 45 findings (20 repeats
 # of an idea, 25 unrelated, several sharing vocabulary) with this embedder. At
 # 0.30 about half of the flags pointed at the wrong idea (precision 46%). At
-# 0.50 precision was about 75% and 18 of 20 repeats were still caught. Set
+# 0.40 precision was about 56% and 18 of 20 repeats were still caught, and the
+# no-shared-words paraphrase measured 0.44, so it stays reachable. Set
 # provisionally; re-measure on real findings before treating it as settled.
-DEFAULT_SEMANTIC_THRESHOLD = 0.50
+DEFAULT_SEMANTIC_THRESHOLD = 0.40
 
 # How many neighbours to ask for. Bounded so a provider cannot flood a
 # decision record with hundreds of near-misses.

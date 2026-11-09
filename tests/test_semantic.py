@@ -292,7 +292,7 @@ class RangePublishingIndex:
     """A provider that reports the range its scores actually occupy."""
     provider_name = "measured-provider"
 
-    def __init__(self, paraphrase=0.33):
+    def __init__(self, paraphrase=0.44):
         self._paraphrase = paraphrase
 
     def add(self, finding_id, text): ...
@@ -330,7 +330,7 @@ def test_a_provider_that_publishes_no_range_is_not_assumed_broken():
 
 def test_the_default_threshold_is_reachable_by_a_realistic_provider():
     """Guards the specific mistake already made once: shipping 0.80 against a
-    provider whose real paraphrase similarity is 0.33."""
+    provider whose real paraphrase similarity is 0.44."""
     from ccc.semantic import check_threshold_is_reachable
     assert check_threshold_is_reachable(RangePublishingIndex()) is None, (
         "CCC's default threshold cannot be reached by a realistic embedding "
