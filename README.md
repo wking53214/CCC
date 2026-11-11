@@ -401,6 +401,18 @@ the answer is exactly as unauthenticated as before, and records written before a
 in use carry no stamp, so they need to be handed off again to be counted.
 Tests: `tests/test_record_attestation.py`.
 
+## Glossary
+
+- **Actor:** who is making a call: a human, a model, a system or an external source. `Actor.human(...)` is a label, not proof of identity.
+- **Provenance status:** where a record came from and what authority it holds, for example `USER_ESTABLISHED`, `ASSISTANT_PROPOSED` or `PROVENANCE_UNCERTAIN`.
+- **Epistemic status:** how well supported a claim is, for example `EVIDENCE`, `INFERENCE`, `THEORY`, `UNKNOWN` or `CONFLICTED`.
+- **Evidence root:** the earliest records a conclusion rests on, found by following its evidence links back.
+- **`write_permission`:** an optional check the application supplies. CCC asks it before the eleven machine-side doors and goes on only if it answers exactly `True`.
+- **`human_verifier`:** an optional check the application supplies to confirm that a "human" actor is really that person. Without it, CCC takes the label as given.
+- **Attestation:** an HMAC stamp (a keyed fingerprint) on a handed-off record, made with a key the caller supplies. With a key, only stamped records count as `held`.
+- **Gate, `PASS`, `RETRY`, `TERMINAL_BREACH`:** CNS's shapes for a decision. `PASS` means admitted, `RETRY` means a human supplying what is missing would be admitted, `TERMINAL_BREACH` means refused with no human input that would help.
+- **`ALPHA` and `OMEGA`:** the two gate positions. `ALPHA` runs before the work; `OMEGA` judges the produced result. CCC has `ALPHA` only.
+
 ## License
 
 Apache-2.0. Copyright 2026 William N. King. See `LICENSE` and `NOTICE`.
