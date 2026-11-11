@@ -1,7 +1,9 @@
 # Cognitive Continuity Constitution: Implementation Report
 
-Status: IMPLEMENTED for the explicit requirements in the supplied build
-directive, with the limitations and unresolved source questions below.
+Status: core implementation requirements implemented, with explicitly
+documented partial implementations, unimplemented capabilities and unresolved
+constitutional mappings (see "Partially implemented", "Not implemented" and
+"Unresolved questions" below).
 Revised 2026-11-07 against main `6f80792`. The original build report
 described a larger feature set. Several of those features were removed on
 2026-10-06 (see "Buried record types" below), and this revision removes them
@@ -224,7 +226,8 @@ written back unchanged (`ccc.store.RETIRED_SECTIONS`).
   multi-user database query service.
 - The harness has 36 passing rows, 8 `RETIRED` rows for the features buried on
   2026-10-06, and 18 explicitly `UNSPECIFIED` rows because historical meanings
-  are unavailable.
+  are unavailable. So 36 passing rows do not mean that all 62 requirements are
+  independently validated: 26 rows are retired or have no known meaning.
 
 ## Not implemented
 
@@ -275,6 +278,9 @@ written back unchanged (`ccc.store.RETIRED_SECTIONS`).
   unavailable ratified text.
 
 ## Validation commands and results
+
+The README's "Release and test status" table is the authoritative test ledger.
+The numbers below are dated copies.
 
 From the repository root:
 
