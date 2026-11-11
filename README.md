@@ -1,6 +1,6 @@
 # CCC: Cognitive Continuity Constitution
 
-**A zero-dependency core for recording claims over time.** CCC has no third-party core runtime dependencies. It records who originated each claim, its provenance and epistemic status, and the lineage that links it to earlier versions. At its public interfaces it enforces explicit human-authority rules: human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Applications can supply identity verification and write-permission controls. Both are optional, and direct access to the underlying store is outside their protection. Optional pack for [`observe-perceive`](https://github.com/wking53214/observe-perceive). Not a standalone product. Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
+**A zero-dependency core for recording claims over time.** CCC has no third-party core runtime dependencies. It records who originated each claim, its provenance and epistemic status, and the lineage that links it to earlier versions. At its public interfaces it enforces explicit human-authority rules: human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Applications can supply identity verification and write-permission controls. Both are optional, and direct access to the underlying store is outside their protection. CCC is a library, not a service or an app. It works on its own and is used by [Link](https://github.com/wking53214/Link), [observe-perceive](https://github.com/wking53214/observe-perceive) and [CNS](https://github.com/wking53214/CNS) (section 1). Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
 
 ## Quick start
 
@@ -34,7 +34,22 @@ The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was give
 
 Full list, with status of each: section 4.
 
-## 1. Role in the STACK spine
+## Where this fits
+
+CCC is the last stop of the evidence spine, one of the groups of repos in ≡TACK (≡TACK is the whole library of repos and the company). The spine is five repos that a document passes through in order: HERALD reads it and pulls out claims, TIE records the evidence, Conservation_Kernel judges the root artifact, Governance_Gateway judges the admission door, and CCC decides whether its store takes the document. CNS connects them and is not a sixth stage.
+
+- **What CCC receives:** an attempted write from an application, which may carry a CNS decision in the form of a `write_permission`.
+- **What CCC hands on:** one read-only answer, whether an exact machine output was recorded here and in what state, to consumers such as CNS and Link.
+- **Shared, not owned by one chain:** Link, observe-perceive and CNS's spine script all use CCC, so it is shared infrastructure and not a stage that belongs to a single chain. Section 1 has the detail.
+
+## CNS connection
+
+- **This repo's side:** `ccc/cns_connector.py`. It is optional: nothing else in `ccc/` imports it, and without CNS only the functions that need CNS raise `CnsNotInstalled`.
+- **CNS's side:** `cns_composition/ccc_admission.py` carries the record lookup (an ALPHA gate). CNS's spine script, `chains/evidence_spine.py`, uses this repo's `CccGate`.
+- **List status:** two-way in CNS's connection list (`contracts/cns-links.json`, read at CNS `03eca66`). The list names `ccc_admission.py` as CNS's file for CCC.
+- **Built:** yes. **Tested:** yes, `tests/test_cns_connector.py` runs in CI with CNS required. **Used by CCC's normal code path:** no. A `CCCSystem` never calls the connector by itself; an application or the CNS spine script has to wire it. Section 8 has the detail.
+
+## 1. Role in the evidence spine of ≡TACK
 
 **Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only an actor labeled human can promote, erase or resolve. "Labeled human" is a classification, not an identity check: the caller supplies an authorization basis, and CCC verifies identity only if the application supplies a `human_verifier`.
 
@@ -76,7 +91,7 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 - [CCCb](https://github.com/wking53214/CCCb): CCC's text-matching library, split out of this repository. CCC imports nothing from it; the application passes `cccb.TextMatcher()` in as `text_matcher`. CCC keeps the rules, CCCb keeps the measurement.
 - [Link](https://github.com/wking53214/Link): imports `ccc` (`link/admission.py:16-17`) to hand Triad-42 session output to a real `CCCSystem` and read it back through `MachineRecords`. CCC does not know Link exists.
 - [HERALD](https://github.com/wking53214/HERALD), [TIE](https://github.com/wking53214/TIE), [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel), [Governance_Gateway](https://github.com/wking53214/Governance_Gateway): no import in either direction. They reach CCC only through the spine script or an application that wires them.
-- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it. The same repo also imports `ccc` from two tests and one example file.
+- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it. The same repo also imports `ccc` from three tests and one example file.
 
 **Owns.** Its store, its rulebook, its audit trail, the human-only operations, the guard on private sources, the record lookup that answers CNS, and the two hooks an application attaches (`write_permission`, `human_verifier`).
 
@@ -94,8 +109,8 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 | Seam | Status | Evidence |
 |---|---|---|
 | Gate connector: an attempted transition becomes a CNS `GateResult` at position `ALPHA` | implemented, optional, ALPHA only | `ccc/cns_connector.py:282` (lazy `importlib.import_module("cns.gate")`), `:540` (`GatePosition.ALPHA`), `:643` (`CccGate`), `:705` (`cns_chain`); tests `tests/test_cns_connector.py` |
-| Write permission: a CNS decision stands in front of the machine-side doors | implemented on CCC's side, needs no CNS import | `ccc/permission.py`, `ccc/system.py:51-` (`_asks_permission`), doors at `ccc/system.py:673-1048`; `tests/test_write_permission*.py`, `tests/test_write_funnel.py` |
-| Record lookup CNS asks ("no CCC record, no use") | implemented on CCC's side, needs no CNS import; consumer side is in CNS | `ccc/record_status.py:189-235` here, `cns_composition/ccc_admission.py:172` in CNS |
+| Write permission: a CNS decision stands in front of the machine-side doors | implemented on CCC's side, needs no CNS import | `ccc/permission.py`, `ccc/system.py:51-` (`_asks_permission`), doors at `ccc/system.py:676-1048`; `tests/test_write_permission*.py`, `tests/test_write_funnel.py` |
+| Record lookup CNS asks ("no CCC record, no use") | implemented on CCC's side, needs no CNS import; consumer side is in CNS | `ccc/record_status.py:191-235` here, `cns_composition/ccc_admission.py:172` in CNS |
 | UAI-1 signed messages for systems outside a process | absent: no `uai` or `cns_interop` reference anywhere in `ccc/` or `pyproject.toml` | grep over `ccc/` and `pyproject.toml` |
 | `cns_composition` or `cns_interop` imports | absent: CCC imports neither | grep of `import` lines in `ccc/` |
 
@@ -103,7 +118,7 @@ The connector has no outcome end by design: `cns_chain(system).complete()` is `F
 
 **Maturity and limits (first measured 2026-10-31 on `origin/main` at `f6e33da`; re-measured 2026-11-04 on main `7d64471` plus the RACE hardening changes; re-measured 2026-11-07 on main `6f80792`).**
 - Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `737cf0e`), with `pip install -e .` run first. The 2026-11-07 run used Python 3.13 (CI itself runs 3.11 and 3.12): with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The `pip install -e .` step matters: some tests start a subprocess in isolated mode, which cannot import `ccc` unless the package is installed. Without it, three tests fail for that reason alone. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
-- With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 500 tests pass with 4 skipped.
+- With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 510 tests pass with 4 skipped (measured 2026-11-10 on `f3ce7a3`, Python 3.13).
 - Not measured: GitHub Actions itself (only its commands, run locally), and the end-to-end spine result recorded in CNS.
 - Version 0.1.0, no tag or release. A system built without `write_permission` or `human_verifier` is not stopped, and nothing can see that from outside. Anyone holding `system.store` can write around both. Continuity across processes depends on the persistence the caller supplies.
 
@@ -111,13 +126,14 @@ The connector has no outcome end by design: `cns_chain(system).complete()` is `F
 
 Executable constitutional model for AI continuity: provenance, epistemic status, human authority, and state carried forward in time. Distinguishes accumulation, interpretation, modification, and authority so a later claim can be checked against earlier ones (recurrence, contradiction, silent promotion).
 
-Package `ccc/` + `tests/`. Stdlib only. Adapter after orchestrator decision; skip-if-absent.
+The package is `ccc/` and its tests are in `tests/`. It imports nothing outside the Python standard library. Other repos connect to it from their side; CCC does not import them (section 1).
 
 ## 3. What It Does NOT Do / Non-Goals
 
 - Does not authorize or execute.
 - Does not replace Conservation Kernel verification of a single transformation.
 - Does not replace a ticket DB or vector search as a product.
+- Does not decide whether content is true or who a human is (see "Does not own" in section 1).
 
 ## 4. Brutally Honest Current Status & Gaps
 
@@ -137,8 +153,8 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | GitHub Actions run [42518485590](https://github.com/wking53214/CCC/actions/runs/42518485590) on `2fd993a` (main after PR #66) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
-| Tests, with CNS | 1351 passed, 7 xfailed on `d84dfa1` (same code as `2fd993a`; local run, Python 3.13, CCCb `737cf0e`). Earlier: 1341 passed, 7 xfailed on `6f80792`. |
+| CI on main | GitHub Actions run [42645883603](https://github.com/wking53214/CCC/actions/runs/42645883603) on `f3ce7a3` (main after PR #70) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
+| Tests, with CNS | 1351 passed, 7 xfailed on `f3ce7a3` (local run 2026-11-10, Python 3.13, CCCb `737cf0e`, `CCC_REQUIRE_CNS=1`); the same count on `d84dfa1`. Earlier: 1341 passed, 7 xfailed on `6f80792`. |
 | Tests, without CNS | 776 passed, 4 skipped, 7 xfailed on `6f80792` only. Not re-measured on later commits. |
 | CNS suite against CCC | 3019 passed, 0 skipped, run on 2026-11-07 against the CCC code that became `2fd993a` (CNS PR #121 branch). |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `737cf0e`. |
@@ -146,7 +162,7 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 
 ## 5. Core Invariants & Guarantees
 
-Fail-closed on unconstitutional promotions (AI→human authority conversion is in the GEMS/CCC shared doctrine). Recurrence is explicit. Stdlib-only so the suite runs with no sibling.
+CCC refuses, before any record changes, a model or machine consensus taking human authority (the rules are in `ccc/constitutional_rules.py`). Recurrence of machine findings is explicit, never silent. The package is stdlib-only, so its core suite runs with no sibling repo installed.
 
 ## 6. Inputs, Outputs & Type Contracts
 
@@ -194,7 +210,7 @@ none. That way the guard cannot be lost by forgetting to configure it.
 
 The adapter that feeds CCC from the gate is `orchestrator_ccc_adapter.py` in observe-perceive; it imports `ccc` itself, CCC does not import it.
 
-## 7. Stack Integration Topology
+## 7. How the repos connect
 
 ```text
 observe-perceive decision -> orchestrator_ccc_adapter -> CCC (optional)
@@ -202,7 +218,7 @@ Link: Triad-42 session -> admit_session -> CCC + MachineRecords
 CNS spine: HERALD -> TIE -> Conservation_Kernel -> Governance_Gateway -> CCC (write_permission, CccGate)
 ```
 
-The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if the two sets differ in either direction: a door CCC gates that the spine does not name, or a door the spine names that CCC does not gate. The 30-result, one-recorded-GAP figure that script reported on 2026-10-30 is CNS's measurement; it was not re-run for this README. CNS's own README says that run predates CNS PR #64, which added a second recorded GAP (a kernel built without its evidence guard takes any evidence), and that the spine has not been re-run since.
+The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if the two sets differ in either direction: a door CCC gates that the spine does not name, or a door the spine names that CCC does not gate. CNS's script was reported to give 56 results (52 scenarios plus 4 checks) with 3 recorded GAPs on 2026-11-07 (in the TIE README) and again on 2026-11-08 (in the Conservation_Kernel README). These are CNS-side measurements, quoted here and not re-run for this README. The earlier 30-result, one-GAP figure of 2026-10-30 is superseded.
 
 
 ### Authority, the matcher and the known limits
@@ -222,8 +238,6 @@ Known limits, each stated as a strict expected failure in the tests so that clos
 - **The CNS connector is ALPHA only** and judges on a scratch copy that carries neither the live `write_permission` nor `human_verifier`: a PASS says CCC's rules admit the call, not that the application's own checks do. The digest binds the call, not the store, so a PASS stays bindable after the state it was judged on has changed, and a hand-built PASS with the right subject and digest binds too. A binding says which content a verdict was about, nothing more. CCC has no outcome (OMEGA) end and does not claim one.
 
 Evidence for all of the above is in `tests/test_matcher_boundary.py`, `tests/test_determinism.py`, `tests/test_evidence_integrity_persistence.py` and `tests/test_integration_ccc_cccb_cns.py` (the last runs the real CCCb and CNS and is skipped only where CNS is absent).
-
-Apache-2.0.
 
 ## 8. Connecting to CNS (optional)
 
@@ -382,3 +396,7 @@ is never `held`; if no matching record is stamped the answer is `unattested`. Wi
 the answer is exactly as unauthenticated as before, and records written before a key was
 in use carry no stamp, so they need to be handed off again to be counted.
 Tests: `tests/test_record_attestation.py`.
+
+## License
+
+Apache-2.0. Copyright 2026 William N. King. See `LICENSE` and `NOTICE`.
