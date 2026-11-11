@@ -2,6 +2,10 @@
 
 **A zero-dependency core for recording claims over time.** CCC has no third-party core runtime dependencies. It records who originated each claim, its provenance and epistemic status, and the lineage that links it to earlier versions. At its public interfaces it enforces explicit human-authority rules: human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Applications can supply identity verification and write-permission controls. Both are optional, and direct access to the underlying store is outside their protection. CCC is a library, not a service or an app. It works on its own and is used by [Link](https://github.com/wking53214/Link), [observe-perceive](https://github.com/wking53214/observe-perceive) and [CNS](https://github.com/wking53214/CNS) (section 1). Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
 
+## In plain words
+
+Think of CCC as a ledger of claims with a rulebook in front of it. You tell it who is saying something (a person, a model or a system) and what they claim. It keeps the claim, who said it, how well supported it is, and what later replaced or corrected it. If a model tries to pass its own guess off as something a human established, the rulebook refuses. CCC does not check whether a claim is true, and it does not check who a person really is unless your application gives it a way to. Terms are defined in the glossary near the end.
+
 ## Quick start
 
 Install from a checkout (no third-party core runtime dependencies):
