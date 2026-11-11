@@ -34,7 +34,7 @@ The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was give
 
 Full list, with status of each: section 4.
 
-## 1. Role in the STACK spine
+## 1. Role in the evidence spine of ≡TACK
 
 **Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only an actor labeled human can promote, erase or resolve. "Labeled human" is a classification, not an identity check: the caller supplies an authorization basis, and CCC verifies identity only if the application supplies a `human_verifier`.
 
@@ -194,7 +194,7 @@ none. That way the guard cannot be lost by forgetting to configure it.
 
 The adapter that feeds CCC from the gate is `orchestrator_ccc_adapter.py` in observe-perceive; it imports `ccc` itself, CCC does not import it.
 
-## 7. Stack Integration Topology
+## 7. How the repos connect
 
 ```text
 observe-perceive decision -> orchestrator_ccc_adapter -> CCC (optional)
