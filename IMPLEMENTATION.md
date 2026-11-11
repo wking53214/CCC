@@ -1,4 +1,4 @@
-# Cognitive Continuity Constitution — Implementation Report
+# Cognitive Continuity Constitution: Implementation Report
 
 Status: IMPLEMENTED for the explicit requirements in the supplied build
 directive, with the limitations and unresolved source questions below.
@@ -290,10 +290,12 @@ Measured 2026-11-07 on main `6f80792`, Python 3.13:
 
 - pytest, without CNS (CCCb installed): 776 passed, 4 skipped, 7 xfailed;
 - pytest, with the pinned CNS (`CCC_REQUIRE_CNS=1`): 1341 passed, 7 xfailed on
-  `6f80792`; 1346 passed, 7 xfailed on this branch, which adds five metadata
-  immutability tests (`tests/test_metadata_immutability.py`);
-- the CNS suite run against this branch's CCC code (on CNS PR #121's branch):
-  3019 passed, 0 skipped;
+  `6f80792`. Re-measured 2026-11-10 on main `f3ce7a3`: 1351 passed, 7 xfailed
+  (the metadata immutability tests are in `tests/test_metadata_immutability.py`);
+- pytest, neither CNS nor CCCb installed, measured 2026-11-10 on `f3ce7a3`:
+  510 passed, 4 skipped;
+- the CNS suite run on 2026-11-07 against the CCC code that became `2fd993a`
+  (on CNS PR #121's branch): 3019 passed, 0 skipped. Not re-run on later commits;
 - constitutional harness: 62 total, 36 PASS, 8 RETIRED (the features buried on
   2026-10-06), 18 UNSPECIFIED, 0 FAIL, 0 ERROR, 0 SKIPPED;
 - demonstration: starts successfully, blocks machine self-promotion,
