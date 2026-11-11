@@ -91,7 +91,7 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 - [CCCb](https://github.com/wking53214/CCCb): CCC's text-matching library, split out of this repository. CCC imports nothing from it; the application passes `cccb.TextMatcher()` in as `text_matcher`. CCC keeps the rules, CCCb keeps the measurement.
 - [Link](https://github.com/wking53214/Link): imports `ccc` (`link/admission.py:16-17`) to hand Triad-42 session output to a real `CCCSystem` and read it back through `MachineRecords`. CCC does not know Link exists.
 - [HERALD](https://github.com/wking53214/HERALD), [TIE](https://github.com/wking53214/TIE), [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel), [Governance_Gateway](https://github.com/wking53214/Governance_Gateway): no import in either direction. They reach CCC only through the spine script or an application that wires them.
-- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it. The same repo also imports `ccc` from two tests and one example file.
+- [observe-perceive](https://github.com/wking53214/observe-perceive): `orchestrator_ccc_adapter.py` there imports `ccc` lazily (line 53) and `cccb` (line 72). CCC does not import it. The same repo also imports `ccc` from three tests and one example file.
 
 **Owns.** Its store, its rulebook, its audit trail, the human-only operations, the guard on private sources, the record lookup that answers CNS, and the two hooks an application attaches (`write_permission`, `human_verifier`).
 
@@ -109,8 +109,8 @@ CCC appears in that chain only through two optional seams (sections 7 and 8). No
 | Seam | Status | Evidence |
 |---|---|---|
 | Gate connector: an attempted transition becomes a CNS `GateResult` at position `ALPHA` | implemented, optional, ALPHA only | `ccc/cns_connector.py:282` (lazy `importlib.import_module("cns.gate")`), `:540` (`GatePosition.ALPHA`), `:643` (`CccGate`), `:705` (`cns_chain`); tests `tests/test_cns_connector.py` |
-| Write permission: a CNS decision stands in front of the machine-side doors | implemented on CCC's side, needs no CNS import | `ccc/permission.py`, `ccc/system.py:51-` (`_asks_permission`), doors at `ccc/system.py:673-1048`; `tests/test_write_permission*.py`, `tests/test_write_funnel.py` |
-| Record lookup CNS asks ("no CCC record, no use") | implemented on CCC's side, needs no CNS import; consumer side is in CNS | `ccc/record_status.py:189-235` here, `cns_composition/ccc_admission.py:172` in CNS |
+| Write permission: a CNS decision stands in front of the machine-side doors | implemented on CCC's side, needs no CNS import | `ccc/permission.py`, `ccc/system.py:51-` (`_asks_permission`), doors at `ccc/system.py:676-1048`; `tests/test_write_permission*.py`, `tests/test_write_funnel.py` |
+| Record lookup CNS asks ("no CCC record, no use") | implemented on CCC's side, needs no CNS import; consumer side is in CNS | `ccc/record_status.py:191-235` here, `cns_composition/ccc_admission.py:172` in CNS |
 | UAI-1 signed messages for systems outside a process | absent: no `uai` or `cns_interop` reference anywhere in `ccc/` or `pyproject.toml` | grep over `ccc/` and `pyproject.toml` |
 | `cns_composition` or `cns_interop` imports | absent: CCC imports neither | grep of `import` lines in `ccc/` |
 
@@ -118,7 +118,7 @@ The connector has no outcome end by design: `cns_chain(system).complete()` is `F
 
 **Maturity and limits (first measured 2026-10-31 on `origin/main` at `f6e33da`; re-measured 2026-11-04 on main `7d64471` plus the RACE hardening changes; re-measured 2026-11-07 on main `6f80792`).**
 - Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `737cf0e`), with `pip install -e .` run first. The 2026-11-07 run used Python 3.13 (CI itself runs 3.11 and 3.12): with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The `pip install -e .` step matters: some tests start a subprocess in isolated mode, which cannot import `ccc` unless the package is installed. Without it, three tests fail for that reason alone. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
-- With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 500 tests pass with 4 skipped.
+- With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 510 tests pass with 4 skipped (measured 2026-11-10 on `f3ce7a3`, Python 3.13).
 - Not measured: GitHub Actions itself (only its commands, run locally), and the end-to-end spine result recorded in CNS.
 - Version 0.1.0, no tag or release. A system built without `write_permission` or `human_verifier` is not stopped, and nothing can see that from outside. Anyone holding `system.store` can write around both. Continuity across processes depends on the persistence the caller supplies.
 
@@ -152,8 +152,8 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`, `CCCSystem.version`, and the constitutional rules) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | GitHub Actions run [42518485590](https://github.com/wking53214/CCC/actions/runs/42518485590) on `2fd993a` (main after PR #66) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
-| Tests, with CNS | 1351 passed, 7 xfailed on `d84dfa1` (same code as `2fd993a`; local run, Python 3.13, CCCb `737cf0e`). Earlier: 1341 passed, 7 xfailed on `6f80792`. |
+| CI on main | GitHub Actions run [42645883603](https://github.com/wking53214/CCC/actions/runs/42645883603) on `f3ce7a3` (main after PR #70) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
+| Tests, with CNS | 1351 passed, 7 xfailed on `f3ce7a3` (local run 2026-11-10, Python 3.13, CCCb `737cf0e`, `CCC_REQUIRE_CNS=1`); the same count on `d84dfa1`. Earlier: 1341 passed, 7 xfailed on `6f80792`. |
 | Tests, without CNS | 776 passed, 4 skipped, 7 xfailed on `6f80792` only. Not re-measured on later commits. |
 | CNS suite against CCC | 3019 passed, 0 skipped, run on 2026-11-07 against the CCC code that became `2fd993a` (CNS PR #121 branch). |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `737cf0e`. |
