@@ -126,13 +126,14 @@ The connector has no outcome end by design: `cns_chain(system).complete()` is `F
 
 Executable constitutional model for AI continuity: provenance, epistemic status, human authority, and state carried forward in time. Distinguishes accumulation, interpretation, modification, and authority so a later claim can be checked against earlier ones (recurrence, contradiction, silent promotion).
 
-Package `ccc/` + `tests/`. Stdlib only. Adapter after orchestrator decision; skip-if-absent.
+The package is `ccc/` and its tests are in `tests/`. It imports nothing outside the Python standard library. Other repos connect to it from their side; CCC does not import them (section 1).
 
 ## 3. What It Does NOT Do / Non-Goals
 
 - Does not authorize or execute.
 - Does not replace Conservation Kernel verification of a single transformation.
 - Does not replace a ticket DB or vector search as a product.
+- Does not decide whether content is true or who a human is (see "Does not own" in section 1).
 
 ## 4. Brutally Honest Current Status & Gaps
 
@@ -161,7 +162,7 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 
 ## 5. Core Invariants & Guarantees
 
-Fail-closed on unconstitutional promotions (AI→human authority conversion is in the GEMS/CCC shared doctrine). Recurrence is explicit. Stdlib-only so the suite runs with no sibling.
+CCC refuses, before any record changes, a model or machine consensus taking human authority (the rules are in `ccc/constitutional_rules.py`). Recurrence of machine findings is explicit, never silent. The package is stdlib-only, so its core suite runs with no sibling repo installed.
 
 ## 6. Inputs, Outputs & Type Contracts
 
