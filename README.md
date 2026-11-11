@@ -2,6 +2,10 @@
 
 **A zero-dependency core for recording claims over time.** CCC has no third-party core runtime dependencies. It records who originated each claim, its provenance and epistemic status, and the lineage that links it to earlier versions. At its public interfaces it enforces explicit human-authority rules: human-only promotion to fact, and a human-only erase operation (not yet grounded in the ≡TACK Constitution; see section 4). Applications can supply identity verification and write-permission controls. Both are optional, and direct access to the underlying store is outside their protection. CCC is a library, not a service or an app. It works on its own and is used by [Link](https://github.com/wking53214/Link), [observe-perceive](https://github.com/wking53214/observe-perceive) and [CNS](https://github.com/wking53214/CNS) (section 1). Test counts are under Release and test status in section 4; CI runs every one of them (section 8 explains the two CI jobs).
 
+## In plain words
+
+Think of CCC as a ledger of claims with a rulebook in front of it. You tell it who is saying something (a person, a model or a system) and what they claim. It keeps the claim, who said it, how well supported it is, and what later replaced or corrected it. If a model tries to pass its own guess off as something a human established, the rulebook refuses. CCC does not check whether a claim is true, and it does not check who a person really is unless your application gives it a way to. Terms are defined in the glossary near the end.
+
 ## Quick start
 
 Install from a checkout (no third-party core runtime dependencies):
@@ -137,7 +141,7 @@ The package is `ccc/` and its tests are in `tests/`. It imports nothing outside 
 
 ## 4. Brutally Honest Current Status & Gaps
 
-Commercial red team: **FEATURE** (recurrence detection; the measurement now lives in [CCCb](https://github.com/wking53214/CCCb), the guard stays here). Unfrozen 2026-09-11; findings not superseded. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given, not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
+Commercial red team: **FEATURE** (recurrence detection; the measurement now lives in [CCCb](https://github.com/wking53214/CCCb), the guard stays here). "Commercial red team", "FEATURE" and "Unfrozen 2026-09-11" are labels from the owner's review process. They are not defined in this repository and they are not test results; the tests are in the table below. One xfail historically. Continuity across *processes* still depends on whatever persistence the adapter is given, not a distributed store. Human-sovereignty rules are code invariants in this package, not an identity provider.
 
 Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DEC-0002](decisions/DEC-0002_v1.md) (v1.1 draft, decided provision by provision) leaves Articles I.G, III.F, XI.A, XII.E, XV.A and XVII.A-D UNRESOLVED; I.G and XVII.A-D are nonetheless enforced in this package's code.
 **Metadata limits.** Metadata is frozen all the way down through its containers, so a stored record's nested values cannot be changed. Only text, numbers, booleans, enums, lists, sets and mappings are accepted: any other type (a bytearray, a custom object, a date) is refused when it is stored (`TypeError`), and so is metadata nested more than 64 containers deep, or cyclic (`ValueError`). A value that could not be saved never gets into the store.
@@ -147,6 +151,8 @@ Decisions on the constitution's text are kept in [`decisions/`](decisions/). [DE
 
 ### Release and test status
 
+This table is the one place for test results. IMPLEMENTATION.md carries dated copies and points here.
+
 Each measurement below is tied to the commit it was run on. Commands and conditions are in section 1.
 
 | What | State |
@@ -155,6 +161,7 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
 | CI on main | GitHub Actions run [42645883603](https://github.com/wking53214/CCC/actions/runs/42645883603) on `f3ce7a3` (main after PR #70) succeeded in all four jobs (Python 3.11 and 3.12, with and without CNS). |
 | Tests, with CNS | 1351 passed, 7 xfailed on `f3ce7a3` (local run 2026-11-10, Python 3.13, CCCb `737cf0e`, `CCC_REQUIRE_CNS=1`); the same count on `d84dfa1`. Earlier: 1341 passed, 7 xfailed on `6f80792`. |
+| Tests, neither CNS nor CCCb | 510 passed, 4 skipped on `f3ce7a3` (local run 2026-11-10, Python 3.13). |
 | Tests, without CNS | 776 passed, 4 skipped, 7 xfailed on `6f80792` only. Not re-measured on later commits. |
 | CNS suite against CCC | 3019 passed, 0 skipped, run on 2026-11-07 against the CCC code that became `2fd993a` (CNS PR #121 branch). |
 | Pins | The optional `cns` extra is pinned to the tag v2.3.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `737cf0e`. |
@@ -396,6 +403,18 @@ is never `held`; if no matching record is stamped the answer is `unattested`. Wi
 the answer is exactly as unauthenticated as before, and records written before a key was
 in use carry no stamp, so they need to be handed off again to be counted.
 Tests: `tests/test_record_attestation.py`.
+
+## Glossary
+
+- **Actor:** who is making a call: a human, a model, a system or an external source. `Actor.human(...)` is a label, not proof of identity.
+- **Provenance status:** where a record came from and what authority it holds, for example `USER_ESTABLISHED`, `ASSISTANT_PROPOSED` or `PROVENANCE_UNCERTAIN`.
+- **Epistemic status:** how well supported a claim is, for example `EVIDENCE`, `INFERENCE`, `THEORY`, `UNKNOWN` or `CONFLICTED`.
+- **Evidence root:** the earliest records a conclusion rests on, found by following its evidence links back.
+- **`write_permission`:** an optional check the application supplies. CCC asks it before the eleven machine-side doors and goes on only if it answers exactly `True`.
+- **`human_verifier`:** an optional check the application supplies to confirm that a "human" actor is really that person. Without it, CCC takes the label as given.
+- **Attestation:** an HMAC stamp (a keyed fingerprint) on a handed-off record, made with a key the caller supplies. With a key, only stamped records count as `held`.
+- **Gate, `PASS`, `RETRY`, `TERMINAL_BREACH`:** CNS's shapes for a decision. `PASS` means admitted, `RETRY` means a human supplying what is missing would be admitted, `TERMINAL_BREACH` means refused with no human input that would help.
+- **`ALPHA` and `OMEGA`:** the two gate positions. `ALPHA` runs before the work; `OMEGA` judges the produced result. CCC has `ALPHA` only.
 
 ## License
 
