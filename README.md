@@ -238,8 +238,6 @@ Known limits, each stated as a strict expected failure in the tests so that clos
 
 Evidence for all of the above is in `tests/test_matcher_boundary.py`, `tests/test_determinism.py`, `tests/test_evidence_integrity_persistence.py` and `tests/test_integration_ccc_cccb_cns.py` (the last runs the real CCCb and CNS and is skipped only where CNS is absent).
 
-Apache-2.0.
-
 ## 8. Connecting to CNS (optional)
 
 CCC stands alone: no runtime dependency, nothing imported from CNS when the
@@ -397,3 +395,7 @@ is never `held`; if no matching record is stamped the answer is `unattested`. Wi
 the answer is exactly as unauthenticated as before, and records written before a key was
 in use carry no stamp, so they need to be handed off again to be counted.
 Tests: `tests/test_record_attestation.py`.
+
+## License
+
+Apache-2.0. Copyright 2026 William N. King. See `LICENSE` and `NOTICE`.
