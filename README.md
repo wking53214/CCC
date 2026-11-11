@@ -34,6 +34,21 @@ The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was give
 
 Full list, with status of each: section 4.
 
+## Where this fits
+
+CCC is the last stop of the evidence spine, one of the groups of repos in ≡TACK (≡TACK is the whole library of repos and the company). The spine is five repos that a document passes through in order: HERALD reads it and pulls out claims, TIE records the evidence, Conservation_Kernel judges the root artifact, Governance_Gateway judges the admission door, and CCC decides whether its store takes the document. CNS connects them and is not a sixth stage.
+
+- **What CCC receives:** an attempted write from an application, which may carry a CNS decision in the form of a `write_permission`.
+- **What CCC hands on:** one read-only answer, whether an exact machine output was recorded here and in what state, to consumers such as CNS and Link.
+- **Shared, not owned by one chain:** Link, observe-perceive and CNS's spine script all use CCC, so it is shared infrastructure and not a stage that belongs to a single chain. Section 1 has the detail.
+
+## CNS connection
+
+- **This repo's side:** `ccc/cns_connector.py`. It is optional: nothing else in `ccc/` imports it, and without CNS only the functions that need CNS raise `CnsNotInstalled`.
+- **CNS's side:** `cns_composition/ccc_admission.py` carries the record lookup (an ALPHA gate). CNS's spine script, `chains/evidence_spine.py`, uses this repo's `CccGate`.
+- **List status:** two-way in CNS's connection list (`contracts/cns-links.json`, read at CNS `03eca66`). The list names `ccc_admission.py` as CNS's file for CCC.
+- **Built:** yes. **Tested:** yes, `tests/test_cns_connector.py` runs in CI with CNS required. **Used by CCC's normal code path:** no. A `CCCSystem` never calls the connector by itself; an application or the CNS spine script has to wire it. Section 8 has the detail.
+
 ## 1. Role in the evidence spine of ≡TACK
 
 **Purpose.** CCC is a store of claims over time with a rulebook in front of it. It records who originated each claim (a human, a model, a system or an external source), what epistemic status the claim holds (unknown, evidence, inference, historical, theory and so on), what it rests on, and what later replaced, corrected or erased it. The rules refuse the moves that would let a machine rewrite what a human thought: a model cannot hold human authority, machine consensus cannot become human-established fact, and only an actor labeled human can promote, erase or resolve. "Labeled human" is a classification, not an identity check: the caller supplies an authorization basis, and CCC verifies identity only if the application supplies a `human_verifier`.
