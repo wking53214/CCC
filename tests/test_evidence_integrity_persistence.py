@@ -45,7 +45,7 @@ RECURRING = [
 
 def _world():
     """One of each kind of record, so a table-by-table check has something to find."""
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     w = type("W", (), {})()
     w.system = system
     w.fact = system.ingest("A human fact.", actor=HUMAN, epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
@@ -79,13 +79,13 @@ def test_a_state_file_with_a_repeated_id_is_refused_for_every_table(tmp_path, ta
     data[table].append(copy.deepcopy(data[table][0]))
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(DuplicateId):
-        CCCSystem.load(path)
+        CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 def test_duplicate_protection_is_still_active_after_a_reload(tmp_path):
     w = _world()
     path = w.system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
+    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     original = reloaded.store.require_artifact(w.fact.artifact_id)
     with pytest.raises(DuplicateId):
         reloaded.store.add_artifact(original)
@@ -126,7 +126,7 @@ def test_a_conflict_survives_supersession_and_a_reload_with_its_material(tmp_pat
     system.supersede(w.fact.artifact_id, content="A corrected first fact.", actor=HUMAN, reason="corrected",
                      authorization_basis=BASIS)
     path = system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path)
+    reloaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     conflict = reloaded.store.conflicts[w.conflict.conflict_id]
     assert set(conflict.material_ids) == {w.fact.artifact_id, w.fact2.artifact_id}
     assert reloaded.store.require_artifact(w.fact.artifact_id).content == "A human fact."
@@ -137,7 +137,7 @@ def test_a_conflict_survives_supersession_and_a_reload_with_its_material(tmp_pat
 def test_a_machine_cannot_create_a_mandate_directly():
     """Finding F-04. discover() used to accept stage=MANDATE from anyone, stamped with the
     human-established attribution, skipping CCC-123-001 (human, human_event, basis, evidence)."""
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     for actor in (MODEL, Actor.system("job"), HUMAN, Actor.external("feed")):
         with pytest.raises(ConstitutionViolation, match="CCC-123-001"):
             system.discover(source_material=("a",), method="m", conclusion="c", confidence=0.5,
@@ -147,7 +147,7 @@ def test_a_machine_cannot_create_a_mandate_directly():
 
 @pytest.mark.parametrize("stage", [None, AnalysisStage.ANOMALY, AnalysisStage.PATTERN])
 def test_discover_still_creates_records_at_the_other_stages(stage):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     record = system.discover(source_material=("a",), method="m", conclusion="c", confidence=0.5,
                              supporting_evidence=(), actor=MODEL, stage=stage)
     assert record.stage is stage
@@ -167,7 +167,7 @@ def test_the_only_road_to_a_mandate_is_a_human_advancing_a_pattern_with_evidence
 
 
 def test_repeated_machine_submissions_never_reach_a_mandate_or_a_human_status():
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     for text in RECURRING * 4 + [TEXT] * 4:
         system.record_external_finding(_Finding(text), actor=MODEL)
     records = list(system.store.discoveries.values())
@@ -185,7 +185,7 @@ def test_repeated_machine_submissions_never_reach_a_mandate_or_a_human_status():
     "belongs in CCCb and needs separate authorization; CCC does not paper over it. When the "
     "matcher treats identical text as a duplicate this test XPASSes and the marker must go."))
 def test_known_limit_resubmitting_an_identical_short_finding_is_not_independent_corroboration():
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     for _ in range(3):
         system.record_external_finding(_Finding("The ledger hash chain is broken."), actor=MODEL)
     (group,) = system.recurring_groups()
@@ -195,14 +195,14 @@ def test_known_limit_resubmitting_an_identical_short_finding_is_not_independent_
 def test_uncertainty_and_conflict_are_kept_through_a_reload(tmp_path):
     w = _world()
     path = w.system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path)
+    reloaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert w.uncertainty.uncertainty_id in reloaded.store.uncertainties
     assert w.conflict.conflict_id in reloaded.store.conflicts
     assert reloaded.store.discoveries[w.finding.discovery_id].confidence == 0.6
     none_confidence = reloaded.discover(source_material=("a",), method="m", conclusion="c", confidence=None,
                                         supporting_evidence=(), actor=MODEL)
     reloaded.save(path)
-    assert CCCSystem.load(path).store.discoveries[none_confidence.discovery_id].confidence is None
+    assert CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True).store.discoveries[none_confidence.discovery_id].confidence is None
 
 
 # --- persistence: what a save guarantees ------------------------------------------------------
@@ -210,7 +210,7 @@ def test_uncertainty_and_conflict_are_kept_through_a_reload(tmp_path):
 def test_a_save_and_reload_keeps_provenance_and_meaning(tmp_path):
     w = _world()
     path = w.system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
+    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     assert reloaded.store.snapshot() == w.system.store.snapshot()
     for artifact in w.system.store.artifacts.values():
         again = reloaded.store.require_artifact(artifact.artifact_id)
@@ -220,10 +220,10 @@ def test_a_save_and_reload_keeps_provenance_and_meaning(tmp_path):
 
 
 def test_a_reloaded_system_still_recognises_a_resubmission_as_a_duplicate(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     first = system.record_external_finding(_Finding(TEXT), actor=MODEL)
     path = system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
+    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     again = reloaded.record_external_finding(_Finding(TEXT), actor=MODEL)
     assert again.relationships == (first.discovery_id,) and "duplicate detection" in again.method
     (group,) = reloaded.recurring_groups()
@@ -257,7 +257,7 @@ def test_a_save_that_fails_midway_leaves_the_previous_complete_file(tmp_path, mo
     monkeypatch.undo()
     assert path.read_bytes() == good
     assert _no_temp_files(tmp_path) == []
-    reloaded = CCCSystem.load(path)
+    reloaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert len(reloaded.store.artifacts) == len(w.system.store.artifacts) - 1
 
 
@@ -278,7 +278,7 @@ def test_saving_through_a_symlink_keeps_the_link(tmp_path):
     link.symlink_to(real)
     w.system.save(link)
     assert link.is_symlink() and real.is_file()
-    assert CCCSystem.load(real).store.snapshot() == w.system.store.snapshot()
+    assert CCCSystem.load(real, allow_unguarded_writes=True, allow_unverified_humans=True).store.snapshot() == w.system.store.snapshot()
 
 
 # --- persistence: what a damaged file does ---------------------------------------------------
@@ -290,9 +290,9 @@ def test_a_truncated_state_file_fails_closed_and_is_never_read_as_a_fresh_store(
     for cut in (len(full) // 2, len(full) - 3, 1):
         path.write_bytes(full[:cut])
         with pytest.raises(json.JSONDecodeError):
-            CCCSystem.load(path)
+            CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
         with pytest.raises(json.JSONDecodeError):
-            CCCSystem(persistence_path=path)
+            CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 @pytest.mark.parametrize("garbage", ["[]", "null", "42", '"text"', "not json at all", "{"])
@@ -300,17 +300,17 @@ def test_a_state_file_that_is_not_a_state_object_is_refused(tmp_path, garbage):
     path = tmp_path / "state.json"
     path.write_text(garbage, encoding="utf-8")
     with pytest.raises(Exception):
-        CCCSystem.load(path)
+        CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 def test_an_empty_state_file_is_a_fresh_store_by_design_and_a_save_replaces_it(tmp_path):
     path = tmp_path / "state.json"
     path.write_bytes(b"")
-    system = CCCSystem(persistence_path=path)
+    system = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert not system.store.artifacts
     system.ingest("A note.", actor=HUMAN)
     system.save()
-    assert len(CCCSystem.load(path).store.artifacts) == 1
+    assert len(CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True).store.artifacts) == 1
 
 
 @pytest.mark.xfail(strict=True, reason=(
@@ -328,4 +328,4 @@ def test_known_limit_a_tampered_state_file_is_not_detected(tmp_path):
     target["provenance_status"] = "USER_ESTABLISHED"
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(Exception):
-        CCCSystem.load(path)
+        CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)

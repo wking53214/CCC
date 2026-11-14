@@ -28,7 +28,7 @@ def _rejected(system: CCCSystem):
 
 @pytest.mark.parametrize("operation", ["accept", "establish_provenance"])
 def test_a_rejected_record_cannot_be_approved(operation):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact_id = _rejected(system)
     with pytest.raises(InvalidTransition, match="rejection is final"):
         getattr(system, operation)(artifact_id, actor=HUMAN, reason="changed my mind", authorization_basis=BASIS)
@@ -36,7 +36,7 @@ def test_a_rejected_record_cannot_be_approved(operation):
 
 
 def test_a_rejected_record_cannot_be_reopened_as_unresolved():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact_id = _rejected(system)
     with pytest.raises(InvalidTransition, match="rejection is final"):
         system.provenance.transition(
@@ -44,7 +44,7 @@ def test_a_rejected_record_cannot_be_reopened_as_unresolved():
 
 
 def test_changing_course_after_a_rejection_is_a_supersession():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact_id = _rejected(system)
     successor = system.supersede(artifact_id, content="revised suggestion, now adopted", actor=HUMAN,
                                  reason="changed course", authorization_basis=BASIS)
@@ -57,7 +57,7 @@ def _decision(system: CCCSystem):
 
 
 def test_a_record_can_be_superseded_once():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first = _decision(system)
     second = system.supersede(first.artifact_id, content="use B", actor=HUMAN, reason="r", authorization_basis=BASIS)
     links = system.lineage.related(first.artifact_id, RelationshipType.SUPERSEDES)
@@ -65,7 +65,7 @@ def test_a_record_can_be_superseded_once():
 
 
 def test_superseding_the_same_record_twice_is_refused_and_names_the_successor():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first = _decision(system)
     second = system.supersede(first.artifact_id, content="use B", actor=HUMAN, reason="r", authorization_basis=BASIS)
     count = len(system.store.artifacts)
@@ -75,7 +75,7 @@ def test_superseding_the_same_record_twice_is_refused_and_names_the_successor():
 
 
 def test_the_newest_version_can_be_superseded_so_history_stays_one_line():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first = _decision(system)
     second = system.supersede(first.artifact_id, content="use B", actor=HUMAN, reason="r", authorization_basis=BASIS)
     third = system.supersede(second.artifact_id, content="use C", actor=HUMAN, reason="r", authorization_basis=BASIS)
@@ -83,7 +83,7 @@ def test_the_newest_version_can_be_superseded_so_history_stays_one_line():
 
 
 def test_an_old_version_can_still_be_corrected_after_it_is_superseded():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first = _decision(system)
     system.supersede(first.artifact_id, content="use B", actor=HUMAN, reason="r", authorization_basis=BASIS)
     correction = system.correct(first.artifact_id, content="use A (typo fixed)", actor=HUMAN,

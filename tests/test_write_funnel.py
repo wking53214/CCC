@@ -50,7 +50,7 @@ def _counts(system: CCCSystem) -> dict[str, int]:
 
 def _world():
     """A store with a claim and a fact to relate, built with no guard on it."""
-    plain = CCCSystem()
+    plain = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     fact = plain.ingest("a human fact", actor=HUMAN, epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
                         authorization_basis=BASIS)
     claim = plain.ingest("a machine claim", actor=MODEL)
@@ -78,7 +78,7 @@ DOORS = {
 @pytest.mark.parametrize("door", DOORS)
 def test_a_deny_all_permission_stops_every_door_and_nothing_is_added(door, tmp_path):
     store, fact, claim = _world()
-    system = CCCSystem(store=store, write_permission=Check(False))
+    system = CCCSystem(store=store, write_permission=Check(False), allow_unverified_humans=True)
     before_counts = _counts(system)
     before = system.store.save(tmp_path / "before.json").read_bytes()
     with pytest.raises(WritePermissionRefused) as refused:
@@ -92,7 +92,7 @@ def test_a_deny_all_permission_stops_every_door_and_nothing_is_added(door, tmp_p
 def test_a_yes_lets_the_door_through_and_the_check_is_asked_exactly_once(door):
     store, fact, claim = _world()
     check = Check(True)
-    system = CCCSystem(store=store, write_permission=check)
+    system = CCCSystem(store=store, write_permission=check, allow_unverified_humans=True)
     before = _counts(system)
     DOORS[door][1](system, fact, claim)
     assert [r.operation for r in check.requests] == [DOORS[door][0]]
@@ -102,7 +102,7 @@ def test_a_yes_lets_the_door_through_and_the_check_is_asked_exactly_once(door):
 @pytest.mark.parametrize("door", DOORS)
 def test_without_a_permission_every_door_works_as_before(door):
     store, fact, claim = _world()
-    system = CCCSystem(store=store)
+    system = CCCSystem(store=store, allow_unguarded_writes=True, allow_unverified_humans=True)
     before = _counts(system)
     DOORS[door][1](system, fact, claim)
     assert _counts(system) != before
@@ -111,7 +111,7 @@ def test_without_a_permission_every_door_works_as_before(door):
 def test_the_request_for_a_door_carries_the_callers_arguments_as_given():
     store, fact, claim = _world()
     check = Check(True)
-    system = CCCSystem(store=store, write_permission=check)
+    system = CCCSystem(store=store, write_permission=check, allow_unverified_humans=True)
     system.attach_evidence(claim.artifact_id, fact.artifact_id, actor=MODEL, rationale="because")
     system.relate(claim.artifact_id, fact.artifact_id, RelationshipType.RELATED_TO, actor=MODEL, reason="they relate")
     attach, relate = check.requests
@@ -127,7 +127,7 @@ def test_what_a_door_calls_beneath_itself_does_not_ask_again():
     discoveries. Each is one call, so each is one ask."""
     store, fact, claim = _world()
     check = Check(True)
-    system = CCCSystem(store=store, write_permission=check)
+    system = CCCSystem(store=store, write_permission=check, allow_unverified_humans=True)
     system.derive("a conclusion", actor=MODEL, evidence_ids=(fact.artifact_id,))
     system.interpret("an interpretation", actor=MODEL, evidence_ids=(fact.artifact_id,))
     assert [r.operation for r in check.requests] == ["derive", "interpret"]
@@ -139,7 +139,7 @@ def test_a_human_operation_still_never_asks_the_write_permission_though_it_write
     the machine's permission is not asked; the human verifier is."""
     deny = Check(False)
     w = human_world()
-    system = CCCSystem(store=w.store, write_permission=deny)
+    system = CCCSystem(store=w.store, write_permission=deny, allow_unverified_humans=True)
     for call in HUMAN_OPERATIONS.values():
         call(system, w)
     assert deny.requests == []

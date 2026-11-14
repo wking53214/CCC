@@ -31,7 +31,7 @@ The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was give
 ## Limitations at a glance
 
 - `Actor.human(...)` is a label. CCC holds no identity provider; identity is checked only if the application supplies a `human_verifier`.
-- Write permission and `human_verifier` are optional. Without them, the facade does not ask.
+- A system must be given a `write_permission` and a `human_verifier`, or say in code that it goes without: `CCCSystem(...)` raises `UnguardedSystemError` unless it gets `allow_unguarded_writes=True` and `allow_unverified_humans=True` for the one it lacks. With those flags the facade does not ask.
 - Direct access to `system.store` and the managers bypasses facade-level controls.
 - The CNS connector evaluates a scratch copy. A PASS shows the rules admitted the call on that copy, not that the application authorized it.
 - Persistence has no digest or version, and the store is not a tamper-evident ledger.
@@ -69,8 +69,8 @@ CCC is the last stop of the evidence spine, one of the groups of repos in ≡TAC
 | In | Out |
 |---|---|
 | Calls on `CCCSystem` carrying an `Actor`, content, evidence ids and (for human acts) an `authorization_basis` | An immutable `Artifact` or event, a `RuleDecision` in the rule history (`store.rule_decisions`), an `AuditEvent` in the audit trail (`store.audit_events`) for a consequential operation, or a `ConstitutionViolation` raised before any record changes. The rule history and the audit trail are separate records. |
-| An optional `write_permission` callable the application supplies | `WritePermissionRefused` if it answers anything but `True` |
-| An optional `human_verifier` callable the application supplies | `HumanVerificationRefused` if it answers anything but `True` |
+| A `write_permission` callable the application supplies (or `allow_unguarded_writes=True`) | `WritePermissionRefused` if it answers anything but `True` |
+| A `human_verifier` callable the application supplies (or `allow_unverified_humans=True`) | `HumanVerificationRefused` if it answers anything but `True` |
 | A JSON snapshot (`CCCStore.save` / `load`) | The same store back, including the rule history and the audit trail |
 | A `(source, candidate_id, text_digest)` triple | One word from `MachineRecords.status`: `held`, `absent`, `altered`, `erased`, `redacted`, `rejected`, `superseded` or `unattested` |
 
@@ -124,7 +124,7 @@ The connector has no outcome end by design: `cns_chain(system).complete()` is `F
 - Pinned dependencies installed from their git URLs (CNS tag v2.3.0 = `41592fb`, CCCb `737cf0e`), with `pip install -e .` run first. The 2026-11-07 run used Python 3.13 (CI itself runs 3.11 and 3.12): with CNS, 1341 passed and 7 xfailed; with CNS absent, 776 passed, 4 skipped and 7 xfailed. The `pip install -e .` step matters: some tests start a subprocess in isolated mode, which cannot import `ccc` unless the package is installed. Without it, three tests fail for that reason alone. The 4 skips are the connected modules, which CI runs with `CCC_REQUIRE_CNS=1` so they cannot skip there. `ruff==0.15.22` is clean. The 7 xfails are strict statements of known limits (see "Authority, the matcher and the known limits" in section 7).
 - With CCCb not installed, the 10 test modules that need the `match` extra are left out of the run (`tests/conftest.py`), and the run header says how many (`test_determinism`, `test_evidence_integrity_persistence`, `test_external_finding`, `test_matcher_boundary`, `test_recurrence`, `test_recurring_groups`, `test_semantic`, `test_semantic_hardening`, `test_text_matching`, `test_write_permission_doors`). The other 510 tests pass with 4 skipped (measured 2026-11-10 on `f3ce7a3`, Python 3.13).
 - Not measured: GitHub Actions itself (only its commands, run locally), and the end-to-end spine result recorded in CNS.
-- Version 0.1.0, no tag or release. A system built without `write_permission` or `human_verifier` is not stopped, and nothing can see that from outside. Anyone holding `system.store` can write around both. Continuity across processes depends on the persistence the caller supplies.
+- Version 0.1.0, no tag or release. A system cannot be built without `write_permission` or `human_verifier` unless the caller passes `allow_unguarded_writes=True` or `allow_unverified_humans=True`; a system built with those flags is not stopped, and the flag is the visible record of that choice. Code in the same process can still reach `system.store` and the manager objects directly and write around both; that is a documented limit, not closed here. Continuity across processes depends on the persistence the caller supplies.
 
 ## 2. Full System Scope & Architectural Depth
 
@@ -373,9 +373,12 @@ Left open by this check on purpose: `adopt_discovery`, `advance_discovery`, `lin
 record that already exists (all but `link_road_sign` ask `human_verifier`, `advance_discovery` only for a MANDATE advance), and `detect_conflict` and `ask` create a flag or a
 question, not a finding or a record of material.
 
-Limits: a system built without a check is not stopped, and nothing here can see that. Anyone holding the
-system's `store` can also write to it directly, which no check can see. The check is not saved
-with the store, so a reloaded system or the connector's scratch copy has none unless given one. Tests:
+Limits: `CCCSystem(...)` refuses to be built without a `write_permission` (raising `UnguardedSystemError`) unless the caller
+passes `allow_unguarded_writes=True`, and likewise for `human_verifier` and `allow_unverified_humans=True`; `CCCSystem.load`
+takes the same four arguments. A system built with a flag is not stopped, and the flag is the greppable record of that choice.
+Code in the same process can still reach `system.store` and the manager objects directly, which no check can see; that limit
+is documented and not fixed here. The check is not saved with the store, so a reloaded system must be given one again
+(or the flag), and the connector's scratch copy has none by design and says so with the flags. Tests:
 `tests/test_write_permission.py`, `tests/test_write_permission_doors.py` and `tests/test_write_funnel.py` (which also sweeps for a public method added without a decision about which kind it is).
 
 ### Answering CNS's record lookup (`ccc.record_status`)
@@ -410,8 +413,8 @@ Tests: `tests/test_record_attestation.py`.
 - **Provenance status:** where a record came from and what authority it holds, for example `USER_ESTABLISHED`, `ASSISTANT_PROPOSED` or `PROVENANCE_UNCERTAIN`.
 - **Epistemic status:** how well supported a claim is, for example `EVIDENCE`, `INFERENCE`, `THEORY`, `UNKNOWN` or `CONFLICTED`.
 - **Evidence root:** the earliest records a conclusion rests on, found by following its evidence links back.
-- **`write_permission`:** an optional check the application supplies. CCC asks it before the eleven machine-side doors and goes on only if it answers exactly `True`.
-- **`human_verifier`:** an optional check the application supplies to confirm that a "human" actor is really that person. Without it, CCC takes the label as given.
+- **`write_permission`:** a check the application supplies (or `allow_unguarded_writes=True` to go without). CCC asks it before the eleven machine-side doors and goes on only if it answers exactly `True`.
+- **`human_verifier`:** a check the application supplies to confirm that a "human" actor is really that person. With `allow_unverified_humans=True` instead, CCC takes the label as given.
 - **Attestation:** an HMAC stamp (a keyed fingerprint) on a handed-off record, made with a key the caller supplies. With a key, only stamped records count as `held`.
 - **Gate, `PASS`, `RETRY`, `TERMINAL_BREACH`:** CNS's shapes for a decision. `PASS` means admitted, `RETRY` means a human supplying what is missing would be admitted, `TERMINAL_BREACH` means refused with no human input that would help.
 - **`ALPHA` and `OMEGA`:** the two gate positions. `ALPHA` runs before the work; `OMEGA` judges the produced result. CCC has `ALPHA` only.

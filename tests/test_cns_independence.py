@@ -88,7 +88,7 @@ def test_ccc_still_enforces_its_constitution_with_cns_blocked():
             assert result["self_promotion_blocked"] is True
             assert result["constitution_valid"] is True
 
-            system = CCCSystem()
+            system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
             proposal = system.derive("machine inference", actor=Actor.model("m"))
             try:
                 system.accept(
@@ -132,7 +132,7 @@ def test_connector_says_what_is_missing_when_cns_is_blocked():
             )
 
             assert cns_available() is False
-            system = CCCSystem()
+            system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
             att = attempt(
                 "accept", "artifact_x", actor=Actor.human("h"), reason="r",
                 authorization_basis="b",
@@ -165,7 +165,7 @@ def test_constructing_a_cns_gate_fails_at_construction_not_first_use():
             from ccc import CCCSystem
             from ccc.cns_connector import CccGate, CnsNotInstalled
             try:
-                CccGate(CCCSystem())
+                CccGate(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
             except CnsNotInstalled:
                 print('ok')
             """
@@ -199,7 +199,7 @@ def test_the_parts_that_need_no_cns_work_with_cns_blocked():
             assert cns_available() is False
 
             # Attempt.run performs the real operation through CCC: no CNS involved.
-            system = CCCSystem()
+            system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
             proposal = system.derive("machine inference", actor=Actor.model("m"))
             real = attempt(
                 "accept", proposal.artifact_id, actor=human, reason="reviewed",
@@ -339,7 +339,7 @@ def test_a_cns_too_old_to_bind_verdicts_is_not_available_and_says_why(tmp_path):
 
             assert not hasattr(cns.gate, "subject_digest")  # the stand-in is in front
             assert cns_available() is False
-            system = CCCSystem()
+            system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
             att = attempt(
                 "accept", "artifact_x", actor=Actor.human("h"), reason="r",
                 authorization_basis="b",

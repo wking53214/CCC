@@ -42,7 +42,10 @@ anything was written. So a one-use check can give its yes back when the call fai
 it used when the call failed halfway, because a retry on top of a partial write is not the call that was approved. A
 check with neither method behaves as before.
 
-A system built without a check is not stopped, and nothing here can see that. The check is given to the
+A system cannot be built without a check unless the caller passes ``allow_unguarded_writes=True``; ``CCCSystem`` raises
+``UnguardedSystemError`` otherwise. A system built with the flag is not stopped, and the flag is the visible record of
+that choice. Code in the same process can still reach ``system.store`` and the manager objects directly; that limit is
+documented, not closed here. The check is given to the
 constructor and is not saved with the store, so a system reloaded or copied from a snapshot has none unless it is
 given one again.
 """

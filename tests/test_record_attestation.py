@@ -44,7 +44,7 @@ def _ask(system: CCCSystem, text: str = TEXT, candidate_id: str = "c1", key: byt
 
 
 def test_a_stamped_handoff_is_held():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _handoff(system)
     assert _ask(system) == HELD
 
@@ -52,14 +52,14 @@ def test_a_stamped_handoff_is_held():
 # ---------------------------------------------------------------- the three forgeries
 
 def test_forgery_by_ingest_is_unattested_not_held():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
     assert _ask(system, FORGED) == UNATTESTED
 
 
 def test_forgery_by_a_raw_store_add_leaves_no_audit_event_and_is_unattested():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     real = _handoff(system)
     events_before = len(system.store.provenance_events)
     forged = dataclasses.replace(real, artifact_id="forged-1", content=FORGED, content_digest=_digest(FORGED))
@@ -69,7 +69,7 @@ def test_forgery_by_a_raw_store_add_leaves_no_audit_event_and_is_unattested():
 
 
 def test_a_stamp_copied_onto_other_text_does_not_verify():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     real = _handoff(system)
     system.store.add_artifact(dataclasses.replace(real, artifact_id="forged-2", content=FORGED,
                                                   content_digest=_digest(FORGED)))
@@ -78,7 +78,7 @@ def test_a_stamp_copied_onto_other_text_does_not_verify():
 
 def test_forgery_by_editing_the_state_file_is_not_held(tmp_path):
     path = tmp_path / "state.json"
-    system = CCCSystem(persistence_path=path)
+    system = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     _handoff(system)
     system.save()
     raw = json.loads(path.read_text(encoding="utf-8"))
@@ -88,19 +88,19 @@ def test_forgery_by_editing_the_state_file_is_not_held(tmp_path):
     record["content"] = FORGED  # and the real record's text edited in place, its stamp left as it was
     record["content_digest"] = _digest(FORGED)
     path.write_text(json.dumps(raw), encoding="utf-8")
-    reopened = CCCSystem(persistence_path=path)
+    reopened = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert _ask(reopened, FORGED) == UNATTESTED  # no stamped record is left to vouch for either text
     assert _ask(reopened) == UNATTESTED
 
 
 def test_a_stamp_made_with_another_key_does_not_count():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _handoff(system, key=OTHER_KEY)
     assert _ask(system) == UNATTESTED
 
 
 def test_a_forged_decoy_beside_a_real_handoff_changes_nothing():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _handoff(system)
     system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
@@ -111,7 +111,7 @@ def test_a_forged_decoy_beside_a_real_handoff_changes_nothing():
 # ---------------------------------------------------------------- what still holds
 
 def test_an_erased_stamped_record_stays_erased():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact = _handoff(system)
     system.erase(artifact.artifact_id, actor=Actor.human(), reason="withdrawn",
                  authorization_basis="owner request")
@@ -119,11 +119,11 @@ def test_an_erased_stamped_record_stays_erased():
 
 
 def test_nothing_recorded_is_still_absent_with_a_key():
-    assert _ask(CCCSystem()) == ABSENT
+    assert _ask(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)) == ABSENT
 
 
 def test_the_bound_lookup_uses_its_key():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _handoff(system)
     assert MachineRecords(system, attestation_key=KEY).status(SOURCE, "c1", _digest(TEXT)) == HELD
     assert MachineRecords(system, attestation_key=OTHER_KEY).status(SOURCE, "c1", _digest(TEXT)) == UNATTESTED
@@ -131,7 +131,7 @@ def test_the_bound_lookup_uses_its_key():
 
 def test_without_a_key_the_answer_is_as_unauthenticated_as_before():
     """A recorded gap, stated as an assertion: with no key a forged record is still held."""
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     system.ingest(FORGED, actor=Actor.model(SOURCE), epistemic_status=EpistemicStatus.THEORY,
                   metadata={"source": SOURCE, "candidate_id": "c1"})
     assert _ask(system, FORGED, key=None) == HELD
@@ -142,9 +142,9 @@ def test_a_key_that_is_not_long_enough_bytes_is_refused(bad):
     with pytest.raises(ValueError):
         attest(bad, source=SOURCE, candidate_id="c1", text_digest=_digest(TEXT))
     with pytest.raises(ValueError):
-        MachineRecords(CCCSystem(), attestation_key=bad)
+        MachineRecords(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), attestation_key=bad)
     with pytest.raises(ValueError):
-        record_status(CCCSystem(), source=SOURCE, candidate_id="c1", text_digest=_digest(TEXT),
+        record_status(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), source=SOURCE, candidate_id="c1", text_digest=_digest(TEXT),
                       attestation_key=bad)
 
 

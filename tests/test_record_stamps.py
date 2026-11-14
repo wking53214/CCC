@@ -37,14 +37,14 @@ def test_attest_matches_the_rows_cns_tests_against(row):
 
 
 def test_the_stamp_of_a_stamped_handoff_is_shown():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     (stamp,) = MachineRecords(system).stamps(SOURCE, "c1", _digest(TEXT))
     assert stamp == attest(KEY, source=SOURCE, candidate_id="c1", text_digest=_digest(TEXT))
 
 
 def test_an_unstamped_record_shows_nothing():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system, stamp=False)
     assert MachineRecords(system).stamps(SOURCE, "c1", _digest(TEXT)) == ()
 
@@ -54,20 +54,20 @@ def test_an_unstamped_record_shows_nothing():
     dict(candidate_id="c1", text="other text"),
 ])
 def test_only_the_records_of_exactly_this_item_are_shown(ask):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     assert MachineRecords(system).stamps(SOURCE, ask["candidate_id"], _digest(ask["text"])) == ()
 
 
 def test_an_erased_record_shows_no_stamp():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact = _record(system)
     system.erase(artifact.artifact_id, actor=Actor.human(), reason="withdrawn", authorization_basis="owner request")
     assert MachineRecords(system).stamps(SOURCE, "c1", _digest(TEXT)) == ()
 
 
 def test_another_sources_record_is_not_shown():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system, source="other-model")
     assert MachineRecords(system).stamps(SOURCE, "c1", _digest(TEXT)) == ()
 
@@ -77,4 +77,4 @@ def test_a_malformed_question_raises(field):
     args = dict(source=SOURCE, candidate_id="c1", text_digest=_digest(TEXT))
     args[field] = ""
     with pytest.raises(ValueError):
-        MachineRecords(CCCSystem()).stamps(**args)
+        MachineRecords(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)).stamps(**args)

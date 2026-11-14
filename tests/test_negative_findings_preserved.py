@@ -33,7 +33,7 @@ def _conflict(system, first, second):
 
 @pytest.mark.parametrize("operation", ["erase", "redact"])
 def test_a_rejected_record_cannot_be_erased_or_redacted(operation):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _rejected(system)
     with pytest.raises(ConstitutionViolation) as caught:
         getattr(system, operation)(item.artifact_id, actor=H, reason="tidy", authorization_basis="human request")
@@ -44,7 +44,7 @@ def test_a_rejected_record_cannot_be_erased_or_redacted(operation):
 
 @pytest.mark.parametrize("operation", ["erase", "redact"])
 def test_a_record_material_to_a_conflict_cannot_be_erased_or_redacted(operation):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first, second = _record(system, "claim one"), _record(system, "claim two")
     _conflict(system, first, second)
     for item in (first, second):
@@ -55,7 +55,7 @@ def test_a_record_material_to_a_conflict_cannot_be_erased_or_redacted(operation)
 
 
 def test_a_record_on_either_end_of_a_contradiction_edge_cannot_be_erased():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first, second = _record(system, "yes"), _record(system, "no")
     system.lineage.link(first.artifact_id, second.artifact_id, RelationshipType.CONTRADICTS, actor=H, reason="they contradict")
     for item in (first, second):
@@ -65,7 +65,7 @@ def test_a_record_on_either_end_of_a_contradiction_edge_cannot_be_erased():
 
 
 def test_an_ordinary_record_can_still_be_erased_and_redacted():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     erased, redacted = _record(system, "erase me"), _record(system, "redact me")
     system.erase(erased.artifact_id, actor=H, reason="private", authorization_basis="human request")
     system.redact(redacted.artifact_id, actor=H, reason="private", authorization_basis="human request")
@@ -74,7 +74,7 @@ def test_an_ordinary_record_can_still_be_erased_and_redacted():
 
 
 def test_a_model_is_still_refused_by_the_human_rule_first():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _rejected(system)
     with pytest.raises(ConstitutionViolation) as caught:
         system.erase(item.artifact_id, actor=Actor.model("m"), reason="x", authorization_basis="y")
@@ -82,7 +82,7 @@ def test_a_model_is_still_refused_by_the_human_rule_first():
 
 
 def test_a_rejected_record_can_still_be_superseded():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _rejected(system)
     newer = system.supersede(item.artifact_id, content="what we believe now", actor=H, reason="new record", authorization_basis="human review")
     assert newer.artifact_id != item.artifact_id

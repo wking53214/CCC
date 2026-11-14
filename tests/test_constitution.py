@@ -23,7 +23,7 @@ def actors():
 
 @pytest.fixture
 def fact():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = system.ingest(
         "human record",
         actor=Actor.human("human"),
@@ -80,7 +80,7 @@ def test_direct_provenance_mutation_is_not_possible(fact):
 
 
 def test_machine_cannot_ingest_historical_record_or_evidence():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     with pytest.raises(ConstitutionViolation):
         system.ingest("machine history", actor=Actor.model("model"), epistemic_status=EpistemicStatus.HISTORICAL_RECORD)
     with pytest.raises(ConstitutionViolation):
@@ -107,7 +107,7 @@ def test_epistemic_promotions_need_evidence_and_human_action(fact):
 
 
 def test_simulation_cannot_be_promoted_to_history():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     simulation = system.ingest("trajectory", actor=Actor.model("model"), epistemic_status=EpistemicStatus.SIMULATION)
     with pytest.raises(ConstitutionViolation):
         system.classify(simulation.artifact_id, EpistemicStatus.HISTORICAL_RECORD, actor=Actor.human("human"), reason="pretend history")
@@ -201,7 +201,7 @@ def test_decision_requires_human_actor_even_when_recommendation_exists(fact):
 
 
 def test_uncertainty_is_nonleading_and_resolution_is_explicit():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     uncertainty = system.ask(
         context="conflicting origin",
         known=("two records",),
@@ -217,7 +217,7 @@ def test_uncertainty_is_nonleading_and_resolution_is_explicit():
 
 
 def test_road_sign_is_observation_not_conclusion():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     sign = system.detect_road_sign(observation="a reversal occurred", category=RoadSignCategory.REVERSAL, actor=Actor.model("model"))
     assert not sign.is_conclusion
     system.link_road_sign(sign.road_sign_id, "candidate-1", actor=Actor.system("system"), reason="link for examination")
@@ -240,7 +240,7 @@ def test_anomaly_pattern_mandate_requires_human_adoption(fact):
 
 
 def test_discovery_remains_machine_generated_until_adopted():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     discovery = system.discover(source_material=(), method="model scan", conclusion="candidate", confidence=0.3, actor=Actor.model("model"))
     assert discovery.machine_origin
     assert discovery.provenance_status is ProvenanceStatus.ASSISTANT_PROPOSED
@@ -288,7 +288,7 @@ def test_json_persistence_preserves_lineage_and_audit(fact, tmp_path):
     system, source = fact
     replacement = system.correct(source.artifact_id, content="corrected", actor=Actor.human("human"), reason="fix", authorization_basis="human")
     path = system.save(tmp_path / "ccc.json")
-    loaded = CCCSystem.load(path)
+    loaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert loaded.store.require_artifact(source.artifact_id).content == source.content
     assert loaded.store.require_artifact(replacement.artifact_id).content == "corrected"
     assert any(event.relationship is RelationshipType.CORRECTS for event in loaded.store.lineage_events)

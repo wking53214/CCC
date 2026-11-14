@@ -10,7 +10,7 @@ from .system import CCCSystem
 
 
 def run_demo() -> dict:
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     human = Actor.human("demo-human", "human operator")
     model = Actor.model("demo-model", "machine analyst")
 

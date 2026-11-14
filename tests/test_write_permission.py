@@ -50,7 +50,7 @@ def _bytes(system: CCCSystem, tmp_path, name: str) -> bytes:
 
 
 def test_without_a_permission_every_method_works_as_before():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     for call in COVERED.values():
         assert call(system).artifact_id
 
@@ -58,7 +58,7 @@ def test_without_a_permission_every_method_works_as_before():
 @pytest.mark.parametrize("method", COVERED)
 def test_a_yes_lets_the_call_through_and_the_check_is_asked_exactly_once(method):
     check = Check(True)
-    system = CCCSystem(write_permission=check)
+    system = CCCSystem(write_permission=check, allow_unverified_humans=True)
     artifact = COVERED[method](system)
     assert system.store.require_artifact(artifact.artifact_id) is not None
     # interpret calls derive, which writes the record; the nesting must not ask again.
@@ -67,7 +67,7 @@ def test_a_yes_lets_the_call_through_and_the_check_is_asked_exactly_once(method)
 
 def test_the_request_names_the_method_and_carries_the_callers_arguments_as_given():
     check = Check(True)
-    CCCSystem(write_permission=check).ingest("the text", actor=HUMAN, topics=("a",), metadata={"source_id": "s1"})
+    CCCSystem(write_permission=check, allow_unverified_humans=True).ingest("the text", actor=HUMAN, topics=("a",), metadata={"source_id": "s1"})
     (request,) = check.requests
     assert request.operation == "ingest"
     assert request.args == ("the text",)
@@ -84,7 +84,7 @@ def test_the_request_is_a_copy_so_the_check_cannot_change_what_is_written():
         return True
 
     theirs = {"source_id": "real"}
-    artifact = CCCSystem(write_permission=tampering).ingest("text", actor=HUMAN, metadata=theirs)
+    artifact = CCCSystem(write_permission=tampering, allow_unverified_humans=True).ingest("text", actor=HUMAN, metadata=theirs)
     assert seen["ok"]
     assert theirs == {"source_id": "real"}
     assert artifact.metadata["source_id"] == "real"
@@ -93,7 +93,7 @@ def test_the_request_is_a_copy_so_the_check_cannot_change_what_is_written():
 @pytest.mark.parametrize("verdict", [False, None, 1, "yes", object(), [True]])
 @pytest.mark.parametrize("method", COVERED)
 def test_anything_but_true_refuses_and_leaves_the_store_untouched(method, verdict, tmp_path):
-    system = CCCSystem(write_permission=Check(verdict))
+    system = CCCSystem(write_permission=Check(verdict), allow_unverified_humans=True)
     before = _bytes(system, tmp_path, "before.json")
     with pytest.raises(WritePermissionRefused) as refused:
         COVERED[method](system)
@@ -104,7 +104,7 @@ def test_anything_but_true_refuses_and_leaves_the_store_untouched(method, verdic
 
 @pytest.mark.parametrize("method", COVERED)
 def test_a_check_that_raises_is_a_refusal_and_the_error_is_its_cause(method, tmp_path):
-    system = CCCSystem(write_permission=Check(RuntimeError("roster down")))
+    system = CCCSystem(write_permission=Check(RuntimeError("roster down")), allow_unverified_humans=True)
     before = _bytes(system, tmp_path, "before.json")
     with pytest.raises(WritePermissionRefused) as refused:
         COVERED[method](system)
@@ -115,7 +115,7 @@ def test_a_check_that_raises_is_a_refusal_and_the_error_is_its_cause(method, tmp
 
 def test_arguments_that_cannot_be_copied_are_refused_not_written(tmp_path):
     check = Check(True)
-    system = CCCSystem(write_permission=check)
+    system = CCCSystem(write_permission=check, allow_unverified_humans=True)
     before = _bytes(system, tmp_path, "before.json")
     with pytest.raises(WritePermissionRefused):
         system.ingest("text", actor=HUMAN, metadata={"lock": threading.Lock()})
@@ -124,13 +124,13 @@ def test_arguments_that_cannot_be_copied_are_refused_not_written(tmp_path):
 
 
 def test_the_methods_that_carry_a_humans_action_never_ask():
-    plain = CCCSystem()
+    plain = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     ids = {
         name: plain.ingest(f"material for {name}", actor=HUMAN).artifact_id
         for name in ("correct", "amend", "supersede", "redact", "erase")
     }
     deny = Check(False)
-    system = CCCSystem(store=plain.store, write_permission=deny)
+    system = CCCSystem(store=plain.store, write_permission=deny, allow_unverified_humans=True)
 
     system.decide("a human decision", actor=HUMAN, reason="r", authorization_basis=BASIS)
     for name in ("correct", "amend", "supersede"):
@@ -144,22 +144,22 @@ def test_the_methods_that_carry_a_humans_action_never_ask():
 
 def test_a_permission_must_be_callable():
     with pytest.raises(TypeError):
-        CCCSystem(write_permission="yes")  # type: ignore[arg-type]
+        CCCSystem(write_permission="yes", allow_unverified_humans=True)  # type: ignore[arg-type]
 
 
 def test_the_permission_is_not_saved_with_the_store_and_load_can_be_given_one(tmp_path):
-    guarded = CCCSystem(write_permission=Check(False))
+    guarded = CCCSystem(write_permission=Check(False), allow_unverified_humans=True)
     path = guarded.save(tmp_path / "s.json")
-    assert CCCSystem.load(path).ingest("loaded without a check", actor=HUMAN)
+    assert CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True).ingest("loaded without a check", actor=HUMAN)
     with pytest.raises(WritePermissionRefused):
-        CCCSystem.load(path, write_permission=Check(False)).ingest("x", actor=HUMAN)
+        CCCSystem.load(path, write_permission=Check(False), allow_unverified_humans=True).ingest("x", actor=HUMAN)
 
 
 def test_the_connectors_scratch_copies_carry_no_permission():
     """A scratch copy is where the CNS connector judges an attempt; it must never ask a check, or judging would
     spend a one-use permission."""
     check = Check(False)
-    system = CCCSystem(write_permission=check)
+    system = CCCSystem(write_permission=check, allow_unverified_humans=True)
     with _scratches(system) as fresh:
         scratch = fresh()
         assert scratch._write_permission is None

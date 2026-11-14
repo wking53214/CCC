@@ -51,7 +51,7 @@ Modules are separated by responsibility:
 - `conflict.py`: conflict classification, presentation, and human resolution.
 - `query.py`: discoverability and presentation ranking without deletion.
 - `audit.py`: append-only in-process consequential transition events.
-- `permission.py`: the `write_permission` hook, which the application supplies to stand a decision in front of new records.
+- `permission.py`: the `write_permission` hook, which the application supplies to stand a decision in front of new records. `CCCSystem` refuses to be built without one (`UnguardedSystemError`) unless `allow_unguarded_writes=True` is passed; the same goes for `human_verifier` and `allow_unverified_humans=True`. Code in the same process can still reach `system.store` and the managers directly (a documented limit).
 - `human_auth.py`: the `human_verifier` hook, which the application supplies to check human operations.
 - `record_status.py`: the read-only record lookup CNS asks ("was this exact output recorded here?").
 - `text_matching.py`: the seam where an application plugs in a text matcher (CCCb). CCC checks the matcher's answers but imports nothing from CCCb.

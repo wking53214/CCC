@@ -25,7 +25,8 @@ its rules or its audit trail.
 
 WHAT THIS DOES NOT DO
 
-With no verifier configured nothing changes. The verifier is asked once per public call, never again beneath it
+A system cannot be built without a verifier unless the caller passes ``allow_unverified_humans=True``; ``CCCSystem``
+raises ``UnguardedSystemError`` otherwise. With the flag nothing is asked. The verifier is asked once per public call, never again beneath it
 (``ratify`` calls ``accept``; one ask). It is never the machine ``write_permission``: a human operation does not ask
 that, and the machine's roster does not ask this. The verifier is given to the constructor and is not saved with the
 store, so a system reloaded from disk has none unless ``CCCSystem.load`` is given one again. The managers

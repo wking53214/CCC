@@ -50,14 +50,14 @@ def _conflict(conflict_id="conflict_test"):
 
 
 def test_empty_system_has_no_pins_or_concepts():
-    packet = _build(CCCSystem())
+    packet = _build(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
 
     assert packet["state"]["active_pins"] == []
     assert packet["state"]["active_concepts"] == []
 
 
 def test_open_uncertainty_is_a_pin():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     record = _ask(system)
 
     packet = _build(system)
@@ -66,7 +66,7 @@ def test_open_uncertainty_is_a_pin():
 
 
 def test_resolved_uncertainty_is_not_a_pin():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     record = _ask(system)
     system.resolve_uncertainty(
         record.uncertainty_id,
@@ -82,7 +82,7 @@ def test_resolved_uncertainty_is_not_a_pin():
 
 
 def test_unresolved_conflict_is_a_pin_and_resolved_one_is_not():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     open_conflict = _conflict("conflict_open")
     system.store.add_conflict(open_conflict)
     system.store.add_conflict(
@@ -95,7 +95,7 @@ def test_unresolved_conflict_is_a_pin_and_resolved_one_is_not():
 
 
 def test_road_sign_linked_to_open_pin_contributes_its_category():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     record = _ask(system)
     system.detect_road_sign(
         observation="the same question came back",
@@ -110,7 +110,7 @@ def test_road_sign_linked_to_open_pin_contributes_its_category():
 
 
 def test_road_sign_linked_to_nothing_open_is_left_out():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _ask(system)
     system.detect_road_sign(
         observation="an unrelated shift",
@@ -125,7 +125,7 @@ def test_road_sign_linked_to_nothing_open_is_left_out():
 
 
 def test_building_a_packet_changes_nothing():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     record = _ask(system)
     system.detect_road_sign(
         observation="the same question came back",
@@ -154,7 +154,7 @@ def test_building_a_packet_changes_nothing():
 
 
 def test_packet_has_the_shared_shape():
-    packet = _build(CCCSystem())
+    packet = _build(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
 
     assert packet["packet_type"] == "synapsis_resume_packet"
     assert packet["version"] == "1.0"
@@ -173,7 +173,7 @@ def test_packet_has_the_shared_shape():
 
 def test_created_defaults_to_now_in_utc():
     packet = build_resume_packet(
-        CCCSystem(),
+        CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True),
         packet_id="STATE-0002",
         title="t",
         current_problem="p",
@@ -197,4 +197,4 @@ def test_rejects_a_non_string_field(field):
     values[field] = None
 
     with pytest.raises(TypeError, match=field):
-        build_resume_packet(CCCSystem(), **values)
+        build_resume_packet(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), **values)

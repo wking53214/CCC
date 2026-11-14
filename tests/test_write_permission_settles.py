@@ -38,13 +38,13 @@ def ingest(system, **more):
 
 def test_a_call_that_returns_tells_the_permission_to_commit():
     permission = Settling()
-    ingest(CCCSystem(write_permission=permission))
+    ingest(CCCSystem(write_permission=permission, allow_unverified_humans=True))
     assert permission.told == ["commit"]
 
 
 def test_a_call_that_fails_before_changing_anything_tells_the_permission_to_abort():
     permission = Settling()
-    system = CCCSystem(write_permission=permission)
+    system = CCCSystem(write_permission=permission, allow_unverified_humans=True)
     with pytest.raises(Exception):
         ingest(system, source_material=("no-such-artifact",))
     assert permission.told == ["abort"] and len(system.store.artifacts) == 0
@@ -52,7 +52,7 @@ def test_a_call_that_fails_before_changing_anything_tells_the_permission_to_abor
 
 def test_a_call_that_fails_after_changing_the_store_has_used_its_permission(monkeypatch):
     permission = Settling()
-    system = CCCSystem(write_permission=permission)
+    system = CCCSystem(write_permission=permission, allow_unverified_humans=True)
 
     def fails(event):
         raise RuntimeError("the audit trail could not take it")
@@ -66,12 +66,12 @@ def test_a_call_that_fails_after_changing_the_store_has_used_its_permission(monk
 def test_a_refusal_by_the_permission_is_not_a_write_and_tells_it_nothing():
     permission = Settling(answer=False)
     with pytest.raises(WritePermissionRefused):
-        ingest(CCCSystem(write_permission=permission))
+        ingest(CCCSystem(write_permission=permission, allow_unverified_humans=True))
     assert permission.told == []
 
 
 def test_a_permission_with_neither_method_works_as_before():
-    system = CCCSystem(write_permission=lambda request: True)
+    system = CCCSystem(write_permission=lambda request: True, allow_unverified_humans=True)
     ingest(system)
     assert len(system.store.artifacts) == 1
 
@@ -83,8 +83,8 @@ def test_a_permission_whose_settling_raises_does_not_hide_the_write_or_its_failu
 
         def abort(self):
             raise RuntimeError("cannot settle")
-    ingest(CCCSystem(write_permission=Broken()))
-    system = CCCSystem(write_permission=Broken())
+    ingest(CCCSystem(write_permission=Broken(), allow_unverified_humans=True))
+    system = CCCSystem(write_permission=Broken(), allow_unverified_humans=True)
     with pytest.raises(Exception) as caught:
         ingest(system, source_material=("no-such-artifact",))
     assert "cannot settle" not in str(caught.value)
@@ -92,6 +92,6 @@ def test_a_permission_whose_settling_raises_does_not_hide_the_write_or_its_failu
 
 def test_a_method_that_calls_another_gated_method_tells_the_permission_once():
     permission = Settling()
-    system = CCCSystem(write_permission=permission)
+    system = CCCSystem(write_permission=permission, allow_unverified_humans=True)
     system.interpret(TEXT, actor=Actor.model("herald"))
     assert permission.told == ["commit"]

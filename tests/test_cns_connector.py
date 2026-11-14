@@ -88,7 +88,7 @@ GOOD = "explicit human authorization"
 
 def _world() -> SimpleNamespace:
     """One system holding every kind of material the scenarios need."""
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     human, model = Actor.human("human"), Actor.model("model")
     w = SimpleNamespace(system=system, human=human, model=model)
 
@@ -1629,14 +1629,14 @@ def test_the_enum_arguments_digest_as_their_values():
 
 
 def test_a_ccc_gate_satisfies_the_cns_gate_protocol():
-    gate = CccGate(CCCSystem())
+    gate = CccGate(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
     assert isinstance(gate, cns_gate.Gate)
     assert gate.name == GATE_NAME
     assert gate.position is cns_gate.GatePosition.ALPHA
 
 
 def test_a_ccc_gate_refuses_a_candidate_that_is_not_an_attempt():
-    gate = CccGate(CCCSystem())
+    gate = CccGate(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
     for candidate in ("accept", {"operation": "accept"}, None, b"bytes"):
         with pytest.raises(TypeError):
             gate.check(candidate)
@@ -1651,7 +1651,7 @@ def test_a_ccc_gate_judges_the_same_way_as_judge():
 
 
 def test_the_chain_is_admission_only_and_says_so():
-    chain = cns_chain(CCCSystem())
+    chain = cns_chain(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
     assert chain.misplaced() == ()
     assert len(chain.alpha) == 1
     assert chain.omega == ()

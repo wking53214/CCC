@@ -52,7 +52,8 @@ def _finding(conclusion: str, source: str, verified: bool = True) -> _Finding:
 
 def _system(check=None) -> CCCSystem:
     """A system that can take external findings, with the given permission (or none)."""
-    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), write_permission=check)
+    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), write_permission=check,
+                     allow_unguarded_writes=check is None, allow_unverified_humans=True)
 
 
 #: Each covered door with a call that works on an empty store.
@@ -232,7 +233,7 @@ def test_the_methods_that_carry_a_humans_action_and_change_existing_records_neve
     original = plain.ingest("material", actor=HUMAN)
 
     deny = Check(False)
-    system = CCCSystem(store=plain.store, write_permission=deny)
+    system = CCCSystem(store=plain.store, write_permission=deny, allow_unverified_humans=True)
 
     system.advance_discovery(anomaly.discovery_id, stage=AnalysisStage.PATTERN, actor=HUMAN, reason="r")
     system.adopt_discovery(pattern.discovery_id, actor=HUMAN, reason="r", authorization_basis=BASIS)
@@ -263,11 +264,11 @@ def test_the_connectors_scratch_copies_carry_no_permission(door):
 
 def test_the_permission_is_not_saved_with_the_store_and_load_can_be_given_one(tmp_path):
     path = _system(Check(False)).save(tmp_path / "s.json")
-    reloaded = CCCSystem.load(path)
+    reloaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert reloaded._write_permission is None  # an always-yes check would act the same, so look at it directly
     assert COVERED["discover"](reloaded) is not None
     with pytest.raises(WritePermissionRefused):
-        COVERED["discover"](CCCSystem.load(path, write_permission=Check(False)))
+        COVERED["discover"](CCCSystem.load(path, write_permission=Check(False), allow_unverified_humans=True))
 
 
 @pytest.mark.parametrize("door", COVERED)
@@ -297,13 +298,13 @@ def test_the_gated_doors_work_and_refuse_with_cns_absent():
         from ccc.errors import WritePermissionRefused
 
         make = dict(observation="seen", category=RoadSignCategory.REVERSAL, actor=Actor.model("m"))
-        allowed = CCCSystem(write_permission=lambda request: True)
+        allowed = CCCSystem(write_permission=lambda request: True, allow_unverified_humans=True)
         allowed.discover(source_material=(), method="scan", conclusion="c", confidence=0.3, actor=Actor.model("m"))
         allowed.detect_road_sign(**make)
         allowed.record_road_sign(**make)
         assert len(allowed.store.discoveries) == 1 and len(allowed.store.road_signs) == 2
 
-        shut = CCCSystem(write_permission=lambda request: False)
+        shut = CCCSystem(write_permission=lambda request: False, allow_unverified_humans=True)
         for call in (lambda: shut.detect_road_sign(**make), lambda: shut.record_road_sign(**make),
                      lambda: shut.discover(source_material=(), method="scan", conclusion="c", confidence=0.3,
                                            actor=Actor.model("m"))):

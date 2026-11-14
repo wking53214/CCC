@@ -46,7 +46,7 @@ texts = [
     "block ledger rolling trail digest audit hashing chain verification delta",
     "rolling digest ledger verification trail hashing block chain audit echo",
 ]
-s = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+s = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
 m = Actor.model("ecology")
 for t in texts:
     s.record_external_finding(F(t), actor=m)
@@ -107,7 +107,7 @@ class _Finding:
 
 
 def test_ordered_collections_keep_their_order_and_are_not_sorted_for_tidiness():
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     evidence = (("z.md", "last alphabetically, first in order"), ("a.md", "first alphabetically, second in order"))
     record = system.record_external_finding(_Finding("Order matters here.", evidence), actor=Actor.model("e"))
     assert record.source_material == ("b.md", "a.md", "c.md")
@@ -116,7 +116,7 @@ def test_ordered_collections_keep_their_order_and_are_not_sorted_for_tidiness():
 
 
 def test_a_saved_state_reloads_to_the_same_state_and_saves_to_the_same_bytes(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     actor = Actor.model("e")
     for text in (RECURRING[0], RECURRING[1], RECURRING[0]):
         system.record_external_finding(_Finding(text, (("s.md", text),)), actor=actor)
@@ -127,22 +127,22 @@ def test_a_saved_state_reloads_to_the_same_state_and_saves_to_the_same_bytes(tmp
     system.save(second)
     assert first.read_bytes() == second.read_bytes()
 
-    reloaded = CCCSystem.load(first, text_matcher=TextMatcher(), private_source_markers=())
+    reloaded = CCCSystem.load(first, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     assert reloaded.store.snapshot() == system.store.snapshot()
     reloaded.save(second)
     assert second.read_bytes() == first.read_bytes()
 
-    again = CCCSystem.load(second, text_matcher=TextMatcher(), private_source_markers=())
+    again = CCCSystem.load(second, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     again.save(tmp_path / "third.json")
     assert (tmp_path / "third.json").read_bytes() == first.read_bytes()
 
 
 def test_the_reloaded_matcher_measures_the_way_the_live_one_did(tmp_path):
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     actor = Actor.model("e")
     ids = [system.record_external_finding(_Finding(t), actor=actor).discovery_id for t in RECURRING[:3]]
     path = system.save(tmp_path / "state.json")
-    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
+    reloaded = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     live = system.record_external_finding(_Finding(RECURRING[3]), actor=actor)
     after = reloaded.record_external_finding(_Finding(RECURRING[3]), actor=actor)
     assert set(live.relationships) <= set(ids) and set(after.relationships) <= set(ids)
@@ -152,7 +152,7 @@ def test_the_reloaded_matcher_measures_the_way_the_live_one_did(tmp_path):
 
 
 def test_the_state_file_is_canonical_json(tmp_path):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     system.ingest("A human note.", actor=Actor.human())
     path = system.save(tmp_path / "state.json")
     text = path.read_text(encoding="utf-8")
@@ -164,7 +164,7 @@ def test_the_state_file_is_canonical_json(tmp_path):
 def test_stage_progress_is_the_same_whatever_order_independent_findings_arrive_in():
     results = set()
     for order in (RECURRING, list(reversed(RECURRING)), RECURRING[1:] + RECURRING[:1]):
-        system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+        system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
         for text in order:
             system.record_external_finding(_Finding(text), actor=Actor.model("e"))
         (group,) = system.recurring_groups()

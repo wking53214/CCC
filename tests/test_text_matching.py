@@ -46,7 +46,7 @@ MODEL = Actor.model("ecology")
 
 
 def test_no_matcher_means_no_machine_findings_and_nothing_is_written():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     with pytest.raises(TextMatcherMissing, match="cccb.TextMatcher"):
         system.record_external_finding(FINDING, actor=MODEL)
     assert not system.store.discoveries
@@ -54,13 +54,13 @@ def test_no_matcher_means_no_machine_findings_and_nothing_is_written():
 
 
 def test_everything_else_works_without_a_matcher():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact = system.ingest("A human note.", actor=Actor.human())
     assert system.store.require_artifact(artifact.artifact_id).available
 
 
 def test_with_cccb_attached_findings_record():
-    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    system = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     record = system.record_external_finding(FINDING, actor=MODEL)
     assert record.stage is AnalysisStage.ANOMALY
 
@@ -72,7 +72,7 @@ def test_cccb_matcher_has_the_shape_ccc_needs():
 @pytest.mark.parametrize("bad", [object(), "cccb", {"add": None}])
 def test_a_matcher_without_the_shape_is_refused_at_construction(bad):
     with pytest.raises(TypeError):
-        CCCSystem(text_matcher=bad)
+        CCCSystem(text_matcher=bad, allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 class _Lying:
@@ -100,7 +100,7 @@ class _Lying:
     _Lying(recurrence=("x", "high", (("x", 0.9),))),
 ])
 def test_a_malformed_or_invented_answer_is_refused_not_recorded(matcher):
-    system = CCCSystem(text_matcher=matcher, private_source_markers=())
+    system = CCCSystem(text_matcher=matcher, private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     with pytest.raises(ValueError, match="text matcher"):
         system.record_external_finding(FINDING, actor=MODEL)
     assert not system.store.discoveries
@@ -108,10 +108,10 @@ def test_a_malformed_or_invented_answer_is_refused_not_recorded(matcher):
 
 def test_reopened_store_feeds_the_new_matcher(tmp_path):
     path = tmp_path / "state.json"
-    first = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path)
+    first = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     original = first.record_external_finding(FINDING, actor=MODEL)
     first.save()
-    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=())
+    reopened = CCCSystem.load(path, text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     again = reopened.record_external_finding(FINDING, actor=MODEL)
     assert original.discovery_id in again.relationships
 

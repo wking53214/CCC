@@ -43,7 +43,7 @@ class World:
 
 
 def _world() -> World:
-    plain = CCCSystem()
+    plain = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     w = World()
     w.store = plain.store
 
@@ -73,7 +73,7 @@ def _world() -> World:
 
 
 def _guarded(w: World, verifier, **extra) -> CCCSystem:
-    return CCCSystem(store=w.store, human_verifier=verifier, **extra)
+    return CCCSystem(store=w.store, human_verifier=verifier, allow_unguarded_writes=True, **extra)
 
 
 #: Every human-only operation with a call that works on _world(), and what its request must say.
@@ -116,7 +116,7 @@ def _bytes(system: CCCSystem, tmp_path, name: str) -> bytes:
 def test_the_defect_a_human_decision_by_anyone_is_written_even_when_upstream_said_no(tmp_path):
     """Before the verifier, decide(actor=Actor.human("anyone")) wrote a USER_ESTABLISHED record whatever had been
     decided upstream. With a verifier that refuses, it writes nothing."""
-    system = CCCSystem(human_verifier=Verifier(False))
+    system = CCCSystem(human_verifier=Verifier(False), allow_unguarded_writes=True)
     before = _bytes(system, tmp_path, "before.json")
     with pytest.raises(HumanVerificationRefused):
         system.decide("let it ship", actor=ANYONE, reason="r", authorization_basis=BASIS)
@@ -126,7 +126,7 @@ def test_the_defect_a_human_decision_by_anyone_is_written_even_when_upstream_sai
 
 def test_without_a_verifier_every_human_operation_works_as_before():
     w = _world()
-    system = CCCSystem(store=w.store)
+    system = CCCSystem(store=w.store, allow_unguarded_writes=True, allow_unverified_humans=True)
     for call in OPERATIONS.values():
         call(system, w)
 
@@ -238,7 +238,7 @@ def test_a_machine_stage_advance_does_not_ask_but_a_mandate_does():
 
 def test_machine_operations_never_ask_the_human_verifier():
     verifier = Verifier(False)
-    system = CCCSystem(human_verifier=verifier)
+    system = CCCSystem(human_verifier=verifier, allow_unguarded_writes=True)
     system.ingest("a document", actor=MODEL)
     system.derive("a conclusion", actor=MODEL)
     system.detect_road_sign(observation="seen", category=__import__("ccc").RoadSignCategory.REVERSAL, actor=MODEL)
@@ -274,4 +274,4 @@ def test_a_human_operation_never_asks_the_machine_write_permission():
 
 def test_a_verifier_must_be_callable():
     with pytest.raises(TypeError):
-        CCCSystem(human_verifier="yes")  # type: ignore[arg-type]
+        CCCSystem(human_verifier="yes", allow_unguarded_writes=True)  # type: ignore[arg-type]

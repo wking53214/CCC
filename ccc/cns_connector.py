@@ -565,7 +565,7 @@ def _scratches(system: CCCSystem) -> Iterator[Callable[[], CCCSystem]]:
             try:
                 store = CCCStore.load(path)
                 store.persistence_path = None
-                return CCCSystem(store=store)
+                return CCCSystem(store=store, allow_unguarded_writes=True, allow_unverified_humans=True)
             except Exception as exc:
                 raise PreflightError(
                     f"cannot judge: CCC cannot reload its snapshot ({type(exc).__name__}: {exc})"
@@ -646,7 +646,7 @@ class CccGate:
     ``check`` takes an :class:`Attempt` and returns :func:`judge`'s verdict at
     the ALPHA end: nothing has happened yet, and ``check`` makes nothing happen.
 
-    A system built without a ``write_permission`` is not stopped, and a verdict
+    A system built with ``allow_unguarded_writes=True`` (no ``write_permission``) is not stopped, and a verdict
     on an attempt cannot tell. ``require_permission=True`` refuses
     (``TERMINAL_BREACH``) a system that has none. ``accept_permission`` hands the
     system's permission to a predicate the roster supplies (``isinstance`` of the
