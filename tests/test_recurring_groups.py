@@ -42,7 +42,7 @@ def _finding(text, source, date=None):
 
 @pytest.fixture
 def system():
-    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 ACTOR = Actor.model("observer")

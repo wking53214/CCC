@@ -70,7 +70,7 @@ class _Finding:
 
 
 def _system():
-    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 def _state(system) -> str:
@@ -208,7 +208,7 @@ def test_a_forged_matcher_result_is_refused_by_ccc_and_creates_nothing():
         def recurrence_of(self, text):
             return None
 
-    system = CCCSystem(text_matcher=Forger(), private_source_markers=())
+    system = CCCSystem(text_matcher=Forger(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     with pytest.raises(ValueError, match="unknown duplicate id"):
         system.record_external_finding(_Finding(TEXT), actor=MODEL)
     assert not system.store.discoveries and not system.store.audit_events
@@ -302,7 +302,7 @@ def test_ccc_works_and_cns_calls_fail_closed_when_cns_is_unavailable():
         "from ccc import Actor, AnalysisStage, CCCSystem\n"
         "from ccc.cns_connector import CnsNotInstalled, attempt, cns_available, judge\n"
         "from cccb import TextMatcher\n"
-        "s = CCCSystem(text_matcher=TextMatcher(), private_source_markers=())\n"
+        "s = CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)\n"
         "class F:\n"
         "    conclusion='A claim worth recording.'; method='m'; source_material=('n.md',)\n"
         "    confidence=0.5; verified=True; evidence=()\n"
@@ -364,7 +364,7 @@ def test_the_connector_judges_on_a_scratch_copy_that_has_no_human_verifier():
     system's write_permission nor its human_verifier, so a PASS says the rules admit the
     call, not that the application's own checks do."""
     allow = [True]
-    system = CCCSystem(human_verifier=lambda request: allow[0])
+    system = CCCSystem(human_verifier=lambda request: allow[0], allow_unguarded_writes=True)
     fact = system.ingest("A human fact.", actor=HUMAN, epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
                          authorization_basis="human record")
     proposal = system.derive("A machine inference.", actor=MODEL, evidence_ids=(fact.artifact_id,))

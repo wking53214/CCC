@@ -21,7 +21,7 @@ OLD_SECTIONS = {
 
 
 def _old_file(tmp_path):
-    state = CCCSystem().store.snapshot()
+    state = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).store.snapshot()
     state.update(OLD_SECTIONS)
     path = tmp_path / "old.json"
     path.write_text(json.dumps(state))
@@ -29,19 +29,19 @@ def _old_file(tmp_path):
 
 
 def test_old_sections_load_and_save_back_unchanged(tmp_path):
-    system = CCCSystem.load(_old_file(tmp_path))
+    system = CCCSystem.load(_old_file(tmp_path), allow_unguarded_writes=True, allow_unverified_humans=True)
     out = json.loads(system.save(tmp_path / "new.json").read_text())
     for key, value in OLD_SECTIONS.items():
         assert out[key] == value, key
 
 
 def test_a_fresh_store_writes_no_retired_sections(tmp_path):
-    out = json.loads(CCCSystem().save(tmp_path / "fresh.json").read_text())
+    out = json.loads(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).save(tmp_path / "fresh.json").read_text())
     assert not set(RETIRED_SECTIONS) & set(out)
 
 
 def test_retired_sections_are_not_interpreted(tmp_path):
-    system = CCCSystem.load(_old_file(tmp_path))
+    system = CCCSystem.load(_old_file(tmp_path), allow_unguarded_writes=True, allow_unverified_humans=True)
     assert system.validate_constitution()["valid"]
     for attr in ("inflection_points", "threads", "branches", "simulations", "terms"):
         assert not hasattr(system.store, attr), attr

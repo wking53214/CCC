@@ -19,7 +19,7 @@ BASIS = "explicit human decision"
 
 
 def _saved(tmp_path):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     fact = system.ingest("a human fact", actor=HUMAN, epistemic_status=EpistemicStatus.HISTORICAL_RECORD,
                          authorization_basis=BASIS)
     return system.save(tmp_path / "state.json"), fact
@@ -43,11 +43,11 @@ def test_load_takes_the_write_permission_and_the_human_verifier_and_the_reloaded
 
 def test_a_reloaded_system_is_guarded_by_the_verifier_alone_and_by_the_permission_alone(tmp_path):
     path, fact = _saved(tmp_path)
-    only_verifier = CCCSystem.load(path, human_verifier=lambda request: False)
+    only_verifier = CCCSystem.load(path, human_verifier=lambda request: False, allow_unguarded_writes=True)
     assert only_verifier.ingest("machine writes are not this guard's business", actor=MODEL)
     with pytest.raises(HumanVerificationRefused):
         only_verifier.decide("d", actor=HUMAN, reason="r", authorization_basis=BASIS)
-    only_permission = CCCSystem.load(path, write_permission=lambda request: False)
+    only_permission = CCCSystem.load(path, write_permission=lambda request: False, allow_unverified_humans=True)
     assert only_permission.decide("human acts are not this guard's business", actor=HUMAN, reason="r",
                                   authorization_basis=BASIS)
     with pytest.raises(WritePermissionRefused):
@@ -63,7 +63,7 @@ def test_a_yes_from_both_lets_a_reloaded_system_write(tmp_path):
 
 def test_with_neither_given_the_loaded_system_is_unguarded_as_before(tmp_path):
     path, fact = _saved(tmp_path)
-    reloaded = CCCSystem.load(path)
+    reloaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert reloaded.ingest("a machine write", actor=MODEL)
     assert reloaded.decide("a human decision", actor=HUMAN, reason="r", authorization_basis=BASIS)
 
@@ -71,7 +71,7 @@ def test_with_neither_given_the_loaded_system_is_unguarded_as_before(tmp_path):
 def test_the_guards_are_not_saved_so_saving_a_guarded_system_and_loading_plainly_drops_them(tmp_path):
     guarded = CCCSystem(write_permission=lambda request: False, human_verifier=lambda request: False)
     path = guarded.save(tmp_path / "guarded.json")
-    plain = CCCSystem.load(path)
+    plain = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     assert plain.ingest("unguarded after a plain load", actor=MODEL)
 
 
@@ -89,6 +89,6 @@ def test_a_persistence_path_system_takes_the_guards_when_it_resumes(tmp_path):
 def test_load_rejects_a_guard_that_is_not_callable(tmp_path):
     path, _fact = _saved(tmp_path)
     with pytest.raises(TypeError):
-        CCCSystem.load(path, human_verifier="yes")  # type: ignore[arg-type]
+        CCCSystem.load(path, human_verifier="yes", allow_unguarded_writes=True)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        CCCSystem.load(path, write_permission="yes")  # type: ignore[arg-type]
+        CCCSystem.load(path, write_permission="yes", allow_unverified_humans=True)  # type: ignore[arg-type]

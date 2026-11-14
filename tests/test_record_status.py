@@ -49,29 +49,29 @@ def _ask(system: CCCSystem, text: str = TEXT, candidate_id: str = "c1") -> str:
 
 
 def test_recorded_output_is_held():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     assert _ask(system) == HELD
 
 
 def test_nothing_recorded_is_absent():
-    assert _ask(CCCSystem()) == ABSENT
+    assert _ask(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)) == ABSENT
 
 
 def test_other_candidate_is_absent():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system, candidate_id="c1")
     assert _ask(system, candidate_id="c2") == ABSENT
 
 
 def test_changed_text_is_altered():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     assert _ask(system, text=TEXT + " (edited)") == ALTERED
 
 
 def test_erased_record_is_erased_even_if_text_matches():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact = _record(system)
     system.erase(artifact.artifact_id, actor=Actor.human(), reason="withdrawn",
                  authorization_basis="owner request")
@@ -79,7 +79,7 @@ def test_erased_record_is_erased_even_if_text_matches():
 
 
 def test_redacted_record_is_redacted():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     artifact = _record(system)
     system.redact(artifact.artifact_id, actor=Actor.human(), reason="sensitive",
                   authorization_basis="owner request")
@@ -87,7 +87,7 @@ def test_redacted_record_is_redacted():
 
 
 def test_erasure_wins_over_a_second_active_copy():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     first = _record(system)
     _record(system)
     system.erase(first.artifact_id, actor=Actor.human(), reason="withdrawn",
@@ -98,19 +98,19 @@ def test_erasure_wins_over_a_second_active_copy():
 @pytest.mark.parametrize("actor", [Actor.human(SOURCE), Actor.model("other-model"),
                                    Actor.system(SOURCE), Actor.external(SOURCE)])
 def test_look_alike_record_from_another_actor_does_not_count(actor):
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system, actor=actor)
     assert _ask(system) == ABSENT
 
 
 def test_metadata_naming_another_source_does_not_count():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system, source="someone-else")
     assert _ask(system) == ABSENT
 
 
 def test_fingerprint_is_taken_from_stored_text_not_metadata():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     system.ingest(TEXT, actor=Actor.model(SOURCE), metadata={
         "source": SOURCE, "candidate_id": "c1", "text_digest": _digest("something else")})
     assert _ask(system) == HELD
@@ -118,7 +118,7 @@ def test_fingerprint_is_taken_from_stored_text_not_metadata():
 
 
 def test_lookup_changes_nothing():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     audit_before = len(system.store.audit_events)
     artifacts_before = dict(system.store.artifacts)
@@ -136,7 +136,7 @@ def test_malformed_question_raises_rather_than_answers(field, bad):
     kwargs = {"source": SOURCE, "candidate_id": "c1", "text_digest": _digest(TEXT)}
     kwargs[field] = bad
     with pytest.raises(ValueError):
-        record_status(CCCSystem(), **kwargs)
+        record_status(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), **kwargs)
 
 
 def test_non_ccc_target_is_refused():
@@ -147,7 +147,7 @@ def test_non_ccc_target_is_refused():
 
 
 def test_bound_lookup_gives_the_same_answers():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _record(system)
     records = MachineRecords(system)
     assert records.status(SOURCE, "c1", _digest(TEXT)) == HELD

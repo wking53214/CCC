@@ -49,7 +49,7 @@ def _blocked(call: Callable[[], object]) -> tuple[bool, tuple[str, ...]]:
 
 
 def _h01():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _fact(system)
     assert item.provenance_status is ProvenanceStatus.USER_ESTABLISHED
     assert system.provenance.history(item.artifact_id)[0].human_originating
@@ -57,7 +57,7 @@ def _h01():
 
 
 def _h02():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = system.derive("machine proposal", actor=_model())
     blocked, evidence = _blocked(lambda: system.establish_provenance(item.artifact_id, actor=_model(), reason="consensus", authorization_basis="model vote"))
     assert blocked
@@ -65,7 +65,7 @@ def _h02():
 
 
 def _h03():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     result = system.derive("machine inference", actor=_model(), evidence_ids=(source.artifact_id,))
     assert result.origin.kind.value == "MODEL"
@@ -74,7 +74,7 @@ def _h03():
 
 
 def _h04():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     simulation = system.ingest("modeled trajectory", actor=_model(), epistemic_status=EpistemicStatus.SIMULATION)
     blocked, evidence = _blocked(lambda: system.classify(simulation.artifact_id, EpistemicStatus.HISTORICAL_RECORD, actor=_human(), reason="relabel"))
     assert blocked
@@ -82,7 +82,7 @@ def _h04():
 
 
 def _h05():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     claim = system.derive("supported inference", evidence_ids=(source.artifact_id,))
     validation = system.validate_evidence_chain(claim.artifact_id)
@@ -91,7 +91,7 @@ def _h05():
 
 
 def _h06():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     claim = system.derive("dependent inference", evidence_ids=(source.artifact_id,))
     system.erase(source.artifact_id, actor=_human(), reason="privacy erasure", authorization_basis="human request")
@@ -102,7 +102,7 @@ def _h06():
 
 
 def _h07():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     blocked, evidence = _blocked(lambda: system.erase(source.artifact_id, actor=_model(), reason="machine veto", authorization_basis="model"))
     assert blocked
@@ -110,7 +110,7 @@ def _h07():
 
 
 def _h08():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     old = _fact(system)
     new = system.correct(old.artifact_id, content="corrected record", actor=_human(), reason="human correction", authorization_basis="human review")
     assert system.store.require_artifact(old.artifact_id).content == "human-established source"
@@ -119,7 +119,7 @@ def _h08():
 
 
 def _h09():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _fact(system)
     redacted = system.redact(item.artifact_id, actor=_human(), reason="redaction request", authorization_basis="human review")
     assert redacted.state.value == "REDACTED" and redacted.content is None
@@ -127,7 +127,7 @@ def _h09():
 
 
 def _h10():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     one = _fact(system)
     two = _fact(system)
     conflict = system.detect_conflict(material_ids=(one.artifact_id, two.artifact_id), why_material="records disagree", choices=("one", "two"), downstream_consequences=("decision changes",), remaining_uncertainty=("which record is correct",), actor=_model())
@@ -136,14 +136,14 @@ def _h10():
 
 
 def _h11():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     uncertainty = system.ask(context="origin", known=("two records exist",), unknown=("which is primary",), candidates=("record-a", "record-b"), question="Which record, if any, is the primary source?", actor=_model())
     assert uncertainty.requires_human_resolution and uncertainty.resolved_choice is None
     return (uncertainty.uncertainty_id,)
 
 
 def _h12():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     sign = system.detect_road_sign(observation="the direction changed", category=RoadSignCategory.DIRECTION_CHANGE, actor=_model())
     assert not sign.is_conclusion
     return (sign.road_sign_id,)
@@ -154,7 +154,7 @@ def _h12():
 
 
 def _h15():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     anomaly = system.discover(source_material=(source.artifact_id,), method="anomaly scan", conclusion="unexpected return", confidence=0.7, actor=_model(), stage=AnalysisStage.ANOMALY)
     pattern = system.advance_discovery(anomaly.discovery_id, stage=AnalysisStage.PATTERN, actor=_model(), reason="repeated pattern")
@@ -164,7 +164,7 @@ def _h15():
 
 
 def _h16():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     discovery = system.discover(source_material=(), method="relationship scan", conclusion="possible connection", confidence=0.4, actor=_model())
     assert discovery.machine_origin and discovery.provenance_status is ProvenanceStatus.ASSISTANT_PROPOSED
     return (discovery.discovery_id,)
@@ -175,14 +175,14 @@ def _h16():
 
 
 def _h19():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = system.ingest("topic material", actor=_human(), topics=("continuity",), instrument="note", confidence=0.9, presentation_priority=1)
     assert system.query(topic="continuity", source="harness-human", instrument="note", min_confidence=0.8, epistemic_status=EpistemicStatus.UNKNOWN, artifact=item.artifact_id)
     return (item.artifact_id,)
 
 
 def _h20():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _fact(system)
     event = system.audit(object_id=item.artifact_id)[-1]
     assert event.actor.kind.value == "HUMAN" and event.operation == "INGEST"
@@ -194,7 +194,7 @@ def _h21():
 
 
 def _h22():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     old = _fact(system)
     new = system.supersede(old.artifact_id, content="superseding record", actor=_human(), reason="new record governs", authorization_basis="human review")
     assert system.store.require_artifact(old.artifact_id).content == "human-established source"
@@ -203,13 +203,13 @@ def _h22():
 
 
 def _h23():
-    item = CCCSystem().derive("inference", actor=_model())
+    item = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).derive("inference", actor=_model())
     assert item.epistemic_status is EpistemicStatus.INFERENCE and item.provenance_status is ProvenanceStatus.ASSISTANT_PROPOSED
     return (item.artifact_id,)
 
 
 def _h24():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = system.derive("consensus", actor=_model(), machine_consensus=True)
     blocked, evidence = _blocked(lambda: system.establish_provenance(item.artifact_id, actor=_model(), reason="models agree", authorization_basis="machine consensus"))
     assert blocked
@@ -218,7 +218,7 @@ def _h24():
 
 def _h25():
     from dataclasses import FrozenInstanceError
-    item = _fact(CCCSystem())
+    item = _fact(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
     try:
         item.provenance_status = ProvenanceStatus.REJECTED
     except FrozenInstanceError:
@@ -227,7 +227,7 @@ def _h25():
 
 
 def _h26():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = system.derive("reject me", actor=_model())
     rejected = system.reject(item.artifact_id, actor=_human(), reason="not supported", authorization_basis="human review")
     assert rejected.provenance_status is ProvenanceStatus.REJECTED
@@ -235,7 +235,7 @@ def _h26():
 
 
 def _h27():
-    item = CCCSystem().ingest("external record", actor=Actor.external("source"))
+    item = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).ingest("external record", actor=Actor.external("source"))
     assert item.provenance_status is ProvenanceStatus.PROVENANCE_UNCERTAIN
     return (item.artifact_id,)
 
@@ -243,18 +243,18 @@ def _h27():
 def _h28():
     import tempfile
     from pathlib import Path
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _fact(system)
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "ccc.json"
         system.save(path)
-        loaded = CCCSystem.load(path)
+        loaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
         assert loaded.store.require_artifact(item.artifact_id).content == item.content
     return (item.artifact_id,)
 
 
 def _h29():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     old = _fact(system)
     new = system.correct(old.artifact_id, content="new", actor=_human(), reason="correction", authorization_basis="human")
     assert any(event.target_id == old.artifact_id and event.source_id == new.artifact_id for event in system.store.lineage_events)
@@ -262,7 +262,7 @@ def _h29():
 
 
 def _h30():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     one = _fact(system)
     two = _fact(system)
     conflict = system.detect_conflict(material_ids=(one.artifact_id, two.artifact_id), why_material="material conflict", choices=("one",), downstream_consequences=("choice matters",), remaining_uncertainty=("source",), actor=_model())
@@ -272,7 +272,7 @@ def _h30():
 
 
 def _h31():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     item = _fact(system)
     blocked, evidence = _blocked(lambda: system.correct(item.artifact_id, content="machine rewrite", actor=_model(), reason="recommendation", authorization_basis="model"))
     assert blocked
@@ -280,7 +280,7 @@ def _h31():
 
 
 def _h32():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     one = _fact(system)
     two = _fact(system)
     conflict = system.detect_conflict(material_ids=(one.artifact_id, two.artifact_id), why_material="conflict", choices=("a", "b"), downstream_consequences=("different result",), remaining_uncertainty=("unresolved",), actor=_model())
@@ -291,7 +291,7 @@ def _h32():
 
 
 def _h34():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     claim = system.derive("inference with root", evidence_ids=(source.artifact_id,))
     evidence = system.classify(claim.artifact_id, EpistemicStatus.EVIDENCE, actor=_human(), reason="human evidence review", evidence_ids=(source.artifact_id,))
@@ -304,7 +304,7 @@ def _h35():
 
 
 def _h36():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     low = system.ingest("low", actor=_human(), presentation_priority=0)
     high = system.ingest("high", actor=_human(), presentation_priority=10)
     assert len(system.query()) == 2 and system.present(limit=1)[0].artifact_id == high.artifact_id and len(system.query()) == 2
@@ -312,20 +312,20 @@ def _h36():
 
 
 def _h37():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     discovery = system.discover(source_material=(), method="candidate scan", conclusion="unsurfaced candidate", confidence=0.2, actor=_model())
     assert discovery.discovery_id in system.store.discoveries
     return (discovery.discovery_id,)
 
 
 def _h38():
-    item = CCCSystem().ingest("unresolved source")
+    item = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).ingest("unresolved source")
     assert item.provenance_status is ProvenanceStatus.PROVENANCE_UNCERTAIN
     return (item.artifact_id,)
 
 
 def _h39():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     source = _fact(system)
     claim = system.derive("redaction dependent", evidence_ids=(source.artifact_id,))
     system.redact(source.artifact_id, actor=_human(), reason="redaction", authorization_basis="human")
@@ -340,7 +340,7 @@ def _h39():
 
 
 def _h43():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     anomaly = system.discover(source_material=(), method="scan", conclusion="anomaly", confidence=0.1, actor=_model(), stage=AnalysisStage.ANOMALY)
     blocked, evidence = _blocked(lambda: system.advance_discovery(anomaly.discovery_id, stage=AnalysisStage.MANDATE, actor=_human(), reason="jump", evidence_ids=(), human_event=True, authorization_basis="human"))
     assert blocked
@@ -348,7 +348,7 @@ def _h43():
 
 
 def _h44():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     _fact(system)
     report = system.validate_constitution()
     assert report["valid"]

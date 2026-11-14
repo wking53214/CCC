@@ -65,12 +65,12 @@ def test_a_cycle_in_metadata_is_refused_not_looped_on():
 def test_set_metadata_saves_and_loads_back(tmp_path):
     from ccc.system import CCCSystem
 
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     human = Actor.human("h")
     system.ingest("tagged", actor=human, metadata={"tags": {"x", "y"}})
     path = tmp_path / "store.json"
     system.store.save(path)
-    loaded = CCCSystem.load(path)
+    loaded = CCCSystem.load(path, allow_unguarded_writes=True, allow_unverified_humans=True)
     stored = next(a for a in loaded.store.artifacts.values() if a.content == "tagged")
     assert sorted(stored.metadata["tags"]) == ["x", "y"]
 

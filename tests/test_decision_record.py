@@ -22,12 +22,12 @@ def _decide(system: CCCSystem, **how):
 
 
 def test_a_plain_decision_is_recorded_exactly_as_before():
-    decision = _decide(CCCSystem())
+    decision = _decide(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True))
     assert set(decision.metadata) == {"decision", "recommendation_id"}
 
 
 def test_full_record_is_stored_with_the_decision_and_in_the_audit():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     decision = _decide(
         system,
         options=("all-or-nothing", "split", "leave open"),
@@ -48,18 +48,18 @@ def test_full_record_is_stored_with_the_decision_and_in_the_audit():
 
 
 def test_assumptions_alone_are_allowed():
-    decision = _decide(CCCSystem(), assumptions=("traffic stays below 10k calls a day",))
+    decision = _decide(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), assumptions=("traffic stays below 10k calls a day",))
     assert decision.metadata["assumptions"] == ("traffic stays below 10k calls a day",)
     assert "options" not in decision.metadata
 
 
 def test_an_option_dismissed_without_a_disposition_is_refused():
     with pytest.raises(ValueError, match="needs a disposition"):
-        _decide(CCCSystem(), options=("a", "b", "c"), selected_option="a", rejected={"b": "too slow"})
+        _decide(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), options=("a", "b", "c"), selected_option="a", rejected={"b": "too slow"})
 
 
 def test_deferred_is_not_rejection_and_counts_as_a_disposition():
-    decision = _decide(CCCSystem(), options=("a", "b"), selected_option="a", deferred=("b",))
+    decision = _decide(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), options=("a", "b"), selected_option="a", deferred=("b",))
     assert decision.metadata["rejected"] == ()
     assert decision.metadata["deferred"] == ("b",)
 
@@ -79,11 +79,11 @@ def test_deferred_is_not_rejection_and_counts_as_a_disposition():
 ])
 def test_incomplete_or_contradictory_records_are_refused(how, match):
     with pytest.raises(ValueError, match=match):
-        _decide(CCCSystem(), **how)
+        _decide(CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True), **how)
 
 
 def test_a_refused_record_writes_nothing():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     before = len(system.store.artifacts)
     with pytest.raises(ValueError):
         _decide(system, options=("a", "b"), selected_option="a")
@@ -93,17 +93,17 @@ def test_a_refused_record_writes_nothing():
 
 def test_a_model_still_cannot_decide_even_with_a_full_record():
     with pytest.raises(ConstitutionViolation):
-        CCCSystem().decide("x", actor=Actor.model("m"), reason="r", authorization_basis="model",
+        CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True).decide("x", actor=Actor.model("m"), reason="r", authorization_basis="model",
                            options=("a", "b"), selected_option="a", deferred=("b",))
 
 
 def test_the_record_survives_save_and_reopen(tmp_path):
     path = tmp_path / "ccc.json"
-    system = CCCSystem(persistence_path=path)
+    system = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     decision = _decide(system, options=("a", "b"), selected_option="a",
                        rejected={"b": "costs more"}, assumptions=("budget fixed",))
     system.save()
-    reopened = CCCSystem(persistence_path=path).store.require_artifact(decision.artifact_id).metadata
+    reopened = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True).store.require_artifact(decision.artifact_id).metadata
     assert reopened["selected_option"] == "a"
     assert [list(pair) for pair in reopened["rejected"]] == [["b", "costs more"]]
     assert list(reopened["assumptions"]) == ["budget fixed"]

@@ -20,7 +20,8 @@ from .text_matching import (
     require_matcher,
 )
 from .text_matching import INSTALL_HINT as _MATCHER_HINT
-from .errors import HumanVerificationRefused, InvalidTransition, PrivateSourcesNotStated, WritePermissionRefused
+from .errors import (HumanVerificationRefused, InvalidTransition, PrivateSourcesNotStated, UnguardedSystemError,
+                     WritePermissionRefused)
 from .semantic import DEFAULT_SEMANTIC_THRESHOLD, evaluate_recurrence
 from .epistemic_state import EpistemicManager
 from .evidence import EvidenceManager
@@ -337,7 +338,9 @@ class CCCSystem:
                  text_matcher=None,
                  private_source_markers=None,
                  write_permission: WritePermission | None = None,
-                 human_verifier: HumanVerifier | None = None) -> None:
+                 human_verifier: HumanVerifier | None = None,
+                 allow_unguarded_writes: bool = False,
+                 allow_unverified_humans: bool = False) -> None:
         """
         human_verifier: an optional callable the application supplies. When given,
             every human-only operation (decide, correct, amend, supersede,
@@ -347,8 +350,10 @@ class CCCSystem:
             ccc.human_auth.HumanRequest, and goes on only if it returns exactly
             True; anything else raises HumanVerificationRefused before anything
             is written. The caller may pass an `attestation` keyword to those
-            operations, carried to the verifier untouched. None, the default,
-            behaves as before. A human operation never asks write_permission.
+            operations, carried to the verifier untouched. A verifier
+            is required: building a system without one raises
+            UnguardedSystemError unless allow_unverified_humans=True says that
+            is deliberate. A human operation never asks write_permission.
             It is not saved with the store. See ccc/human_auth.py.
         write_permission: an optional callable the application supplies. When
             given, ingest, record, derive, infer, interpret, record_external_finding,
@@ -360,9 +365,17 @@ class CCCSystem:
             discover and road sign methods of system.discovery and
             system.road_signs, ask at the same doors. Human-only methods
             (decide, correct, amend, supersede, accept, redact, erase and the
-            rest) never ask; they ask human_verifier. None, the default,
-            behaves as before. It is not saved with the store. See
+            rest) never ask; they ask human_verifier. A write permission is
+            required: building a system without one raises
+            UnguardedSystemError unless allow_unguarded_writes=True says that
+            is deliberate. It is not saved with the store. See
             ccc/permission.py.
+        allow_unguarded_writes: True says a system with no write_permission is
+            deliberate, so every write door works without asking. Greppable on
+            purpose. False, the default, refuses to build such a system.
+        allow_unverified_humans: True says a system with no human_verifier is
+            deliberate, so every human-only operation goes straight through.
+            Greppable on purpose. False, the default, refuses to build one.
         private_source_markers: the sources a machine finding must not cite
             unless allow_private_source=True, matched as substrings of each
             source_material entry. CCC names no repositories; the application
@@ -380,6 +393,16 @@ class CCCSystem:
         semantic_threshold: CCC's declared policy for how similar counts.
             Provider-dependent and uncalibrated; see ccc/semantic.py.
         """
+        if write_permission is None and not allow_unguarded_writes:
+            raise UnguardedSystemError(
+                "CCCSystem built without a write_permission: every write would go through unasked. Pass "
+                "write_permission=..., or allow_unguarded_writes=True if that is deliberate."
+            )
+        if human_verifier is None and not allow_unverified_humans:
+            raise UnguardedSystemError(
+                "CCCSystem built without a human_verifier: every human-only operation would go through unverified. "
+                "Pass human_verifier=..., or allow_unverified_humans=True if that is deliberate."
+            )
         if store is not None:
             self.store = store
         elif persistence_path is not None and _has_saved_state(persistence_path):
@@ -1513,12 +1536,15 @@ class CCCSystem:
              text_matcher=None,
              private_source_markers=None,
              write_permission: WritePermission | None = None,
-             human_verifier: HumanVerifier | None = None) -> "CCCSystem":
+             human_verifier: HumanVerifier | None = None,
+             allow_unguarded_writes: bool = False,
+             allow_unverified_humans: bool = False) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones. Neither guard is
         # saved with the store, so a reloaded system has them only if they are
-        # given here again.
+        # given here again, or the flags say building without them is deliberate.
         return cls(store=CCCStore.load(path), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
                    private_source_markers=private_source_markers,
-                   write_permission=write_permission, human_verifier=human_verifier)
+                   write_permission=write_permission, human_verifier=human_verifier,
+                   allow_unguarded_writes=allow_unguarded_writes, allow_unverified_humans=allow_unverified_humans)

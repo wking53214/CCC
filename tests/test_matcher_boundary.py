@@ -78,13 +78,13 @@ def _state(system) -> str:
 
 def _seeded(matcher):
     """A system with one real finding on record; returns (system, its id)."""
-    system = CCCSystem(text_matcher=matcher, private_source_markers=())
+    system = CCCSystem(text_matcher=matcher, private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     first = system.record_external_finding(_Finding("A first, plainly worded claim about ledgers."), actor=MODEL)
     return system, first.discovery_id
 
 
 def _real():
-    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=())
+    return CCCSystem(text_matcher=TextMatcher(), private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
 
 
 def _kind(record) -> str:
@@ -151,7 +151,7 @@ def test_ccc_runs_without_loading_cccb_or_cns():
         "sys.modules['cccb'] = None\n"
         "sys.modules['cns'] = None\n"
         "from ccc import Actor, CCCSystem\n"
-        "s = CCCSystem()\n"
+        "s = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)\n"
         "a = s.ingest('A human note.', actor=Actor.human())\n"
         "assert s.store.require_artifact(a.artifact_id).available\n"
         "print('ok')\n"
@@ -299,14 +299,14 @@ def test_a_matcher_whose_index_fails_after_the_write_leaves_a_visible_record_and
     would not see the record as a duplicate. The match text was stored before
     the index call, so a reload re-indexes it: the guard comes back."""
     matcher = _Scripted(add_raises=True)
-    system = CCCSystem(text_matcher=matcher, private_source_markers=())
+    system = CCCSystem(text_matcher=matcher, private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     with pytest.raises(RuntimeError, match="index unavailable"):
         system.record_external_finding(_Finding(BASE), actor=MODEL)
     (record,) = system.store.discoveries.values()
     assert record.stage is AnalysisStage.ANOMALY
     assert system.store.discovery_match_texts[record.discovery_id] == BASE
     restored = _Scripted()
-    reloaded = CCCSystem(store=system.store, text_matcher=restored, private_source_markers=())
+    reloaded = CCCSystem(store=system.store, text_matcher=restored, private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     assert restored.added == [record.discovery_id]
     assert reloaded.store.discoveries.keys() == system.store.discoveries.keys()
 
@@ -349,7 +349,7 @@ def test_a_matcher_that_lies_with_real_ids_can_reach_pattern_but_never_mandate()
 
 def test_a_matcher_answer_never_changes_a_humans_record():
     matcher = _Scripted()
-    system = CCCSystem(text_matcher=matcher, private_source_markers=())
+    system = CCCSystem(text_matcher=matcher, private_source_markers=(), allow_unguarded_writes=True, allow_unverified_humans=True)
     note = system.ingest("A human note.", actor=Actor.human())
     before = json.dumps(system.store.snapshot()["artifacts"], sort_keys=True)
     matcher.duplicate = ("never-given", 1e-12, 80)

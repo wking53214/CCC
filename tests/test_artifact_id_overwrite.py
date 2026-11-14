@@ -17,14 +17,14 @@ from ccc.store import CCCStore
 
 
 def test_adding_a_new_artifact_still_works():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     art = system.ingest("a new fact", actor=Actor.human("william"))
 
     assert system.store.artifacts[art.artifact_id].content == "a new fact"
 
 
 def test_adding_an_existing_id_is_refused_and_the_original_is_kept():
-    system = CCCSystem()
+    system = CCCSystem(allow_unguarded_writes=True, allow_unverified_humans=True)
     art = system.ingest("the original", actor=Actor.human("william"))
     impostor = dataclasses.replace(art, content="an impostor")
 
@@ -36,7 +36,7 @@ def test_adding_an_existing_id_is_refused_and_the_original_is_kept():
 
 def test_loading_a_state_file_with_a_repeated_id_is_refused(tmp_path):
     path = tmp_path / "state.json"
-    system = CCCSystem(persistence_path=path)
+    system = CCCSystem(persistence_path=path, allow_unguarded_writes=True, allow_unverified_humans=True)
     system.ingest("the original", actor=Actor.human("william"))
     system.save()
 

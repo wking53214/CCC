@@ -48,6 +48,13 @@ class HumanVerificationRefused(CCCError):
         self.reason = reason
 
 
+class UnguardedSystemError(CCCError):
+    """A system was built without a write permission or a human verifier, and without saying that was deliberate.
+
+    Pass ``write_permission=`` and ``human_verifier=``, or ``allow_unguarded_writes=True`` and
+    ``allow_unverified_humans=True`` to say that building the system without them is on purpose."""
+
+
 class NotFound(CCCError):
     """A requested immutable object identifier is not present."""
 
