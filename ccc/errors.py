@@ -55,6 +55,12 @@ class UnguardedSystemError(CCCError):
     ``allow_unverified_humans=True`` to say that building the system without them is on purpose."""
 
 
+class StateIntegrityError(CCCError):
+    """A saved state was loaded with an integrity key and its integrity record is missing or does not verify.
+
+    The file was changed after it was saved, or saved without the key, or with another key. Nothing was loaded."""
+
+
 class NotFound(CCCError):
     """A requested immutable object identifier is not present."""
 

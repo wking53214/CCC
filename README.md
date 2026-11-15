@@ -407,6 +407,17 @@ the answer is exactly as unauthenticated as before, and records written before a
 in use carry no stamp, so they need to be handed off again to be counted.
 Tests: `tests/test_record_attestation.py`.
 
+**Two more optional keys, the caller's, at least 16 bytes each; CCC keeps none.**
+`integrity_key` makes every save carry an HMAC over the state written, and a load with
+the key (`CCCSystem(persistence_path=...)`, `CCCSystem.load`, `CCCStore.load`) refuses a
+file changed since with `StateIntegrityError`. Tests: `tests/test_state_integrity.py`.
+`tombstone_key` makes an erased or redacted record keep a keyed fingerprint instead of
+the plain SHA-256 of its text, so a guess at removed text cannot be confirmed from the
+store or the saved file, while `record_status` still finds that text under a new id. A
+store holding keyed tombstones refuses to open as a `CCCSystem` without the key, so
+removed text cannot come back through a forgotten key. Tests:
+`tests/test_keyed_tombstones.py`. Without either key nothing changes.
+
 ## Glossary
 
 - **Actor:** who is making a call: a human, a model, a system or an external source. `Actor.human(...)` is a label, not proof of identity.

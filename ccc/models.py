@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+import hmac
 from hashlib import sha256
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -129,6 +130,17 @@ def content_digest(content: str | None) -> str | None:
     if content is None:
         return None
     return sha256(content.encode("utf-8")).hexdigest()
+
+
+#: The prefix of a keyed tombstone fingerprint, so it can never be mistaken for a plain one.
+TOMBSTONE_PREFIX = "tomb:"
+
+
+def tombstone_digest(key: bytes, digest: str) -> str:
+    """The fingerprint an erased or redacted record keeps when the system has a tombstone key: an HMAC of the plain
+    fingerprint, so the same text still matches (for whoever holds the key) but a guess at the text cannot be
+    confirmed by anyone else."""
+    return TOMBSTONE_PREFIX + hmac.new(key, f"ccc.tombstone.v1:{digest}".encode("utf-8"), sha256).hexdigest()
 
 
 #: The most containers a metadata value may nest. Deeper (or cyclic) metadata is refused when it is stored.

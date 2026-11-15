@@ -7,6 +7,8 @@ tombstone rather than removing its identifier.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 from dataclasses import fields, is_dataclass
@@ -14,7 +16,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, Mapping, TypeVar
 
-from .errors import DuplicateId, NotFound
+from .errors import DuplicateId, NotFound, StateIntegrityError
 from .models import (
     Actor,
     ActorType,
@@ -64,6 +66,25 @@ def _tuple(value: Iterable[Any] | None) -> tuple[Any, ...]:
 #: State-file sections for record types buried in wking53214/Graveyard
 #: (ccc/2026-10-06-unused-record-types): turning points, threads, branches,
 #: simulations and official terms. Kept verbatim across load and save.
+#: The top-level field a state saved with an integrity key carries, and the scheme it names.
+INTEGRITY_FIELD = "integrity"
+INTEGRITY_SCHEME = "ccc-state-hmac/1"
+_MIN_INTEGRITY_KEY_BYTES = 16
+
+
+def _require_integrity_key(key: Any) -> bytes:
+    if not isinstance(key, (bytes, bytearray)) or len(key) < _MIN_INTEGRITY_KEY_BYTES:
+        raise ValueError(f"integrity_key must be at least {_MIN_INTEGRITY_KEY_BYTES} bytes")
+    return bytes(key)
+
+
+def _state_mac(key: bytes, state: Mapping[str, Any]) -> str:
+    """HMAC-SHA256, untruncated, over the state as compact JSON with sorted keys: the same bytes for the state a save
+    writes and the state a load reads back."""
+    body = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hmac.new(key, body.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
 RETIRED_SECTIONS = ("inflection_points", "threads", "branches", "simulations", "terms")
 
 
@@ -211,14 +232,22 @@ class CCCStore:
             **self.retired_sections,
         }
 
-    def save(self, path: str | Path | None = None) -> Path:
+    def save(self, path: str | Path | None = None, *, integrity_key: bytes | None = None) -> Path:
+        """Write the state. With ``integrity_key`` (the caller's, at least 16 bytes; CCC keeps none), the file carries
+        an HMAC over exactly the state written, so ``load`` with the same key refuses a file changed since."""
         target = Path(path) if path else self.persistence_path
         if target is None:
             raise ValueError("a persistence path is required")
         if target.is_symlink():
             target = target.resolve()
+        state = self.snapshot()
+        if integrity_key is not None:
+            # The MAC is over the state as a load will read it back (tuples become lists), not as it is in memory.
+            written = json.loads(json.dumps(state))
+            state = {**written, INTEGRITY_FIELD: {"scheme": INTEGRITY_SCHEME,
+                                                  "mac": _state_mac(_require_integrity_key(integrity_key), written)}}
         target.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps(self.snapshot(), indent=2, sort_keys=True)
+        text = json.dumps(state, indent=2, sort_keys=True)
         # Write beside the target, flush it to disk, then rename over it: a crash
         # or a full disk leaves the previous complete file in place, never a
         # half-written one that loads as corrupt (or, truncated to nothing, as
@@ -238,8 +267,21 @@ class CCCStore:
         return target
 
     @classmethod
-    def load(cls, path: str | Path) -> "CCCStore":
+    def load(cls, path: str | Path, *, integrity_key: bytes | None = None) -> "CCCStore":
+        """Read a saved state. With ``integrity_key``, the file must carry an integrity record that verifies under
+        that key, or StateIntegrityError is raised and nothing is loaded. Without one, any integrity record is
+        ignored and the file loads as before."""
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
+        integrity = raw.pop(INTEGRITY_FIELD, None) if isinstance(raw, dict) else None
+        if integrity_key is not None:
+            key = _require_integrity_key(integrity_key)
+            mac = integrity.get("mac") if isinstance(integrity, dict) else None
+            if not isinstance(integrity, dict) or integrity.get("scheme") != INTEGRITY_SCHEME or not isinstance(mac, str):
+                raise StateIntegrityError(f"{path}: no {INTEGRITY_SCHEME} integrity record; it was saved without "
+                                          "a key, or the record was removed")
+            if not hmac.compare_digest(mac, _state_mac(key, raw)):
+                raise StateIntegrityError(f"{path}: the integrity record does not verify under this key; the file "
+                                          "was changed after it was saved, or saved with another key")
         store = cls(path)
 
         for value in raw.get("artifacts", []):

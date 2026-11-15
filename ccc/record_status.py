@@ -64,7 +64,7 @@ import hmac
 import json
 from typing import Any
 
-from .models import ActorType, ArtifactState, ProvenanceStatus, RelationshipType, content_digest
+from .models import ActorType, ArtifactState, ProvenanceStatus, RelationshipType, content_digest, tombstone_digest
 
 __all__ = [
     "ABSENT",
@@ -150,7 +150,11 @@ def record_status(system: Any, *, source: str, candidate_id: str, text_digest: s
     ]
     matches = [a for a in from_source if (a.metadata or {}).get("candidate_id") == candidate_id]
     # The same text under any candidate id. An erased record keeps its fingerprint, so this finds it too.
-    same_text = [a for a in from_source if a.content_digest == text_digest]
+    tombstone_key = getattr(system, "_tombstone_key", None)
+    fingerprints = {text_digest}
+    if tombstone_key is not None:
+        fingerprints.add(tombstone_digest(tombstone_key, text_digest))
+    same_text = [a for a in from_source if a.content_digest in fingerprints]
     removed = matches + same_text
     if any(a.state is ArtifactState.ERASED for a in removed):
         return ERASED
