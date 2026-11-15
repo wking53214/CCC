@@ -29,6 +29,8 @@ from .human_auth import HumanVerifier, build_human_request
 from .human_resolution import HumanResolutionManager
 from .lineage import LineageManager
 from .models import (
+    TOMBSTONE_PREFIX,
+    tombstone_digest,
     Actor,
     ActorType,
     AnalysisStage,
@@ -341,8 +343,13 @@ class CCCSystem:
                  human_verifier: HumanVerifier | None = None,
                  allow_unguarded_writes: bool = False,
                  allow_unverified_humans: bool = False,
-                 integrity_key: bytes | None = None) -> None:
+                 integrity_key: bytes | None = None,
+                 tombstone_key: bytes | None = None) -> None:
         """
+        tombstone_key: optional bytes (at least 16), the caller's. With it, a record erased or redacted keeps a keyed
+            fingerprint instead of the plain one (in ``content_digest`` and in a ``text_digest`` it carries), so its
+            text still matches for this system (``record_status``) but a guess at it cannot be confirmed by anyone
+            reading the store or the saved file. Records removed before a key was set keep their plain fingerprint.
         integrity_key: optional bytes (at least 16), the caller's. With it, every save carries an HMAC over the
             state written, and resuming from ``persistence_path`` refuses a file whose HMAC does not verify
             (``StateIntegrityError``), so a record added or edited in the file by hand is never loaded. CCC keeps no
@@ -410,6 +417,9 @@ class CCCSystem:
             )
         if integrity_key is not None:
             _require_integrity_key(integrity_key)
+        if tombstone_key is not None:
+            _require_integrity_key(tombstone_key)
+        self._tombstone_key = bytes(tombstone_key) if tombstone_key is not None else None
         if store is not None:
             self.store = store
         elif persistence_path is not None and _has_saved_state(persistence_path):
@@ -421,6 +431,14 @@ class CCCSystem:
             self.store = CCCStore.load(persistence_path, integrity_key=integrity_key)
         else:
             self.store = CCCStore(persistence_path)
+        if self._tombstone_key is None and any(
+                (a.content_digest or "").startswith(TOMBSTONE_PREFIX) for a in self.store.artifacts.values()):
+            # Without the key a keyed tombstone matches nothing, so text a human removed would answer held again
+            # under a new id. Refuse rather than fail open; CCCStore.load still reads the store for inspection.
+            raise UnguardedSystemError(
+                "this store holds keyed tombstones (records erased or redacted under a tombstone_key), and the "
+                "system was built without one, so removed text could come back under a new id. Pass tombstone_key=..."
+            )
         self._integrity_key = integrity_key
         self.audit_trail = AuditTrail(self.store)
         self.rules = ConstitutionalRuleEngine(self.store)
@@ -1011,12 +1029,21 @@ class CCCSystem:
             reason=f"{operation.lower()} refused: negative finding ({', '.join(grounds)}); supersede it instead",
             evidence=(artifact_id,),
         )
+        metadata = {**old.metadata, f"{operation.lower()}_reason": reason}
+        kept_digest = old.content_digest
+        if self._tombstone_key is not None:
+            # A plain fingerprint of removed text lets anyone confirm a guess at it; a keyed one does not (A16).
+            if kept_digest:
+                kept_digest = tombstone_digest(self._tombstone_key, kept_digest)
+            if isinstance(metadata.get("text_digest"), str):
+                metadata["text_digest"] = tombstone_digest(self._tombstone_key, metadata["text_digest"])
         updated = replace(
             old,
             content=None,
+            content_digest=kept_digest,
             state=state,
             updated_at=utc_now(),
-            metadata={**old.metadata, f"{operation.lower()}_reason": reason},
+            metadata=metadata,
         )
         self.store.replace_artifact(updated)
         self.lineage.link(
@@ -1547,7 +1574,8 @@ class CCCSystem:
              human_verifier: HumanVerifier | None = None,
              allow_unguarded_writes: bool = False,
              allow_unverified_humans: bool = False,
-             integrity_key: bytes | None = None) -> "CCCSystem":
+             integrity_key: bytes | None = None,
+             tombstone_key: bytes | None = None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones. Neither guard is
         # saved with the store, so a reloaded system has them only if they are
@@ -1557,4 +1585,4 @@ class CCCSystem:
                    private_source_markers=private_source_markers,
                    write_permission=write_permission, human_verifier=human_verifier,
                    allow_unguarded_writes=allow_unguarded_writes, allow_unverified_humans=allow_unverified_humans,
-                   integrity_key=integrity_key)
+                   integrity_key=integrity_key, tombstone_key=tombstone_key)
