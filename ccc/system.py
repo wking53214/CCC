@@ -46,7 +46,7 @@ from .permission import WritePermission, build_request
 from .provenance import ProvenanceManager
 from .query import QueryEngine
 from .road_signs import RoadSignManager
-from .store import CCCStore
+from .store import CCCStore, _require_integrity_key
 
 
 def _asks_permission(operation: str):
@@ -340,8 +340,13 @@ class CCCSystem:
                  write_permission: WritePermission | None = None,
                  human_verifier: HumanVerifier | None = None,
                  allow_unguarded_writes: bool = False,
-                 allow_unverified_humans: bool = False) -> None:
+                 allow_unverified_humans: bool = False,
+                 integrity_key: bytes | None = None) -> None:
         """
+        integrity_key: optional bytes (at least 16), the caller's. With it, every save carries an HMAC over the
+            state written, and resuming from ``persistence_path`` refuses a file whose HMAC does not verify
+            (``StateIntegrityError``), so a record added or edited in the file by hand is never loaded. CCC keeps no
+            key of its own. Without it, saves and loads are as before.
         human_verifier: an optional callable the application supplies. When given,
             every human-only operation (decide, correct, amend, supersede,
             redact, erase, accept, establish_provenance, reject, ratify,
@@ -403,6 +408,8 @@ class CCCSystem:
                 "CCCSystem built without a human_verifier: every human-only operation would go through unverified. "
                 "Pass human_verifier=..., or allow_unverified_humans=True if that is deliberate."
             )
+        if integrity_key is not None:
+            _require_integrity_key(integrity_key)
         if store is not None:
             self.store = store
         elif persistence_path is not None and _has_saved_state(persistence_path):
@@ -411,9 +418,10 @@ class CCCSystem:
             # CCCSystem(persistence_path=p) silently started empty even when
             # p held a real prior state, and the only way to actually load
             # was CCCStore.load(p) + CCCSystem(store=...) as two steps.
-            self.store = CCCStore.load(persistence_path)
+            self.store = CCCStore.load(persistence_path, integrity_key=integrity_key)
         else:
             self.store = CCCStore(persistence_path)
+        self._integrity_key = integrity_key
         self.audit_trail = AuditTrail(self.store)
         self.rules = ConstitutionalRuleEngine(self.store)
         self.lineage = LineageManager(self.store, self.audit_trail, self.rules)
@@ -1528,7 +1536,7 @@ class CCCSystem:
         }
 
     def save(self, path: str | Path | None = None) -> Path:
-        return self.store.save(path)
+        return self.store.save(path, integrity_key=self._integrity_key)
 
     @classmethod
     def load(cls, path: str | Path, *, semantic_index=None,
@@ -1538,13 +1546,15 @@ class CCCSystem:
              write_permission: WritePermission | None = None,
              human_verifier: HumanVerifier | None = None,
              allow_unguarded_writes: bool = False,
-             allow_unverified_humans: bool = False) -> "CCCSystem":
+             allow_unverified_humans: bool = False,
+             integrity_key: bytes | None = None) -> "CCCSystem":
         # The provider is attached at load so the derived semantic index is
         # rebuilt from the store along with the lexical ones. Neither guard is
         # saved with the store, so a reloaded system has them only if they are
         # given here again, or the flags say building without them is deliberate.
-        return cls(store=CCCStore.load(path), semantic_index=semantic_index,
+        return cls(store=CCCStore.load(path, integrity_key=integrity_key), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
                    private_source_markers=private_source_markers,
                    write_permission=write_permission, human_verifier=human_verifier,
-                   allow_unguarded_writes=allow_unguarded_writes, allow_unverified_humans=allow_unverified_humans)
+                   allow_unguarded_writes=allow_unguarded_writes, allow_unverified_humans=allow_unverified_humans,
+                   integrity_key=integrity_key)
