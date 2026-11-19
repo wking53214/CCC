@@ -19,14 +19,27 @@ Record a human statement and a machine inference, then look at what CCC kept:
 ```python
 from ccc import Actor, CCCSystem
 
-system = CCCSystem()
+# The application decides who may write and who is really a human. Here a fixed list stands in for both.
+WRITERS = {"william", "assistant"}
+SIGNED_IN = {"william"}
+
+
+def write_permission(request):  # ccc.permission.WriteRequest: the method name and the caller's arguments
+    return getattr(request.kwargs.get("actor"), "actor_id", None) in WRITERS
+
+
+def human_verifier(request):  # ccc.human_auth.HumanRequest: the human act and who claims it
+    return request.actor_id in SIGNED_IN
+
+
+system = CCCSystem(write_permission=write_permission, human_verifier=human_verifier)
 note = system.ingest("the meeting is on Tuesday", actor=Actor.human("william"))
 guess = system.derive("probably moved to Wednesday", actor=Actor.model("assistant"))
 print(note.provenance_status, guess.epistemic_status)
 # PROVENANCE_UNCERTAIN INFERENCE
 ```
 
-The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was given (DEC-0003). The guess stays `INFERENCE`; a model cannot promote it. Human operations and the optional controls are covered in section 8.
+A bare `CCCSystem()` raises `UnguardedSystemError` (see "Limitations at a glance"), so the example supplies a `write_permission` and a `human_verifier`. Both are the application's own checks; the fixed lists above stand in for a real sign-in and a real access rule. A write by an actor the permission does not allow raises `WritePermissionRefused` before anything is stored (EXECUTED 2026-11-19: the example printed the line shown). The human note is `PROVENANCE_UNCERTAIN` because no authorization basis was given (DEC-0003). The guess stays `INFERENCE`; a model cannot promote it. Human operations and the optional controls are covered in section 8.
 
 ## Limitations at a glance
 
@@ -41,6 +54,8 @@ Full list, with status of each: section 4.
 ## Where this fits
 
 CCC is the last stop of the evidence spine, one of the groups of repos in ≡TACK (≡TACK is the whole library of repos and the company). The spine is five repos that a document passes through in order: HERALD reads it and pulls out claims, TIE records the evidence, Conservation_Kernel judges the root artifact, Governance_Gateway judges the admission door, and CCC decides whether its store takes the document. CNS connects them and is not a sixth stage.
+
+The three middle hand-offs of the evidence spine (TIE evidence into a kernel root, a kernel root into the gateway's artifact, the document into CCC's attempt) are also shipped as library functions in the [Spine](https://github.com/wking53214/Spine) repository (`spine.evidence`, `spine.door`, `spine.ccc`); `spine.ccc` uses this repository's CNS connector. Spine passes its own 41 tests at its pinned versions and has no running service (EXECUTED 2026-11-19 at Spine `7717f12`); it pins this repository at `2379de8`, the head of main on 2026-11-19.
 
 - **What CCC receives:** an attempted write from an application, which may carry a CNS decision in the form of a `write_permission`.
 - **What CCC hands on:** one read-only answer, whether an exact machine output was recorded here and in what state, to consumers such as CNS and Link.
@@ -164,6 +179,7 @@ Each measurement below is tied to the commit it was run on. Commands and conditi
 | Tests, neither CNS nor CCCb | 510 passed, 4 skipped on `f3ce7a3` (local run 2026-11-10, Python 3.13). |
 | Tests, without CNS | 776 passed, 4 skipped, 7 xfailed on `6f80792` only. Not re-measured on later commits. |
 | CNS suite against CCC | 3019 passed, 0 skipped, run on 2026-11-07 against the CCC code that became `2fd993a` (CNS PR #121 branch). |
+| EXECUTED 2026-11-15 | At `2379de8`, Python 3.13, CNS installed from a checkout of CNS `5ad55ce` (editable), `cccb` not installed: 1084 passed with `tests/test_integration_ccc_cccb_cns.py` left out. Running the whole suite in that state stops at collection: that module imports `cccb`, which is not installed, so one error interrupts the run (the conftest's skip message names only 10 match-extra modules, and this module is not among them; outstanding issue, no test or code edited). Not run: CI, with-`cccb` runs. |
 | Pins | The optional `cns` extra is pinned to the tag v4.0.0 (`pyproject.toml`). The `match` extra pins `cccb` to commit `737cf0e`. |
 | Write permission | Eleven machine-side doors ask the application's `write_permission` first (listed in section 8). The human operations never ask it; they ask the application's `human_verifier`, if one is given. |
 
@@ -228,6 +244,13 @@ CNS spine: HERALD -> TIE -> Conservation_Kernel -> Governance_Gateway -> CCC (wr
 The detail of the spine is in section 1. How CCC is the last hop: the document goes into its store only if the roster allows it. With the roster's guard as its `write_permission`, a direct `ingest` after a roster no is refused, and an approved decision opens `ingest` and `record` once, for the one document it judged. The other doors that ask the permission carry a conclusion, a finding, an observation, a link or a relationship that no seat judges, so under that permission they stay refused after any decision. CNS's spine script (`chains/evidence_spine.py`) names the doors it expects CCC to gate and goes red if the two sets differ in either direction: a door CCC gates that the spine does not name, or a door the spine names that CCC does not gate. CNS's script was reported to give 56 results (52 scenarios plus 4 checks) with 3 recorded GAPs on 2026-11-07 (in the TIE README) and again on 2026-11-08 (in the Conservation_Kernel README). These are CNS-side measurements, quoted here and not re-run for this README. The earlier 30-result, one-GAP figure of 2026-10-30 is superseded.
 
 
+### Role Within ≡TACK, authority terms
+
+- **Evaluation:** CCC's rules decide whether a record, a promotion or a human operation is accepted. **Enforcement:** only at its facade, and only when the application supplies a `write_permission` and a `human_verifier` (or says in code that it goes without). **Evidence generation:** the store's audit, provenance and lineage lists. **Evidence verification:** optional and keyed, off by default. With no key the state file has no digest, so an edited file loads as valid. With a caller-supplied `integrity_key`, each save carries an HMAC and a load with the key refuses a changed file; a load of that same file without the key does not check it. The three state-file results were EXECUTED 2026-11-17. `MachineRecords` recomputes a record's fingerprint from the stored text and, with an `attestation_key`, counts only stamped records (held by `tests/test_record_status.py` and `tests/test_record_attestation.py`, which passed in the same session). HMAC is a shared-secret check: whoever holds the key to verify can also forge.
+- **Authentication:** none. `Actor.human(...)` is a label; identity is checked only through a supplied `human_verifier`.
+- **Fail behavior.** Closed at construction: `CCCSystem(...)` raises `UnguardedSystemError` unless guards are supplied or waived by flag. Open when waived, and open to anyone who holds the managers (`system.store`, `system.provenance`) directly.
+- **Not a tamper-evident ledger by default.** Persistence has no digest unless the caller supplies `integrity_key` (section 8, "Two more optional keys").
+
 ### Authority, the matcher and the known limits
 
 Three packages, three jobs. **CCC decides**: what is accepted, what a duplicate or a recurrence means, what counts as an occurrence, what may escalate. **CCCb measures** how alike two texts are, and decides nothing. **CNS binds** a verdict to the content it was about, and decides nothing. Neither of the others replaces CCC's authority: a measurement is not corroboration, a binding is correspondence and not truth, and a bound PASS does not admit what CCC's rules refuse.
@@ -244,7 +267,7 @@ Known limits, each stated as a strict expected failure in the tests so that clos
 - **Callers that hold the managers can bypass the facade.** `system.provenance`, `system.discovery.advance` and the other managers are attributes; `human_verifier` guards the facade methods, and `write_permission` guards the doors listed in section 8. Counting occurrences trusts the `relationships` a caller passes to the bare `discover`, and a duplicate is recognised by the words "duplicate detection" in a record's `method`.
 - **The CNS connector is ALPHA only** and judges on a scratch copy that carries neither the live `write_permission` nor `human_verifier`: a PASS says CCC's rules admit the call, not that the application's own checks do. The digest binds the call, not the store, so a PASS stays bindable after the state it was judged on has changed, and a hand-built PASS with the right subject and digest binds too. A binding says which content a verdict was about, nothing more. CCC has no outcome (OMEGA) end and does not claim one.
 
-Evidence for all of the above is in `tests/test_matcher_boundary.py`, `tests/test_determinism.py`, `tests/test_evidence_integrity_persistence.py` and `tests/test_integration_ccc_cccb_cns.py` (the last runs the real CCCb and CNS and is skipped only where CNS is absent).
+Evidence for all of the above is in `tests/test_matcher_boundary.py`, `tests/test_determinism.py`, `tests/test_evidence_integrity_persistence.py` and `tests/test_integration_ccc_cccb_cns.py` (the last runs the real CCCb and CNS. It is skipped where CNS is absent. Where CNS is installed and `cccb` is not, it fails at collection: EXECUTED 2026-11-15, see the status table).
 
 ## 8. Connecting to CNS (optional)
 
@@ -261,7 +284,10 @@ pip install -e '.[cns]'      # from a checkout
 from ccc import Actor, CCCSystem
 from ccc.cns_connector import CccGate, attempt
 
-system = CCCSystem()
+system = CCCSystem(
+    write_permission=lambda request: getattr(request.kwargs.get("actor"), "actor_id", None) == "m",
+    human_verifier=lambda request: request.actor_id == "h",
+)  # the application's own checks; see Quick start
 proposal = system.derive("a machine inference", actor=Actor.model("m"))
 gate = CccGate(system)
 
