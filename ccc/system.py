@@ -15,6 +15,10 @@ from .constitutional_rules import ConstitutionalRuleEngine
 from .discovery import DiscoveryManager
 from .text_matching import (
     TextMatcherMissing,
+    apply_duplicate_cutoff,
+    apply_recurrence_cutoff,
+    check_matcher_cutoffs,
+    checked_cutoff,
     checked_duplicate,
     checked_recurrence,
     require_matcher,
@@ -338,6 +342,8 @@ class CCCSystem:
                  semantic_index=None,
                  semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
                  text_matcher=None,
+                 duplicate_threshold: float | None = None,
+                 recurrence_threshold: float | None = None,
                  private_source_markers=None,
                  write_permission: WritePermission | None = None,
                  human_verifier: HumanVerifier | None = None,
@@ -397,6 +403,11 @@ class CCCSystem:
             (cccb.TextMatcher). Injected, never imported. Required only by
             record_external_finding, which refuses without one; see
             ccc/text_matching.py.
+        duplicate_threshold, recurrence_threshold: CCC's own cut-offs for what
+            counts as a duplicate (anti-probability below this) and as the
+            same pattern (overlap at or above this). When given, CCC applies
+            them to every matcher answer, and refuses a matcher that reports
+            a stricter number. None, the default, uses the matcher's own.
         semantic_index: optional provider satisfying ccc.semantic.SemanticIndex.
             Injected, never imported -- CCC defines the interface and owns the
             policy; the model lives outside. None (the default) means
@@ -457,6 +468,9 @@ class CCCSystem:
         self.discovery = _AsksPermission(self._discovery, self, ("discover",))
         require_matcher(text_matcher)
         self.text_matcher = text_matcher
+        self.duplicate_threshold = checked_cutoff(duplicate_threshold, "duplicate_threshold")
+        self.recurrence_threshold = checked_cutoff(recurrence_threshold, "recurrence_threshold")
+        check_matcher_cutoffs(text_matcher, self.duplicate_threshold, self.recurrence_threshold)
         self.private_source_markers = _stated_private_sources(private_source_markers)
         if write_permission is not None and not callable(write_permission):
             raise TypeError("write_permission must be a callable that takes a WriteRequest, or None")
@@ -1235,8 +1249,9 @@ class CCCSystem:
         # Duplicate check first. The matcher measures; CCC decides what a
         # duplicate means (below: linked, tagged, never counted).
         known = self.store.discoveries
-        duplicate = checked_duplicate(
-            self.text_matcher.duplicate_of(comparison_text), known)
+        duplicate = apply_duplicate_cutoff(
+            checked_duplicate(self.text_matcher.duplicate_of(comparison_text), known),
+            self.duplicate_threshold)
 
         method = finding.method
         relationships: tuple = ()
@@ -1255,8 +1270,9 @@ class CCCSystem:
         # is NOT an anti-probability duplicate: a re-observation of the same
         # content is the opposite signal and must not advance a pattern.
         is_duplicate = bool(relationships)
-        recurrence = None if is_duplicate else checked_recurrence(
-            self.text_matcher.recurrence_of(comparison_text), known)
+        recurrence = None if is_duplicate else apply_recurrence_cutoff(
+            checked_recurrence(self.text_matcher.recurrence_of(comparison_text), known),
+            self.recurrence_threshold)
 
         # Semantic evidence, when a provider is attached. Consulted for its
         # opinion and recorded either way; it never overrides the lexical
@@ -1569,6 +1585,8 @@ class CCCSystem:
     def load(cls, path: str | Path, *, semantic_index=None,
              semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD,
              text_matcher=None,
+             duplicate_threshold: float | None = None,
+             recurrence_threshold: float | None = None,
              private_source_markers=None,
              write_permission: WritePermission | None = None,
              human_verifier: HumanVerifier | None = None,
@@ -1582,6 +1600,7 @@ class CCCSystem:
         # given here again, or the flags say building without them is deliberate.
         return cls(store=CCCStore.load(path, integrity_key=integrity_key), semantic_index=semantic_index,
                    semantic_threshold=semantic_threshold, text_matcher=text_matcher,
+                   duplicate_threshold=duplicate_threshold, recurrence_threshold=recurrence_threshold,
                    private_source_markers=private_source_markers,
                    write_permission=write_permission, human_verifier=human_verifier,
                    allow_unguarded_writes=allow_unguarded_writes, allow_unverified_humans=allow_unverified_humans,
