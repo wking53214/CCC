@@ -1,6 +1,6 @@
 """Skip the modules that need the CCCb text matcher when it is not installed.
 
-Ten test modules import `cccb` when they load. Without the optional `match`
+Eleven test modules import `cccb` when they load. Without the optional `match`
 extra they used to fail collection. Now they are left out of the run, and the
 run header says how many were left out, so the skip is visible.
 """
@@ -11,6 +11,7 @@ MATCH_MODULES = [
     "test_determinism.py",
     "test_evidence_integrity_persistence.py",
     "test_external_finding.py",
+    "test_integration_ccc_cccb_cns.py",
     "test_matcher_boundary.py",
     "test_recurrence.py",
     "test_recurring_groups.py",
