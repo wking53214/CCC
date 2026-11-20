@@ -19,7 +19,11 @@ CCC owns: what a duplicate means (recorded and linked, never counted as an
 occurrence), what a recurrence may do (raise an ANOMALY to a PATTERN, never to
 a MANDATE), and the refusal when no matcher is attached.
 
-The matcher owns: the measurement, its thresholds, and its indexes.
+The matcher owns: the measurement and its indexes. The two cut-offs are CCC's to
+set (``CCCSystem(duplicate_threshold=..., recurrence_threshold=...)``). When CCC is
+given a number it applies it to every answer, so a matcher that is looser than CCC
+cannot change what counts as a match. Left unset, CCC uses whatever the matcher
+uses, which is the earlier behaviour.
 
 No matcher, no machine findings
 -------------------------------
@@ -35,10 +39,12 @@ so CCC checks their shape and refuses (``ValueError``) an answer naming an id
 CCC never gave the matcher. Numbers are checked too: a score is a finite number
 in [0, 1] (an anti-probability and a Jaccard overlap both are), a match length
 is a positive integer, and a recurrence's best id is one of its own cluster.
-CCC does not check a score against the matcher's threshold: the threshold is
-the matcher's, and CCC acts on the matcher saying "this is a match". A wrong
-answer is a defect in the matcher, and it fails loudly rather than becoming a
-record.
+With no cut-off set, CCC does not check a score against the matcher's threshold:
+it acts on the matcher saying "this is a match". With one set, CCC drops any
+answer that does not meet it. A matcher that reports a stricter cut-off than
+CCC's is refused when the system is built, because CCC would never see the
+matches in between. A wrong answer is a defect in the matcher, and it fails
+loudly rather than becoming a record.
 """
 
 from __future__ import annotations
@@ -52,6 +58,10 @@ __all__ = [
     "require_matcher",
     "checked_duplicate",
     "checked_recurrence",
+    "checked_cutoff",
+    "check_matcher_cutoffs",
+    "apply_duplicate_cutoff",
+    "apply_recurrence_cutoff",
 ]
 
 INSTALL_HINT = (
@@ -146,3 +156,63 @@ def checked_recurrence(
     if best not in {member for member, _score in cluster}:
         raise ValueError(f"text matcher named a best recurrence {best!r} outside its own cluster")
     return (best, _number(best_score, "score"), tuple(cluster))
+
+
+def checked_cutoff(value: Any, what: str) -> Optional[float]:
+    """None, or a finite number above 0 and at most 1. Anything else is refused, not clamped."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{what} must be a number or None; got {type(value).__name__}")
+    number = float(value)
+    if not math.isfinite(number) or not 0.0 < number <= 1.0:
+        raise ValueError(f"{what} must be a finite number above 0 and at most 1; got {value!r}")
+    return number
+
+
+def check_matcher_cutoffs(
+    matcher: Any, duplicate_threshold: Optional[float], recurrence_threshold: Optional[float]
+) -> None:
+    """Refuse a matcher whose own cut-off is stricter than CCC's.
+
+    A stricter matcher hides the matches between its cut-off and CCC's, and CCC
+    could never apply its own number to them. A matcher that does not report a
+    cut-off cannot be checked here; CCC still applies its number to every answer.
+    """
+    if matcher is None:
+        return
+    theirs = getattr(matcher, "duplicate_threshold", None)
+    if duplicate_threshold is not None and isinstance(theirs, (int, float)) and theirs < duplicate_threshold:
+        raise ValueError(
+            f"the text matcher's duplicate cut-off ({theirs!r}) is stricter than CCC's ({duplicate_threshold!r}); "
+            "give the matcher CCC's number, for example cccb.TextMatcher(duplicate_threshold=...)"
+        )
+    theirs = getattr(matcher, "recurrence_threshold", None)
+    if recurrence_threshold is not None and isinstance(theirs, (int, float)) and theirs > recurrence_threshold:
+        raise ValueError(
+            f"the text matcher's recurrence cut-off ({theirs!r}) is stricter than CCC's ({recurrence_threshold!r}); "
+            "give the matcher CCC's number, for example cccb.TextMatcher(recurrence_threshold=...)"
+        )
+
+
+def apply_duplicate_cutoff(
+    answer: Optional[tuple[str, float, int]], threshold: Optional[float]
+) -> Optional[tuple[str, float, int]]:
+    """A checked duplicate answer, or None when its anti-probability is not below CCC's cut-off."""
+    if answer is None or threshold is None:
+        return answer
+    return answer if answer[1] < threshold else None
+
+
+def apply_recurrence_cutoff(
+    answer: Optional[tuple[str, float, tuple[tuple[str, float], ...]]], threshold: Optional[float]
+) -> Optional[tuple[str, float, tuple[tuple[str, float], ...]]]:
+    """A checked recurrence answer cut down to the matches at or above CCC's cut-off, or None if none remain."""
+    if answer is None or threshold is None:
+        return answer
+    kept = tuple(m for m in answer[2] if m[1] >= threshold)
+    if not kept:
+        return None
+    best = max(kept, key=lambda m: m[1])
+    return (best[0], best[1], kept)
+
