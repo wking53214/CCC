@@ -1,7 +1,7 @@
 """CCC owns the duplicate and recurrence cut-offs.
 
-When CCC is given a number it applies it to every matcher answer, and it refuses
-a matcher that reports a stricter one. With no number, behaviour is unchanged.
+CCC applies its numbers to every matcher answer, and refuses a matcher that
+reports a stricter one. The defaults are CCC's own declared values.
 """
 from __future__ import annotations
 
@@ -11,7 +11,12 @@ from typing import Optional, Tuple
 import pytest
 
 from ccc import Actor, CCCSystem
-from ccc.text_matching import apply_duplicate_cutoff, apply_recurrence_cutoff
+from ccc.text_matching import (
+    DEFAULT_DUPLICATE_THRESHOLD,
+    DEFAULT_RECURRENCE_THRESHOLD,
+    apply_duplicate_cutoff,
+    apply_recurrence_cutoff,
+)
 
 MODEL = Actor.model("ecology")
 
@@ -71,12 +76,28 @@ def _second_finding(duplicate=None, recurrence=None, **cutoffs):
 
 # --- duplicate ----------------------------------------------------------------------
 
-def test_with_no_cutoff_the_matchers_duplicate_answer_is_acted_on():
-    assert _kind(_second_finding(duplicate=(1e-6, 50))) == "duplicate"
+def test_the_default_cutoffs_are_the_declared_values_and_are_pinned():
+    # Changing either is a deliberate, reviewed act: this test is the review point.
+    assert DEFAULT_DUPLICATE_THRESHOLD == 1e-9
+    assert DEFAULT_RECURRENCE_THRESHOLD == 0.5
+    system = _system(_Scripted())
+    assert (system.duplicate_threshold, system.recurrence_threshold) == (1e-9, 0.5)
 
 
-def test_a_stricter_duplicate_cutoff_of_ccc_overrides_a_looser_matcher():
-    assert _kind(_second_finding(duplicate=(1e-6, 50), duplicate_threshold=1e-9)) == "independent"
+def test_ccc_defaults_equal_the_pinned_matchers_defaults():
+    cccb = pytest.importorskip("cccb")
+    matcher = cccb.TextMatcher()
+    assert matcher.duplicate_threshold == DEFAULT_DUPLICATE_THRESHOLD
+    assert matcher.recurrence_threshold == DEFAULT_RECURRENCE_THRESHOLD
+
+
+def test_a_duplicate_answer_looser_than_the_default_is_dropped_and_a_tighter_one_counts():
+    assert _kind(_second_finding(duplicate=(1e-6, 50))) == "independent"
+    assert _kind(_second_finding(duplicate=(1e-12, 50))) == "duplicate"
+
+
+def test_a_looser_duplicate_cutoff_set_by_ccc_keeps_what_the_default_would_drop():
+    assert _kind(_second_finding(duplicate=(1e-6, 50), duplicate_threshold=1e-3)) == "duplicate"
 
 
 def test_a_duplicate_below_ccc_cutoff_still_counts():
@@ -85,12 +106,13 @@ def test_a_duplicate_below_ccc_cutoff_still_counts():
 
 # --- recurrence ---------------------------------------------------------------------
 
-def test_with_no_cutoff_the_matchers_recurrence_answer_is_acted_on():
-    assert _kind(_second_finding(recurrence=0.4)) == "recurrence"
+def test_a_recurrence_below_the_default_is_dropped_and_one_at_it_counts():
+    assert _kind(_second_finding(recurrence=0.4)) == "independent"
+    assert _kind(_second_finding(recurrence=0.5)) == "recurrence"
 
 
-def test_a_higher_recurrence_cutoff_of_ccc_overrides_a_looser_matcher():
-    assert _kind(_second_finding(recurrence=0.4, recurrence_threshold=0.5)) == "independent"
+def test_a_lower_recurrence_cutoff_set_by_ccc_keeps_what_the_default_would_drop():
+    assert _kind(_second_finding(recurrence=0.4, recurrence_threshold=0.3)) == "recurrence"
 
 
 def test_a_recurrence_at_ccc_cutoff_still_counts():
@@ -148,9 +170,11 @@ def test_the_pinned_real_matcher_reports_its_cutoffs_and_is_checked_against_ccc(
         _system(cccb.TextMatcher(recurrence_threshold=0.9), recurrence_threshold=0.5)
 
 
-def test_unset_cutoffs_do_not_check_the_matcher_at_all():
-    system = _system(_Scripted(duplicate_threshold=1e-300, recurrence_threshold=1.0))
-    assert system.duplicate_threshold is None and system.recurrence_threshold is None
+def test_none_is_refused_there_is_no_use_the_matchers_own():
+    with pytest.raises(TypeError):
+        _system(_Scripted(), duplicate_threshold=None)
+    with pytest.raises(TypeError):
+        _system(_Scripted(), recurrence_threshold=None)
 
 
 # --- bad numbers are refused, not clamped --------------------------------------------
@@ -169,14 +193,13 @@ def test_a_non_number_cutoff_is_refused(bad):
         _system(_Scripted(), duplicate_threshold=bad)
 
 
-def test_the_cutoffs_survive_a_save_and_load_only_when_given_again(tmp_path):
-    system = _system(_Scripted(), duplicate_threshold=1e-9, recurrence_threshold=0.5)
+def test_the_cutoffs_are_not_saved_so_a_reload_uses_the_defaults_unless_given_again(tmp_path):
+    system = _system(_Scripted(), duplicate_threshold=1e-3, recurrence_threshold=0.3)
     path = tmp_path / "store.json"
     system.save(path)
-    reloaded = CCCSystem.load(path, text_matcher=_Scripted(), private_source_markers=(),
-                              allow_unguarded_writes=True, allow_unverified_humans=True,
-                              duplicate_threshold=1e-9, recurrence_threshold=0.5)
-    assert (reloaded.duplicate_threshold, reloaded.recurrence_threshold) == (1e-9, 0.5)
-    plain = CCCSystem.load(path, text_matcher=_Scripted(), private_source_markers=(),
-                           allow_unguarded_writes=True, allow_unverified_humans=True)
-    assert plain.duplicate_threshold is None and plain.recurrence_threshold is None
+    kwargs = dict(text_matcher=_Scripted(), private_source_markers=(), allow_unguarded_writes=True,
+                  allow_unverified_humans=True)
+    again = CCCSystem.load(path, duplicate_threshold=1e-3, recurrence_threshold=0.3, **kwargs)
+    assert (again.duplicate_threshold, again.recurrence_threshold) == (1e-3, 0.3)
+    plain = CCCSystem.load(path, **kwargs)
+    assert (plain.duplicate_threshold, plain.recurrence_threshold) == (1e-9, 0.5)

@@ -19,11 +19,11 @@ CCC owns: what a duplicate means (recorded and linked, never counted as an
 occurrence), what a recurrence may do (raise an ANOMALY to a PATTERN, never to
 a MANDATE), and the refusal when no matcher is attached.
 
-The matcher owns: the measurement and its indexes. The two cut-offs are CCC's to
-set (``CCCSystem(duplicate_threshold=..., recurrence_threshold=...)``). When CCC is
-given a number it applies it to every answer, so a matcher that is looser than CCC
-cannot change what counts as a match. Left unset, CCC uses whatever the matcher
-uses, which is the earlier behaviour.
+The matcher owns: the measurement and its indexes. The two cut-offs are CCC's
+(``CCCSystem(duplicate_threshold=..., recurrence_threshold=...)``, defaulting to
+``DEFAULT_DUPLICATE_THRESHOLD`` and ``DEFAULT_RECURRENCE_THRESHOLD`` below). CCC
+applies them to every answer, so a matcher that is looser than CCC cannot change
+what counts as a match.
 
 No matcher, no machine findings
 -------------------------------
@@ -39,11 +39,10 @@ so CCC checks their shape and refuses (``ValueError``) an answer naming an id
 CCC never gave the matcher. Numbers are checked too: a score is a finite number
 in [0, 1] (an anti-probability and a Jaccard overlap both are), a match length
 is a positive integer, and a recurrence's best id is one of its own cluster.
-With no cut-off set, CCC does not check a score against the matcher's threshold:
-it acts on the matcher saying "this is a match". With one set, CCC drops any
-answer that does not meet it. A matcher that reports a stricter cut-off than
-CCC's is refused when the system is built, because CCC would never see the
-matches in between. A wrong answer is a defect in the matcher, and it fails
+CCC drops any answer that does not meet its cut-offs. A matcher that reports a
+stricter cut-off than CCC's is refused when the system is built, because CCC would
+never see the matches in between. A matcher that reports nothing is still filtered
+but cannot be checked. A wrong answer is a defect in the matcher, and it fails
 loudly rather than becoming a record.
 """
 
@@ -58,6 +57,8 @@ __all__ = [
     "require_matcher",
     "checked_duplicate",
     "checked_recurrence",
+    "DEFAULT_DUPLICATE_THRESHOLD",
+    "DEFAULT_RECURRENCE_THRESHOLD",
     "checked_cutoff",
     "check_matcher_cutoffs",
     "apply_duplicate_cutoff",
@@ -158,10 +159,23 @@ def checked_recurrence(
     return (best, _number(best_score, "score"), tuple(cluster))
 
 
-def checked_cutoff(value: Any, what: str) -> Optional[float]:
-    """None, or a finite number above 0 and at most 1. Anything else is refused, not clamped."""
+# CCC's declared cut-offs. They were CCCb's defaults before CCC took them over, and they are
+# deliberately conservative, not calibrated: no one has measured how often either is wrong.
+# Change them in the open, in a PR that says why, not by drift. A test pins both.
+#
+# A duplicate is a shared span whose chance of arising by coincidence is below this (one in a billion).
+DEFAULT_DUPLICATE_THRESHOLD = 1e-9
+# A recurrence is a concept overlap at or above this (half the meaningful vocabulary shared). A false
+# recurrence can advance a pattern, which is worse than a missed one.
+DEFAULT_RECURRENCE_THRESHOLD = 0.5
+
+
+def checked_cutoff(value: Any, what: str, allow_none: bool = True) -> Optional[float]:
+    """A finite number above 0 and at most 1, or None when allowed. Anything else is refused, not clamped."""
     if value is None:
-        return None
+        if allow_none:
+            return None
+        raise TypeError(f"{what} must be a number; None is not accepted")
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"{what} must be a number or None; got {type(value).__name__}")
     number = float(value)
