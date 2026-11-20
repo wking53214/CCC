@@ -136,10 +136,16 @@ def test_a_matcher_that_reports_nothing_is_accepted_and_still_filtered():
     _system(_Scripted(), duplicate_threshold=1e-9, recurrence_threshold=0.5)
 
 
-def test_the_real_matcher_at_the_pinned_commit_is_accepted():
-    """The pinned CCCb does not report its cut-offs yet; CCC must still work with it."""
+def test_the_pinned_real_matcher_reports_its_cutoffs_and_is_checked_against_ccc():
     cccb = pytest.importorskip("cccb")
-    _system(cccb.TextMatcher(), duplicate_threshold=1e-9, recurrence_threshold=0.5)
+    ok = cccb.TextMatcher(duplicate_threshold=1e-9, recurrence_threshold=0.5)
+    assert (ok.duplicate_threshold, ok.recurrence_threshold) == (1e-9, 0.5)
+    _system(ok, duplicate_threshold=1e-9, recurrence_threshold=0.5)
+    _system(cccb.TextMatcher(), duplicate_threshold=1e-9, recurrence_threshold=0.5)  # defaults are looser
+    with pytest.raises(ValueError, match="duplicate cut-off"):
+        _system(cccb.TextMatcher(duplicate_threshold=1e-12), duplicate_threshold=1e-9)
+    with pytest.raises(ValueError, match="recurrence cut-off"):
+        _system(cccb.TextMatcher(recurrence_threshold=0.9), recurrence_threshold=0.5)
 
 
 def test_unset_cutoffs_do_not_check_the_matcher_at_all():
